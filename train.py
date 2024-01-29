@@ -20,6 +20,7 @@ from nets.segnetvit import SegNetViT
 from dataset.utils import collect_batch
 from dataset.get_dataset import compose_datasets
 from tools.common import torch_set_gpu
+from trainer import Trainer
 
 torch.set_grad_enabled(True)
 
@@ -111,8 +112,8 @@ def train_DDP(rank, world_size, model, config, train_set, test_set, feat_model, 
     else:
         test_set = None
 
-    trainer = SegTrainer(model=model, train_loader=train_loader, feat_model=feat_model, eval_loader=test_set,
-                         config=config, img_transforms=img_transforms)
+    trainer = Trainer(model=model, train_loader=train_loader, feat_model=feat_model, eval_loader=test_set,
+                      config=config, img_transforms=img_transforms)
     trainer.train()
 
 
@@ -188,8 +189,8 @@ if __name__ == '__main__':
                                           num_workers=4)
         else:
             test_loader = None
-        trainer = SegTrainer(model=model, train_loader=train_loader, feat_model=feat_model, eval_loader=test_loader,
-                             config=config, img_transforms=img_transforms)
+        trainer = Trainer(model=model, train_loader=train_loader, feat_model=feat_model, eval_loader=test_loader,
+                          config=config, img_transforms=img_transforms)
         trainer.train()
     else:
         mp.spawn(train_DDP, nprocs=len(config['gpu']),

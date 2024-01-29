@@ -7,6 +7,28 @@
 =================================================='''
 import os
 import torch
+import json
+import yaml
+
+
+def load_args(args, save_path):
+    with open(save_path, "r") as f:
+        args.__dict__ = json.load(f)
+
+
+def save_args_yaml(args, save_path):
+    with open(save_path, 'w') as f:
+        yaml.dump(args, f)
+
+
+def merge_tags(tags: list, connection='_'):
+    out = ''
+    for i, t in enumerate(tags):
+        if i == 0:
+            out = out + t
+        else:
+            out = out + connection + t
+    return out
 
 
 def torch_set_gpu(gpus):
