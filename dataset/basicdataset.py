@@ -11,7 +11,7 @@ import os.path as osp
 import numpy as np
 import cv2
 from colmap_utils.read_write_model import qvec2rotmat, read_model
-from dataset.utils import normalize_size_spg
+from dataset.utils import normalize_size
 
 
 class BasicDataset:
@@ -277,7 +277,7 @@ class BasicDataset:
             'descriptors': sel_descs,
             'scores': sel_scores,
             'keypoints': sel_kpts,
-            'norm_keypoints': normalize_size_spg(x=sel_kpts, size=image_size),
+            'norm_keypoints': normalize_size(x=sel_kpts, size=image_size),
             'gt_seg': sel_seg_ids,
             'gt_cls': gt_cls,
             'gt_cls_dist': gt_cls_dist,
@@ -391,7 +391,7 @@ class BasicDataset:
             'scores': scores,
             'keypoints': kpts,
             'image_size': image_size,
-            'norm_keypoints': normalize_size_spg(x=kpts, size=image_size),
+            'norm_keypoints': normalize_size(x=kpts, size=image_size),
             'gt_seg': seg_ids,
             'gt_cls': gt_cls,
             'gt_cls_dist': gt_cls_dist,

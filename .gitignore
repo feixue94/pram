@@ -1,1 +1,7 @@
-.idea/
+.idea
+__pycache__
+weights
+*.png
+log_*
+*.log
+.nfs*
