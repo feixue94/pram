@@ -51,3 +51,33 @@ def compute_pose_error(pred_qcw, pred_tcw, gt_qcw, gt_tcw):
     q_error = quaternion_angular_error(q1=pred_qcw, q2=gt_qcw)
 
     return q_error, t_error
+
+
+def read_retrieval_results(path):
+    output = {}
+    with open(path, "r") as f:
+        lines = f.readlines()
+        for p in lines:
+            p = p.strip("\n").split(" ")
+
+            if p[1] == "no_match":
+                continue
+            if p[0] in output.keys():
+                output[p[0]].append(p[1])
+            else:
+                output[p[0]] = [p[1]]
+    return output
+
+
+def read_gt_pose(path):
+    gt_poses = {}
+    with open(path, 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            l = l.strip().split(' ')
+            gt_poses[l[0]] = {
+                'qvec': np.array([float(v) for v in l[1:5]], float),
+                'tvec': np.array([float(v) for v in l[5:]], float),
+            }
+
+    return gt_poses

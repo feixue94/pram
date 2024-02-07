@@ -23,7 +23,6 @@ from nets.gm import GM
 from tools.common import resize_img
 
 
-# from localization.matcher import Matcher
 def process_segmentations(segs, topk=10):
     pred_values, pred_ids = torch.topk(segs, k=segs.shape[-1], largest=True, dim=-1)  # [N, C]
     pred_values = pred_values.cpu().numpy()

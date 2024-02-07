@@ -13,7 +13,7 @@ import pycolmap
 import time
 from colmap_utils.camera_intrinsics import intrinsics_from_camera
 from colmap_utils.read_write_model import qvec2rotmat, read_model, read_compressed_model, intrinsics_from_camera
-from localization.utils import compute_pose_error, read_query_info
+from localization.utils import read_query_info, read_gt_pose
 
 
 class SingleLocMap:
@@ -503,17 +503,8 @@ class SingleLocMap:
             'valid_p3d_ids': valid_p3d_ids,
         }
 
-    def read_gt_pose(self, path, name_prefix=''):
-        self.gt_poses = {}
-        with open(path, 'r') as f:
-            lines = f.readlines()
-            for l in lines:
-                l = l.strip().split()
-                self.gt_poses[name_prefix + l[0]] = {
-                    'qvec': np.array([float(v) for v in l[1:5]], float),
-                    'tvec': np.array([float(v) for v in l[5:]], float),
-                }
-
+    def read_gt_pose(self, path, prefix=''):
+        self.gt_poses = read_gt_pose(path=path, prefix=prefix)
         print('Load {} gt poses'.format(len(self.gt_poses.keys())))
 
     def match(self, query_data, map_data, in_plane=True):
