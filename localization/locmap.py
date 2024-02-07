@@ -15,15 +15,19 @@ import pycolmap
 import yaml
 import time
 from copy import deepcopy
-from loc.utils.tools import compute_pose_error
 from colmap_utils.camera_intrinsics import intrinsics_from_camera
 from colmap_utils.read_write_model import qvec2rotmat, read_model, read_compressed_model, intrinsics_from_camera
 from recognition.vis_seg import vis_seg_point, generate_color_dic, vis_inlier
 from tools.common import resize_img
 from recognition.vis_seg import plot_matches
+from localization.utils import compute_pose_error, read_query_info
 
 
 class SingleLocMap:
+    '''
+    localization in a single scene (e.g., room)
+    '''
+
     def __init__(self, config, matcher, with_compress=False):
         self.config = config
         self.image_path_prefix = self.config['image_path_prefix']
@@ -130,9 +134,6 @@ class SingleLocMap:
             if new_frame_id in sel_covis_ids:
                 continue
             sel_covis_ids.append(new_frame_id)
-
-        # print('Retain {:d} valid connected frames'.format(len(sel_covis_ids)))
-
         return sel_covis_ids
 
     def outlier_filtering_by_projection(self, Tcw, K, width, height, xyzs, min_depth=0, max_depth=50):
@@ -145,7 +146,7 @@ class SingleLocMap:
         mask = mask * (proj_uvs[:, 2] > min_depth) * (proj_uvs[:, 2] < max_depth)
         return mask
 
-    def refine_pose(self, data, remove_overlap=True):
+    def refine_pose_by_matching(self, data, remove_overlap=True):
         query_data = data['query_data']
         query_cfg = data['query_data']['cfg']
         n_init_inliers = data['query_data']['n_inliers']
@@ -516,7 +517,6 @@ class SingleLocMap:
             lines = f.readlines()
             for l in lines:
                 l = l.strip().split()
-                # self.gt_poses[l[0].split('/')[-1]] = {  # make aachen and robotcar work
                 self.gt_poses[name_prefix + l[0]] = {
                     'qvec': np.array([float(v) for v in l[1:5]], float),
                     'tvec': np.array([float(v) for v in l[5:]], float),

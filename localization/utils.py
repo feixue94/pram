@@ -6,7 +6,7 @@
 @Date   07/02/2024 15:27
 =================================================='''
 import numpy as np
-from colmap_utils.read_write_model import qvec2rotmat, rotmat2qvec
+from colmap_utils.read_write_model import qvec2rotmat
 
 
 def read_query_info(query_fn: str, name_prefix='') -> dict:
@@ -39,21 +39,15 @@ def quaternion_angular_error(q1, q2):
 def compute_pose_error(pred_qcw, pred_tcw, gt_qcw, gt_tcw):
     pred_Rcw = qvec2rotmat(qvec=pred_qcw)
     pred_tcw = np.array(pred_tcw, float).reshape(3, 1)
-    pred_Rwc = pred_Rcw.transpose()
     pred_twc = -pred_Rcw.transpose() @ pred_tcw
 
     gt_Rcw = qvec2rotmat(gt_qcw)
     gt_tcw = np.array(gt_tcw, float).reshape(3, 1)
-    gt_Rwc = gt_Rcw.transpose()
     gt_twc = -gt_Rcw.transpose() @ gt_tcw
 
     t_error_xyz = pred_twc - gt_twc
     t_error = np.sqrt(np.sum(t_error_xyz ** 2))
 
-    # pred_qwc = sciR.from_quat([pred_qcw[1], pred_qcw[2], pred_qcw[3], pred_qcw[0]]).as_quat()
-    # gt_qwc = sciR.from_quat([gt_qcw[1], gt_qcw[2], gt_qcw[3], gt_qcw[0]]).as_quat()
-    #
-    # q_error = quaternion_angular_error(q1=pred_qwc, q2=gt_qwc)
     q_error = quaternion_angular_error(q1=pred_qcw, q2=gt_qcw)
 
     return q_error, t_error
