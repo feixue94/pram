@@ -28,13 +28,15 @@ class BasicDataset:
                  train=True,
                  with_aug=False,
                  min_inliers=0,
-                 max_inliers=1024,
+                 max_inliers=4096,
                  random_inliers=False,
                  jitter_params=None,
                  scale_params=None,
                  image_dim=1,
+                 pre_load=False,
                  query_info_path=None,
-                 sc_mean_scale_fn=None, ):
+                 sc_mean_scale_fn=None,
+                 ):
         self.n_class = n_class
         self.train = train
         self.min_inliers = min_inliers
@@ -168,17 +170,16 @@ class BasicDataset:
             feat_data = self.feats[img_name]
         else:
             feat_data = np.load(osp.join(self.feature_dir, img_name.replace('/', '+') + '.npy'), allow_pickle=True)[()]
-        descs = feat_data['descriptors']  # [N, D]
+        # descs = feat_data['descriptors']  # [N, D]
         scores = feat_data['scores']  # [N, 1]
         kpts = feat_data['keypoints']  # [N, 2]
         image_size = feat_data['image_size']
 
-        nfeat = descs.shape[0]
+        nfeat = kpts.shape[0]
 
         # print(img_name, self.name_to_id[img_name])
         p3d_ids = self.images[self.name_to_id[img_name]].point3D_ids
         p3d_xyzs = np.zeros(shape=(nfeat, 3), dtype=int)
-        # print('p3d_ids: ', p3d_ids, len(p3d_ids))
 
         seg_ids = np.zeros(shape=(nfeat,), dtype=int)  # + self.n_class - 1
         for i in range(nfeat):
@@ -225,7 +226,7 @@ class BasicDataset:
 
             sel_ids = np.hstack([sel_inlier_ids, sel_outlier_ids])
 
-        sel_descs = descs[sel_ids]
+        # sel_descs = descs[sel_ids]
         sel_scores = scores[sel_ids]
         sel_kpts = kpts[sel_ids]
         sel_seg_ids = seg_ids[sel_ids]
@@ -233,29 +234,28 @@ class BasicDataset:
 
         shuffle_ids = np.arange(sel_ids.shape[0])
         np.random.shuffle(shuffle_ids)
-        sel_descs = sel_descs[shuffle_ids]
+        # sel_descs = sel_descs[shuffle_ids]
         sel_scores = sel_scores[shuffle_ids]
         sel_kpts = sel_kpts[shuffle_ids]
         sel_seg_ids = sel_seg_ids[shuffle_ids]
         sel_xyzs = sel_xyzs[shuffle_ids]
 
-        if sel_descs.shape[0] < self.nfeatures:
+        if sel_kpts.shape[0] < self.nfeatures:
             # print(sel_descs.shape, sel_kpts.shape, sel_scores.shape, sel_seg_ids.shape, sel_xyzs.shape)
-            valid_sel_ids = np.array([v for v in range(sel_descs.shape[0]) if sel_seg_ids[v] > 0], dtype=int)
+            valid_sel_ids = np.array([v for v in range(sel_kpts.shape[0]) if sel_seg_ids[v] > 0], dtype=int)
             # ref_sel_id = np.random.choice(valid_sel_ids, size=1)[0]
             if valid_sel_ids.shape[0] == 0:
-                valid_sel_ids = np.array([v for v in range(sel_descs.shape[0])], dtype=int)
-            random_n = self.nfeatures - sel_descs.shape[0]
+                valid_sel_ids = np.array([v for v in range(sel_kpts.shape[0])], dtype=int)
+            random_n = self.nfeatures - sel_kpts.shape[0]
             random_scores = np.random.random((random_n,))
-            random_kpts, random_descs, random_seg_ids, random_xyzs = self.random_points_from_reference(
+            random_kpts, random_seg_ids, random_xyzs = self.random_points_from_reference(
                 n=random_n,
                 ref_kpts=sel_kpts[valid_sel_ids],
-                ref_descs=sel_descs[valid_sel_ids],
                 ref_segs=sel_seg_ids[valid_sel_ids],
                 ref_xyzs=sel_xyzs[valid_sel_ids],
                 radius=5,
             )
-            sel_descs = np.vstack([sel_descs, random_descs])
+            # sel_descs = np.vstack([sel_descs, random_descs])
             sel_scores = np.hstack([sel_scores, random_scores])
             sel_kpts = np.vstack([sel_kpts, random_kpts])
             sel_seg_ids = np.hstack([sel_seg_ids, random_seg_ids])
@@ -274,7 +274,7 @@ class BasicDataset:
 
         param_out = self.extract_intrinsic_extrinsic_params(image_id=self.name_to_id[img_name])
         output = {
-            'descriptors': sel_descs,
+            # 'descriptors': sel_descs,  # may not be used
             'scores': sel_scores,
             'keypoints': sel_kpts,
             'norm_keypoints': normalize_size(x=sel_kpts, size=image_size),
@@ -329,6 +329,8 @@ class BasicDataset:
         return output
 
     def get_item_test(self, idx):
+
+        # evaluation of recognition only
         img_name = self.img_fns[idx]
         feat_data = np.load(osp.join(self.feature_dir, img_name.replace('/', '+') + '.npy'), allow_pickle=True)[()]
         descs = feat_data['descriptors']  # [N, D]
@@ -340,7 +342,6 @@ class BasicDataset:
 
         if img_name in self.img_p3d.keys():
             p3d_ids = self.img_p3d[img_name]
-
         p3d_xyzs = np.zeros(shape=(nfeat, 3), dtype=float)
         seg_ids = np.zeros(shape=(nfeat,), dtype=int)  # attention! by default invalid!!!
         for i in range(nfeat):
@@ -363,7 +364,6 @@ class BasicDataset:
             p3d_xyzs = p3d_xyzs[sorted_ids]
 
             seg_ids = seg_ids[sorted_ids]
-            nfeat = descs.shape[0]
 
         gt_n_seg = np.zeros(shape=(self.n_class,), dtype=int)
         gt_cls = np.zeros(shape=(self.n_class,), dtype=int)
@@ -379,7 +379,6 @@ class BasicDataset:
 
         gt_cls[0] = 0
 
-        # img = cv2.imread(osp.join(self.img_dir, 'test', img_name), cv2.IMREAD_GRAYSCALE)[..., None]
         img = self.read_image(image_name=img_name)
         if self.image_dim == 1:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -446,7 +445,7 @@ class BasicDataset:
         kpts = np.hstack([xs, ys])
         return desc, kpts
 
-    def random_points_from_reference(self, n, ref_kpts, ref_descs, ref_segs, ref_xyzs, radius=5):
+    def random_points_from_reference(self, n, ref_kpts, ref_segs, ref_xyzs, radius=5):
         n_ref = ref_kpts.shape[0]
         if n_ref < n:
             ref_ids = np.random.choice([i for i in range(n_ref)], size=n).tolist()
@@ -455,7 +454,7 @@ class BasicDataset:
 
         new_xs = []
         new_ys = []
-        new_descs = []
+        # new_descs = []
         new_segs = []
         new_xyzs = []
         for i in ref_ids:
@@ -464,7 +463,7 @@ class BasicDataset:
 
             new_xs.append(nx)
             new_ys.append(ny)
-            new_descs.append(ref_descs[i])
+            # new_descs.append(ref_descs[i])
             new_segs.append(ref_segs[i])
             new_xyzs.append(ref_xyzs[i])
 
@@ -472,6 +471,6 @@ class BasicDataset:
         new_ys = np.array(new_ys).reshape(n, 1)
         new_segs = np.array(new_segs).reshape(n, )
         new_kpts = np.hstack([new_xs, new_ys])
-        new_descs = np.array(new_descs).reshape(n, -1)
+        # new_descs = np.array(new_descs).reshape(n, -1)
         new_xyzs = np.array(new_xyzs)
-        return new_kpts, new_descs, new_segs, new_xyzs
+        return new_kpts, new_segs, new_xyzs
