@@ -5,12 +5,12 @@
 @Author fx221@cam.ac.uk
 @Date   29/01/2024 14:52
 =================================================='''
+
 import torch
 from torch import nn
 import torch.nn.functional as F
 
 
-@torch.cuda.amp.custom_fwd(cast_inputs=torch.float32)
 def normalize_keypoints(kpts, image_shape):
     """ Normalize keypoints locations based on image image_shape"""
     _, _, height, width = image_shape
@@ -126,9 +126,8 @@ class SegGNNViT(nn.Module):
 
     def forward(self, desc, encoding=None):
         for i, layer in enumerate(self.layers):
-            delta = layer(desc, encoding)
-            desc = desc + delta
-
+            desc = layer(desc, encoding)
+            # desc = desc + delta // should be removed as this is already done in self-attention
         return desc
 
 
@@ -144,11 +143,9 @@ class SegNetViT(nn.Module):
         'ac_fn': 'relu',
         'norm_fn': 'in',
         'with_score': False,
+        'with_global': False,
         'with_cls': False,
         'with_sc': False,
-
-        'mixed_precision': True,  # enable mixed precision
-
     }
 
     def __init__(self, config={}):
@@ -196,12 +193,6 @@ class SegNetViT(nn.Module):
         else:
             raise ValueError('Require image shape for keypoint coordinate normalization')
 
-        # Keypoint MLP encoder.
-        if self.with_score:
-            scores0 = data['scores']
-        else:
-            scores0 = None
-
         enc0 = self.kenc(norm_kpts0)
 
         return desc0, enc0
@@ -211,7 +202,7 @@ class SegNetViT(nn.Module):
         desc = self.input_proj(desc)
 
         desc = self.gnn(desc, enc)
-        cls_output = self.seg(desc)  # [B, C, N]
+        cls_output = self.seg(desc)  # [B, N, C]
 
         output = {
             'prediction': cls_output.transpose(-1, -2).contiguous(),
