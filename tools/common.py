@@ -9,6 +9,7 @@ import os
 import torch
 import json
 import yaml
+import cv2
 
 
 def load_args(args, save_path):
@@ -52,5 +53,17 @@ def torch_set_gpu(gpus):
     return cuda
 
 
-def names_to_pair(name0, name1):
-    return '_'.join((name0.replace('/', '-'), name1.replace('/', '-')))
+def resize_img(img, nh=-1, nw=-1, rmax=-1, mode=cv2.INTER_NEAREST):
+    assert nh > 0 or nw > 0 or rmax > 0
+    if nh > 0:
+        return cv2.resize(img, dsize=(int(img.shape[1] / img.shape[0] * nh), nh), interpolation=mode)
+    if nw > 0:
+        return cv2.resize(img, dsize=(nw, int(img.shape[0] / img.shape[1] * nw)), interpolation=mode)
+    if rmax > 0:
+        oh, ow = img.shape[0], img.shape[1]
+        if oh > ow:
+            return cv2.resize(img, dsize=(int(img.shape[1] / img.shape[0] * rmax), rmax), interpolation=mode)
+        else:
+            return cv2.resize(img, dsize=(rmax, int(img.shape[0] / img.shape[1] * rmax)), interpolation=mode)
+
+    return cv2.resize(img, dsize=(nw, nh), interpolation=mode)

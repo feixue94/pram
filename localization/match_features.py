@@ -9,7 +9,7 @@ import os
 
 import localization.matchers as matchers
 from nets.base_model import dynamic_load
-from tools.common import names_to_pair
+from colmap_utils.parsers import names_to_pair
 
 confs = {
     'gm': {
