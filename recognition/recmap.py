@@ -34,13 +34,13 @@ class RecMap:
         self.pcd = o3d.geometry.PointCloud()
         self.seg_color_dict = generate_color_dic(n_seg=1000)
 
-    def load_sfm_model(self, path, ext='.bin'):
+    def load_sfm_model(self, path: str, ext='.bin'):
         self.cameras, self.images, self.points3D = read_model(path, ext)
         self.name_to_id = {image.name: i for i, image in self.images.items()}
         logging.info(
             'Load {} cameras, {} images, {} points'.format(len(self.cameras), len(self.images), len(self.points3D)))
 
-    def remove_statics_outlier(self, nb_neighbors=20, std_ratio=2.0):
+    def remove_statics_outlier(self, nb_neighbors: int = 20, std_ratio: float = 2.0):
         xyzs = []
         p3d_ids = []
         for p3d_id in self.points3D.keys():
@@ -60,7 +60,7 @@ class RecMap:
         ratio = n_outlier / xyzs.shape[0]
         print('Remove {:d} - {:d} = {:d}/{:.2f}% points'.format(xyzs.shape[0], len(inlier_ids), n_outlier, ratio * 100))
 
-    def load_segmentation(self, path):
+    def load_segmentation(self, path: str):
         data = np.load(path, allow_pickle=True)[()]
         p3d_id = data['id']
         seg_id = data['label']
@@ -122,7 +122,7 @@ class RecMap:
                 'xyz': np.array(all_xyz),
             })
 
-    def assign_point3D_descriptor(self, feature_fn, save_fn=None, n_process=1):
+    def assign_point3D_descriptor(self, feature_fn: str, save_fn=None, n_process=1):
         '''
         assign each 3d point a descriptor for localization
         :param feature_fn: file name of features [h5py]
