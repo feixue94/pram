@@ -9,17 +9,7 @@
 import torch
 from torch import nn
 import torch.nn.functional as F
-
-
-def normalize_keypoints(kpts, image_shape):
-    """ Normalize keypoints locations based on image image_shape"""
-    _, _, height, width = image_shape
-    one = kpts.new_tensor(1)
-    size = torch.stack([one * width, one * height])[None]
-    center = size / 2 + 0.5
-    scaling = size.max(1, keepdim=True).values * 0.7
-    norm_kpts = (kpts - center[:, None, :]) / scaling[:, None, :]
-    return norm_kpts
+from nets.utils import normalize_keypoints
 
 
 def rotate_half(x: torch.Tensor) -> torch.Tensor:
@@ -205,7 +195,7 @@ class SegNetViT(nn.Module):
         cls_output = self.seg(desc)  # [B, N, C]
 
         output = {
-            'prediction': cls_output.transpose(-1, -2).contiguous(),
+            'prediction': cls_output,
         }
 
         if self.with_sc:

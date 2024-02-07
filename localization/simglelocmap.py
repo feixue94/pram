@@ -7,19 +7,12 @@
 =================================================='''
 import torch
 from collections import defaultdict
-import cv2
-import os
 import os.path as osp
 import numpy as np
 import pycolmap
-import yaml
 import time
-from copy import deepcopy
 from colmap_utils.camera_intrinsics import intrinsics_from_camera
 from colmap_utils.read_write_model import qvec2rotmat, read_model, read_compressed_model, intrinsics_from_camera
-from recognition.vis_seg import vis_seg_point, generate_color_dic, vis_inlier
-from tools.common import resize_img
-from recognition.vis_seg import plot_matches
 from localization.utils import compute_pose_error, read_query_info
 
 
@@ -28,7 +21,7 @@ class SingleLocMap:
     localization in a single scene (e.g., room)
     '''
 
-    def __init__(self, config, matcher, with_compress=False):
+    def __init__(self, config, save_dir, matcher, with_compress=False):
         self.config = config
         self.image_path_prefix = self.config['image_path_prefix']
         if not with_compress:
@@ -46,11 +39,11 @@ class SingleLocMap:
         print('Load {} cameras {} images {} 3D points'.format(len(self.map_cameras), len(self.map_images),
                                                               len(self.map_p3ds)))
 
-        seg_data = np.load(osp.join(config['segment_path'],
-                                    'point3D_cluster_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
-                                                                                 config['cluster_mode'],
-                                                                                 config['cluster_method'])),
-                           allow_pickle=True)[()]
+        seg_data = np.load(
+            osp.join(config['segment_path'], 'point3D_cluster_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
+                                                                                          config['cluster_mode'],
+                                                                                          config['cluster_method'])),
+            allow_pickle=True)[()]
         p3d_id = seg_data['id']
         seg_id = seg_data['label']
         self.map_seg = {p3d_id[i]: seg_id[i] for i in range(p3d_id.shape[0])}
@@ -65,11 +58,11 @@ class SingleLocMap:
         print('Load {} segments and {} 3d points'.format(len(self.seg_map.keys()), len(self.map_seg.keys())))
 
         # Load vrf data
-        self.seg_vrf = np.load(osp.join(config['segment_path'],
-                                        'point3D_vrf_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
-                                                                                 config['cluster_mode'],
-                                                                                 config['cluster_method'])),
-                               allow_pickle=True)[()]
+        self.seg_vrf = np.load(
+            osp.join(config['segment_path'], 'point3D_vrf_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
+                                                                                      config['cluster_mode'],
+                                                                                      config['cluster_method'])),
+            allow_pickle=True)[()]
         self.ignore_index = -1
 
         # load sc data
@@ -477,7 +470,6 @@ class SingleLocMap:
 
         mask_in_image = (proj_p3ds[:, 0] >= 0) & (proj_p3ds[:, 0] < width) & (proj_p3ds[:, 1] >= 0) & (
                 proj_p3ds[:, 1] < height)
-        # mask_depth = (proj_p3ds[:, 2] > 0) & (proj_p3ds[:, 2] <= 80)
         mask_depth = proj_p3ds[:, 2] > 0
         mask = mask_in_image * mask_depth
 
@@ -527,7 +519,7 @@ class SingleLocMap:
     def match(self, query_data, map_data, in_plane=True):
         return self.match_by_vrf(query_data=query_data, map_data=map_data, in_plane=in_plane)
 
-    def match_by_vrf(self, query_data, map_data, in_plane=True, use_nn=False):
+    def match_by_vrf(self, query_data, map_data, in_plane=True):
         q_descs = query_data['descriptors']
         q_scores = query_data['scores']
         q_keypoints = query_data['keypoints']
@@ -535,7 +527,7 @@ class SingleLocMap:
         q_width = query_data['width']
 
         map_descs = map_data['descriptors']
-        map_scores = map_data['scores']  # can be from projection error
+        map_scores = map_data['scores']  # use reprojection error as score - hahaha
         map_p3ds = map_data['xyzs']
         map_p3d_ids = map_data['p3d_ids']
         map_height = map_data['camera']['height']
@@ -555,33 +547,33 @@ class SingleLocMap:
 
             if map_ids.shape[0] > 0:
                 indices0 = self.matcher({
-                    'descriptors0': torch.from_numpy(q_descs)[None].permute(0, 2, 1).cuda().float(),
+                    'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
                     'keypoints0': torch.from_numpy(q_keypoints)[None].cuda().float(),
                     'scores0': torch.from_numpy(q_scores)[None].cuda().float(),
                     'image_shape0': (1, 3, q_height, q_width),
 
-                    'descriptors1': torch.from_numpy(map_descs[ref_mask])[None].permute(0, 2, 1).cuda().float(),
+                    'descriptors1': torch.from_numpy(map_descs[ref_mask])[None].cuda().float(),
                     'keypoints1': torch.from_numpy(ref_kpts[ref_mask])[None].cuda().float(),
                     'scores1': torch.from_numpy(map_scores[ref_mask])[None].cuda().float(),
                     'image_shape1': (1, 3, map_height, map_width),
-                })
+                })['matches0'][0].cpu().numpy()
                 # print('indices0: ', indices0.shape, np.sum(indices0 >= 0))
                 for mi in range(indices0.shape[0]):
                     if indices0[mi] >= 0:
                         matches[mi] = map_ids[indices0[mi]]
         else:
             indices0 = self.matcher({
-                'descriptors0': torch.from_numpy(q_descs)[None].permute(0, 2, 1).cuda().float(),
+                'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
                 'keypoints0': torch.from_numpy(q_keypoints)[None].cuda().float(),
                 'scores0': torch.from_numpy(q_scores)[None].cuda().float(),
                 'image_shape0': (1, 3, q_height, q_width),
 
-                'descriptors1': torch.from_numpy(map_descs)[None].permute(0, 2, 1).cuda().float(),
+                'descriptors1': torch.from_numpy(map_descs)[None].cuda().float(),
                 'keypoints1': torch.from_numpy(ref_kpts)[None].cuda().float(),
                 'scores1': torch.from_numpy(map_scores)[None].cuda().float(),
                 'image_shape1': (1, 3, map_height, map_width),
 
-            })
+            })['matches0'][0].cpu().numpy()
             matches = indices0
 
         return {

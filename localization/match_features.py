@@ -5,10 +5,9 @@ import h5py
 import logging
 from tqdm import tqdm
 import pprint
-import os
 
 import localization.matchers as matchers
-from nets.base_model import dynamic_load
+from localization.base_model import dynamic_load
 from colmap_utils.parsers import names_to_pair
 
 confs = {

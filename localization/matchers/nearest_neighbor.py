@@ -1,5 +1,5 @@
 import torch
-from loc.utils.base_model import BaseModel
+from localization.base_model import BaseModel
 
 
 def find_nn(sim, ratio_thresh, distance_thresh):
@@ -7,11 +7,11 @@ def find_nn(sim, ratio_thresh, distance_thresh):
     dist_nn = 2 * (1 - sim_nn)
     mask = torch.ones(ind_nn.shape[:-1], dtype=torch.bool, device=sim.device)
     if ratio_thresh:
-        mask = mask & (dist_nn[..., 0] <= (ratio_thresh**2)*dist_nn[..., 1])
+        mask = mask & (dist_nn[..., 0] <= (ratio_thresh ** 2) * dist_nn[..., 1])
     if distance_thresh:
-        mask = mask & (dist_nn[..., 0] <= distance_thresh**2)
+        mask = mask & (dist_nn[..., 0] <= distance_thresh ** 2)
     matches = torch.where(mask, ind_nn[..., 0], ind_nn.new_tensor(-1))
-    scores = torch.where(mask, (sim_nn[..., 0]+1)/2, sim_nn.new_tensor(0))
+    scores = torch.where(mask, (sim_nn[..., 0] + 1) / 2, sim_nn.new_tensor(0))
     return matches, scores
 
 

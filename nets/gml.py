@@ -246,7 +246,7 @@ class GML(nn.Module):
     def produce_matches(self, data: dict, p=0.2, **kwargs):
         desc0, desc1 = data['descriptors0'], data['descriptors1']
         kpts0, kpts1 = data['keypoints0'], data['keypoints1']
-        scores0, scores1 = data['scores0'], data['scores1']
+        # scores0, scores1 = data['scores0'], data['scores1']
 
         # Keypoint normalization.
         if 'norm_keypoints0' in data.keys() and 'norm_keypoints1' in data.keys():
@@ -262,8 +262,8 @@ class GML(nn.Module):
         else:
             raise ValueError('Require image shape for keypoint coordinate normalization')
 
-        desc0 = desc0.transpose(-1, -2).detach()  # [B, N, D]
-        desc1 = desc1.transpose(-1, -2).detach()
+        # desc0 = desc0.transpose(-1, -2).detach()  # [B, N, D]
+        # desc1 = desc1.transpose(-1, -2).detach()
 
         desc0 = self.input_proj(desc0)
         desc1 = self.input_proj(desc1)

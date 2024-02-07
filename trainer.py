@@ -19,6 +19,7 @@ import shutil
 import torch
 from torch.autograd import Variable
 from tools.common import save_args_yaml, merge_tags
+from tools.metrics import compute_iou, compute_precision
 
 
 class Trainer:

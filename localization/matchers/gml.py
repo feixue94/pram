@@ -6,7 +6,7 @@
 @Date   15/01/2024 11:01
 =================================================='''
 import torch
-from nets.base_model import BaseModel
+from localization.base_model import BaseModel
 from nets.gml import GML as GMatcher
 
 

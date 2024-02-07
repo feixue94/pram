@@ -188,6 +188,8 @@ class GM(nn.Module):
 
         if self.config['descriptor_dim'] > 0:
             desc0, desc1 = data['descriptors0'], data['descriptors1']
+            desc0 = desc0.transpose(0, 2, 1)  # [B, N, D ] -> [B, D, N]
+            desc1 = desc1.transpose(0, 2, 1)  # [B, N, D ] -> [B, D, N]
             with torch.no_grad():
                 if desc0.shape[1] != self.config['descriptor_dim']:
                     desc0 = self.desc_compressor(desc0)
@@ -199,12 +201,8 @@ class GM(nn.Module):
             desc0 = enc0
             desc1 = enc1
 
-        # print('in GM: ', desc0.shape, desc1.shape)
-        # Multi-layer Transformer network.
         desc0s, desc1s = self.gnn.predict(desc0, desc1, n_it=n_it)
 
-        nI = len(desc0s)
-        nB = desc0.shape[0]
         mdescs0 = self.final_proj[n_it](desc0s[-1])
         mdescs1 = self.final_proj[n_it](desc1s[-1])
         dist = torch.einsum('bdn,bdm->bnm', mdescs0, mdescs1)

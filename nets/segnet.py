@@ -8,8 +8,9 @@
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from nets.layers import MLP, KeypointEncoder, normalize_keypoints
+from nets.layers import MLP, KeypointEncoder
 from nets.layers import AttentionalPropagation
+from nets.utils import normalize_keypoints
 
 
 class SegGNN(nn.Module):
@@ -83,7 +84,7 @@ class SegNet(nn.Module):
 
     def preprocess(self, data):
         desc0 = data['descriptors']
-        desc0 = desc0.transpose(1, 2)  # [B, D, N]
+        desc0 = desc0.transpose(1, 2)  # [B, N, D] - > [B, D, N]
 
         if 'norm_keypoints' in data.keys():
             norm_kpts0 = data['norm_keypoints']
@@ -109,7 +110,7 @@ class SegNet(nn.Module):
         desc = self.gnn(desc)
         cls_output = self.seg(desc)  # [B, C, N]
         output = {
-            'prediction': cls_output,
+            'prediction': cls_output.transpose(-1, -2).contiguous(),
         }
 
         if self.with_sc:
