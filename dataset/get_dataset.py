@@ -12,9 +12,8 @@ from dataset.twelve_scenes import TwelveScenes
 from dataset.seven_scenes import SevenScenes
 from dataset.cambridge_landmarks import CambridgeLandmarks
 from dataset.customdataset import CustomDataset
+from dataset.recdataset import RecDataset
 
-
-# from dataset.recdataset import RecDataset
 
 def get_dataset(dataset):
     if dataset in ['7Scenes', 'S']:

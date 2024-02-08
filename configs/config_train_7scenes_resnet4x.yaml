@@ -1,4 +1,4 @@
-dataset: [ 'S' ]
+dataset: [ '7Scenes' ]
 
 network_: "segnet"
 network: "segnetvit"
@@ -83,10 +83,12 @@ n_class: 113
 eval_max_keypoints: 4096
 
 localization:
+  dataset: [ '7Scenes' ]
+
   loc_scene_name_: [ 'stairs' ]
   loc_scene_name: [ 'fire' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  dataset: [ 'S' ]
+
   seg_k: 20
   threshold: 8
   min_kpts: 128

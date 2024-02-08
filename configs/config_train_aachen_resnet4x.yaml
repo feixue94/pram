@@ -1,8 +1,6 @@
-dataset: [ 'A' ]
+dataset: [ 'Aachen' ]
 
 network: "segnet"
-network_: "gsegnet3"
-
 local_rank: 0
 gpu: [ 0 ]
 
@@ -83,9 +81,10 @@ n_class: 513
 eval_max_keypoints: 4096
 
 localization:
+  dataset: [ 'Aachen' ]
+
   loc_scene_name: [ ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  dataset: [ 'A' ]
   seg_k: 1
   threshold: 12
   min_kpts: 256

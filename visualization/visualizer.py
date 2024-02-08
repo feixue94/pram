@@ -19,8 +19,8 @@ from tools.common import resize_image_with_padding
 
 class Visualizer:
     default_config = {
-        'image_size_indoor': 0.1,
-        'image_line_width_indoor': 2,
+        'image_size_indoor': 0.05,
+        'image_line_width_indoor': 1,
 
         'image_size_outdoor': 1,
         'image_line_width_outdoor': 3,
@@ -69,6 +69,8 @@ class Visualizer:
         self.images = None
         self.cameras = None
 
+        self.map_seg = None
+
         # current camera pose
         self.Tcw = np.eye(4, dtype=float)
         self.Twc = np.linalg.inv(self.Tcw)
@@ -85,7 +87,6 @@ class Visualizer:
         self.pred_scene_name = None
         self.last_pred_scene_name = None
         self.reference_image_ids = None
-        self.map_seg = None
         self.vrf_image_id = None
         self.rec_time = np.NAN
         self.loc_time = np.NAN
@@ -171,6 +172,7 @@ class Visualizer:
         glPointSize(point_size)
         glBegin(GL_POINTS)
 
+        # could be very slow due to per-point rendering
         for pid in self.map_seg.keys():
             if pid not in self.points3D.keys():
                 continue
@@ -424,8 +426,6 @@ class Visualizer:
         Rcw = qvec2rotmat(qcw)
         Tcw = np.column_stack((Rcw, tcw))
         self.Tcw = np.vstack((Tcw, (0, 0, 0, 1)))
-        # print('qcw/tcw: ', qcw, tcw)
-        # print('self.Tcw: ', self.Tcw.shape, self.Tcw)
         Rwc = Rcw.T
         twc = -Rcw.T @ tcw
         Twc = np.column_stack((Rwc, twc))
@@ -435,8 +435,6 @@ class Visualizer:
             gt_Rcw = qvec2rotmat(gt_qcw)
             gt_Tcw = np.column_stack((gt_Rcw, gt_tcw))
             self.gt_Tcw = np.vstack((gt_Tcw, (0, 0, 0, 1)))
-            # print('qcw/tcw: ', qcw, tcw)
-            # print('self.Tcw: ', self.Tcw.shape, self.Tcw)
             gt_Rwc = gt_Rcw.T
             gt_twc = -gt_Rcw.T @ gt_tcw
             gt_Twc = np.column_stack((gt_Rwc, gt_twc))
@@ -615,22 +613,14 @@ class Visualizer:
 
             if menu.ShowRefPoints:
                 self.draw_ref_3d_points()
-
-            if menu.showSegs:
+            if menu.ShowSegs:
                 self.draw_seg_3d_points()
-
             if menu.ShowRefSegs:
                 self.draw_ref_seg_3d_points()
-
-            if menu.ShowSegPoints:
-                self.draw_seg_3d_points()
-
             if menu.ShowAllVRFs:
                 self.draw_vrf_images()
-
             if menu.ShowRefFrames:
                 self.draw_ref_images()
-
             if menu.ShowVRFFrame:
                 self.draw_current_vrf_image()
 

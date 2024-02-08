@@ -16,7 +16,9 @@ from recognition.vis_seg import vis_seg_point, generate_color_dic
 from tools.common import resize_img
 from visualization.visualizer import Visualizer
 from localization.utils import read_query_info
-from configs.datasets.dataset_config import dataset_config
+
+
+# from configs.datasets.dataset_config import dataset_config
 
 
 def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
@@ -49,10 +51,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
 
     dataset_name = config['localization']['dataset'][0]
     all_scene_query_info = {}
-    if dataset_name not in dataset_config.keys():
-        dataset_config[dataset_name] = dataset_name + '.yaml'  # for custom datasets
-    dataset_name = dataset_config[dataset_name].split('.')[0]
-    with open(osp.join(config['config_path'], dataset_config[dataset_name]), 'r') as f:
+    with open(osp.join(config['config_path'], '{:s}.yaml'.format(dataset_name)), 'r') as f:
         scene_config = yaml.load(f, Loader=yaml.Loader)
 
     # multiple scenes in a single dataset

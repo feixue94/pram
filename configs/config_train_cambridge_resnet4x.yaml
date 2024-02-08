@@ -1,4 +1,4 @@
-dataset: [ 'C' ]
+dataset: [ 'CambridgeLandmarks' ]
 
 network_: "segnet"
 network: "segnetvit"
@@ -81,11 +81,12 @@ n_class: 161
 eval_max_keypoints: 4096
 
 localization:
+  dataset: [ 'CambridgeLandmarks' ]
+
   loc_scene_name: [ 'GreatCourt' ]
   loc_scene_name_1: [ 'KingsCollege' ]
   loc_scene_name_x: [ 'StMarysChurch' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  dataset: [ 'C' ]
   seg_k: 30
   threshold: 12
   min_kpts: 256

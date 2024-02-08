@@ -83,10 +83,11 @@ n_class: 193
 eval_max_keypoints: 4096
 
 localization:
+  dataset: [ '12Scenes' ]
+
   #    loc_scene_name: ['office2/5b' ]
   loc_scene_name: [ 'office2/5b' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  dataset: [ 'T' ]
   seg_k: 20
   threshold: 8
   min_kpts: 128
