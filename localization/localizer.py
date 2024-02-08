@@ -22,6 +22,7 @@ from localization.match_features import confs
 from localization.base_model import dynamic_load
 from localization import matchers
 from localization.utils import compute_pose_error, read_gt_pose, read_retrieval_results
+from localization.pose_estimator import pose_estimator_hloc, pose_estimator_iterative
 
 
 def run(args):
@@ -39,7 +40,6 @@ def run(args):
     matcher = Model(confs[args.matcher_method]['model']).eval().cuda()
 
     local_feat_name = args.features.as_posix().split("/")[-1].split(".")[0]  # name of local features
-    # save_fn = '{:s}_{:s}_{:.0f}_{:d}'.format(local_feat_name, matcher_name, args.ransac_thresh, args.inlier_thresh)
     save_fn = '{:s}_{:s}'.format(local_feat_name, matcher_name)
     if args.use_hloc:
         save_fn = 'hloc_' + save_fn
@@ -104,28 +104,27 @@ def run(args):
                                          log_info='',
                                          query_img_prefix='',
                                          db_img_prefix='')
-        else:
-            output = pose_estimator_two_step(qname=qname,
-                                             qinfo=qinfo,
-                                             matcher=matcher,
-                                             db_ids=db_ids,
-                                             db_images=db_images,
-                                             points3D=points3D,
-                                             feature_file=feature_file,
-                                             thresh=args.ransac_thresh,
-                                             image_dir=args.image_dir,
-                                             do_covisibility_opt=args.do_covisible_opt,
-                                             covisibility_frame=args.covisibility_frame,
-                                             log_info='',
-                                             inlier_th=args.inlier_thresh,
-                                             radius=args.radius,
-                                             obs_th=args.obs_thresh,
-                                             opt_th=args.opt_thresh,
-                                             gt_qvec=gt_poses[qname]['qvec'] if qname in gt_poses.keys() else None,
-                                             gt_tvec=gt_poses[qname]['tvec'] if qname in gt_poses.keys() else None,
-                                             query_img_prefix='query',
-                                             db_img_prefix='database',
-                                             )
+        else:  # should be faster and more accurate than hloc
+            output = pose_estimator_iterative(qname=qname,
+                                              qinfo=qinfo,
+                                              matcher=matcher,
+                                              db_ids=db_ids,
+                                              db_images=db_images,
+                                              points3D=points3D,
+                                              feature_file=feature_file,
+                                              thresh=args.ransac_thresh,
+                                              image_dir=args.image_dir,
+                                              do_covisibility_opt=args.do_covisible_opt,
+                                              covisibility_frame=args.covisibility_frame,
+                                              log_info='',
+                                              inlier_th=args.inlier_thresh,
+                                              obs_th=args.obs_thresh,
+                                              opt_th=args.opt_thresh,
+                                              gt_qvec=gt_poses[qname]['qvec'] if qname in gt_poses.keys() else None,
+                                              gt_tvec=gt_poses[qname]['tvec'] if qname in gt_poses.keys() else None,
+                                              query_img_prefix='query',
+                                              db_img_prefix='database',
+                                              )
         time_full = time.time()
 
         qvec = output['qvec']

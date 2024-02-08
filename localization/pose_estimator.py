@@ -132,6 +132,7 @@ def find_2D_3D_matches(query_data, db_id, points3D, feature_file, db_images, mat
     return mp3d, mkpq, mp3d_ids, q_ids
 
 
+# hfnet, cvpr 2019
 def pose_estimator_hloc(qname, qinfo, db_ids, db_images, points3D,
                         feature_file,
                         thresh,
@@ -268,8 +269,7 @@ def pose_refinement(query_data,
                     **kwargs,
                     ):
     db_ids = get_covisibility_frames(frame_id=db_frame_id, all_images=db_images, points3D=points3D,
-                                     covisibility_frame=covisibility_frame,
-                                     obs_th=obs_th, pred_qvec=qvec, pred_tvec=tvec)
+                                     covisibility_frame=covisibility_frame)
 
     mp3d = []
     mkpq = []
