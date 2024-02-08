@@ -22,10 +22,46 @@ from dataset.get_dataset import compose_datasets
 from tools.common import torch_set_gpu
 from trainer import Trainer
 
+from nets.sfd2 import ResNet4x, DescriptorCompressor
+from nets.superpoint import SuperPoint
+
 torch.set_grad_enabled(True)
 
 parser = argparse.ArgumentParser(description='Localizer', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--config', type=str, required=True, help='config of specifications')
+
+
+def load_feat_network(config):
+    if config['feature'] == 'spp':
+        net = SuperPoint(config={
+            'weight_path': '/scratches/flyer_2/fx221/Research/Code/third_weights/superpoint_v1.pth',
+        }).eval()
+    elif config['feature'] == 'resnet4x':
+        net = ResNet4x(inputdim=3, outdim=128)
+        net.load_state_dict(torch.load('weights/20230511_210205_resnet4x.79.pth', map_location='cpu')['state_dict'],
+                            strict=True)
+        net.eval()
+    else:
+        print('Please input correct feature {:s}'.format(config['feature']))
+        net = None
+
+    if config['feat_dim'] != 128:
+        desc_compressor = DescriptorCompressor(inputdim=128, outdim=config['feat_dim']).eval()
+        if config['feat_dim'] == 64:
+            desc_compressor.load_state_dict(
+                torch.load('weights/20230511_210205_resnet4x_B6_R512_I3_O128_pho_resnet4x_e79_to_O64.pth',
+                           map_location='cpu'),
+                strict=True)
+        elif config['feat_dim'] == 32:
+            desc_compressor.load_state_dict(
+                torch.load('weights/20230511_210205_resnet4x_B6_R512_I3_O128_pho_resnet4x_e79_to_O32.pth',
+                           map_location='cpu'),
+                strict=True)
+        else:
+            desc_compressor = None
+    else:
+        desc_compressor = None
+    return net, desc_compressor
 
 
 def get_model(config):
@@ -136,30 +172,13 @@ if __name__ == '__main__':
     dataset = config['dataset']
     if config['eval'] or config['loc']:
         if not config['online']:
-            from loc.loc_by_rec_multimap import loc_by_rec
-
-            test_set = compose_datasets(datasets=dataset, config=config, train=False, sample_ratio=1)
-            config['n_class'] = test_set.n_class
-            test_loader = Data.DataLoader(dataset=test_set,
-                                          shuffle=False,
-                                          batch_size=1,
-                                          drop_last=False,
-                                          collate_fn=collect_batch,
-                                          num_workers=4)
-            model = get_model(config=config)
-
-            loc_by_rec(model=model.cuda().eval(), loader=test_set,
-                       local_feat=feat_model.cuda().eval(),
-                       config=config,
-                       img_transforms=img_transforms,
-                       desc_compressor=desc_compressor.cuda().eval() if desc_compressor is not None else None)
-
-
+            pass
         else:
-            from loc.loc_by_rec_online import loc_by_rec_online
+            from localization.loc_by_rec_online import loc_by_rec_online
 
             model = get_model(config=config)
-            loc_by_rec_online(model=model.cuda().eval(), local_feat=feat_model.cuda().eval(),
+            loc_by_rec_online(rec_model=model.cuda().eval(),
+                              local_feat=feat_model.cuda().eval(),
                               config=config, img_transforms=img_transforms)
         exit(0)
 

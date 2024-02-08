@@ -504,7 +504,7 @@ class SingleLocMap:
         }
 
     def read_gt_pose(self, path, prefix=''):
-        self.gt_poses = read_gt_pose(path=path, prefix=prefix)
+        self.gt_poses = read_gt_pose(path=path)
         print('Load {} gt poses'.format(len(self.gt_poses.keys())))
 
     def match(self, query_data, map_data, in_plane=True):

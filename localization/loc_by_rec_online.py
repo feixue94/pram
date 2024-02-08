@@ -56,6 +56,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         scene_config = yaml.load(f, Loader=yaml.Loader)
 
     # multiple scenes in a single dataset
+    show_time = -1
     scenes = scene_config['scenes']
     for scene in scenes:
         if len(config['localization']['loc_scene_name']) > 0:
@@ -66,10 +67,10 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         query_info = read_query_info(query_fn=query_path)
         all_scene_query_info[dataset_name + '/' + scene] = query_info
         image_path = osp.join(dataset_path, dataset_name, scene)
-        # for fn in sorted(query_info.keys()):
-        # for fn in sorted(query_info.keys())[::5]:
-        # for fn in sorted(query_info.keys())[2100:][::5]: # darwinRGB-loc-outdoor
-        for fn in sorted(query_info.keys())[4360:][::5]:  # darwinRGB-loc-indoor
+        for fn in sorted(query_info.keys()):
+            # for fn in sorted(query_info.keys())[::5]:
+            # for fn in sorted(query_info.keys())[2100:][::5]: # darwinRGB-loc-outdoor
+            # for fn in sorted(query_info.keys())[4360:][::5]:  # darwinRGB-loc-indoor
             # for fn in sorted(query_info.keys())[1380:]:  # Cam-Church
             # for fn in sorted(query_info.keys())[::5]: #ACUED-test2
             # for fn in sorted(query_info.keys())[2100:]:
@@ -111,9 +112,10 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                     'image_size': np.array([img.shape[1], img.shape[0]])[None],
                 }
                 pred = {**pred, **rec_out}
-                pred_seg = torch.max(pred['prediction'], dim=0)[1]  # [B, N, C]
+                pred_seg = torch.max(pred['prediction'], dim=2)[1]  # [B, N, C]
                 pred_seg = pred_seg[0].cpu().numpy()
                 kpts = kpts_cuda[0].cpu().numpy()
+
                 img_pred_seg = vis_seg_point(img=img, kpts=kpts, segs=pred_seg, seg_color=seg_color, radius=9)
                 show_text = 'kpts: {:d}'.format(kpts.shape[0])
                 img_pred_seg = resize_img(img_pred_seg, nh=512)

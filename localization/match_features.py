@@ -23,7 +23,7 @@ confs = {
         'output': 'gml',
         'model': {
             'name': 'gml',
-            'weight_path': '/scratches/flyer_3/fx221/exp/uniloc/20240111_203057_gml_L9_resnet4x_B32_K1024_M0.2_relu_bn_adam/gml.640.pth',
+            'weight_path': '/scratches/flyer_3/fx221/exp/uniloc/20240117_145500_gml2_L9_resnet4x_B32_K1024_M0.2_relu_bn_adam/gml2.920.pth',
             'sinkhorn_iterations': 20,
         },
     },
