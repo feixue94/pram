@@ -21,7 +21,6 @@ from localization.match_features import confs as matcher_confs
 from localization.simglelocmap import SingleLocMap
 from nets.gm import GM
 from tools.common import resize_img
-from configs.datasets.dataset_config import dataset_config
 
 
 def process_segmentations(segs, topk=10):
@@ -125,9 +124,7 @@ class MultiLocMap:
         n_class = 0
         datasets = config['dataset']
         for name in datasets:
-            if name not in dataset_config.keys():
-                dataset_config[name] = name + '.yaml'
-            config_path = osp.join(config['config_path'], dataset_config[name])
+            config_path = osp.join(config['config_path'], '{:s}.yaml'.format(name))
             dataset_name = name
 
             with open(config_path, 'r') as f:

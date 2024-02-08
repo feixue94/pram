@@ -8,18 +8,15 @@
 import numpy as np
 import pypangolin as pangolin
 from OpenGL.GL import *
-import yaml
 import time
-from copy import deepcopy
 import threading
-from collections import defaultdict
 from colmap_utils.read_write_model import qvec2rotmat
 from tools.common import resize_image_with_padding
 
 
 class Visualizer:
     default_config = {
-        'image_size_indoor': 0.05,
+        'image_size_indoor': 0.1,
         'image_line_width_indoor': 1,
 
         'image_size_outdoor': 1,
