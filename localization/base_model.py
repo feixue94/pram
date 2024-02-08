@@ -19,11 +19,6 @@ class BaseModel(nn.Module, metaclass=ABCMeta):
         """Check the data and call the _forward method of the child model."""
         for key in self.required_data_keys:
             assert key in data, 'Missing key {} in data'.format(key)
-
-        # res = self._forward(data)
-        # for k in res.keys():
-        #     print(k, res[k].shape)
-        # exit(0)
         return self._forward(data)
 
     @abstractmethod

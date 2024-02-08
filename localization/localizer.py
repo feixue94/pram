@@ -15,7 +15,6 @@ import logging
 import h5py
 import numpy as np
 from pathlib import Path
-# colmap utils
 from colmap_utils.read_write_model import read_model
 from colmap_utils.parsers import parse_image_lists_with_intrinsics
 # localization
