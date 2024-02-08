@@ -1,0 +1,15 @@
+dataset: 'JesusCollege'
+scenes: [ 'jesuscollege' ]
+
+
+jesuscollege:
+  n_cluster: 256
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  gt_pose_path: 'queries_poses_empty.txt'
+  query_path: 'queries_with_intrinsics_3940_6026.txt'
+  query_path_: 'queries_with_intrinsics_6484_7802.txt'
+  image_path_prefix: 'db'

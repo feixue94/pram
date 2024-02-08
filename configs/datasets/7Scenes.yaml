@@ -1,0 +1,96 @@
+dataset: '7Scenes'
+scenes: [ 'chess', 'heads', 'office', 'fire', 'stairs', 'redkitchen', 'pumpkin' ]
+
+
+chess:
+  n_cluster: 16
+  cluster_mode: 'xz'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 2
+  eval_sample_ratio: 10
+  gt_pose_path: 'queries_poses.txt'
+  query_path: 'queries_with_intrinsics.txt'
+  image_path_prefix: ''
+
+
+
+heads:
+  n_cluster: 16
+  cluster_mode: 'xz'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 2
+  gt_pose_path: 'queries_poses.txt'
+  query_path: 'queries_with_intrinsics.txt'
+  image_path_prefix: ''
+
+
+office:
+  n_cluster: 16
+  cluster_mode: 'xz'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 3
+  eval_sample_ratio: 10
+  gt_pose_path: 'queries_poses.txt'
+  query_path: 'queries_with_intrinsics.txt'
+  image_path_prefix: ''
+
+fire:
+  n_cluster: 16
+  cluster_mode: 'xz'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 2
+  eval_sample_ratio: 5
+  gt_pose_path: 'queries_poses.txt'
+  query_path: 'queries_with_intrinsics.txt'
+  image_path_prefix: ''
+
+
+stairs:
+  n_cluster: 16
+  cluster_mode: 'xz'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 10
+  gt_pose_path: 'queries_poses.txt'
+  query_path: 'queries_with_intrinsics.txt'
+  image_path_prefix: ''
+
+
+redkitchen:
+  n_cluster: 16
+  cluster_mode: 'xz'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 3
+  eval_sample_ratio: 10
+  gt_pose_path: 'queries_poses.txt'
+  query_path: 'queries_with_intrinsics.txt'
+  image_path_prefix: ''
+
+
+
+
+pumpkin:
+  n_cluster: 16
+  cluster_mode: 'xz'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 2
+  eval_sample_ratio: 10
+  gt_pose_path: 'queries_poses.txt'
+  query_path: 'queries_with_intrinsics.txt'
+  image_path_prefix: ''
+

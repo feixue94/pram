@@ -16,19 +16,7 @@ from recognition.vis_seg import vis_seg_point, generate_color_dic
 from tools.common import resize_img
 from visualization.visualizer import Visualizer
 from localization.utils import read_query_info
-
-dataset_config = {
-    'A': 'Aachen.yaml',
-    'Aachen': 'Aachen.yaml',
-    'R': 'RobotCar-Seasons.yaml',
-    'RobotCar-Seasons': 'RobotCar-Seasons.yaml',
-    'C': 'CambridgeLandmarks.yaml',
-    'CambridgeLandmarks': 'CambridgeLandmarks.yaml',
-    'S': '7Scenes.yaml',
-    '7Scenes': '7Scenes.yaml',
-    'T': '12Scenes.yaml',
-    '12Scenes': '12Scenes.yaml',
-}
+from configs.datasets.dataset_config import dataset_config
 
 
 def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):

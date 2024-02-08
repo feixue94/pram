@@ -1,0 +1,77 @@
+dataset: 'CambridgeLandmarks'
+scenes: [ 'GreatCourt', 'KingsCollege', 'OldHospital', 'ShopFacade', 'StMarysChurch' ]
+
+GreatCourt:
+  n_cluster: 32
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  image_path_prefix: ''
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+KingsCollege:
+  n_cluster: 32
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+OldHospital:
+  n_cluster: 32
+  cluster_mode: 'xz'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  image_path_prefix: ''
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+ShopFacade:
+  n_cluster: 32
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+StMarysChurch:
+  n_cluster: 32
+  cluster_mode: 'xz'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+Street:
+  n_cluster: 32
+  cluster_mode: 'xy'
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+

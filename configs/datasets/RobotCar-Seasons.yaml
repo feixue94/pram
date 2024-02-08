@@ -1,0 +1,15 @@
+dataset: 'RobotCar-Seasons'
+
+scenes: [ 'RobotCar-Seasons' ]
+
+RobotCar-Seasons:
+  n_cluster: 512
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  image_path_prefix: 'images'
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_pose_spp_spg.txt'

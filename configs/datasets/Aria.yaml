@@ -1,0 +1,17 @@
+dataset: 'Aria'
+scenes: [ 'fallside' ]
+
+
+fallside:
+  n_cluster: 32
+  cluster_mode: 'xy'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  gt_pose_path_: 'queries_poses.txt'
+  query_path_: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses_left.txt'
+  query_path: 'queries_with_intrinsics_left.txt'
+  image_path_prefix: 'db'

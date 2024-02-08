@@ -1,0 +1,15 @@
+dataset: 'Aachen'
+
+scenes: [ 'Aachenv11' ]
+
+Aachenv11:
+  n_cluster: 512
+  cluster_mode: 'xz'
+  cluster_method_: 'kmeans'
+  cluster_method: 'birch'
+  training_sample_ratio: 1
+  eval_sample_ratio: 1
+  image_path_prefix: 'images/images_upright'
+  query_path_: 'queries_with_intrinsics.txt'
+  query_path: 'queries_with_intrinsics_demo.txt'
+  gt_pose_path: 'queries_pose_spp_spg.txt'
