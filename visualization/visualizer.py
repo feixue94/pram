@@ -417,14 +417,7 @@ class Visualizer:
 
         glPopMatrix()
 
-    def update_current_image(self, Tcw):
-        lock = threading.Lock()
-        lock.acquire()
-        self.Tcw = deepcopy(Tcw)
-        self.Twc = np.linalg.inv(Tcw)
-        lock.release()
-
-    def update_current_image_qt(self, qcw, tcw, gt_qcw=None, gt_tcw=None):
+    def update_current_image(self, qcw, tcw, gt_qcw=None, gt_tcw=None):
         lock = threading.Lock()
         lock.acquire()
 
