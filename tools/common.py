@@ -10,6 +10,8 @@ import torch
 import json
 import yaml
 import cv2
+import numpy as np
+from typing import Tuple
 
 
 def load_args(args, save_path):
@@ -67,3 +69,34 @@ def resize_img(img, nh=-1, nw=-1, rmax=-1, mode=cv2.INTER_NEAREST):
             return cv2.resize(img, dsize=(rmax, int(img.shape[0] / img.shape[1] * rmax)), interpolation=mode)
 
     return cv2.resize(img, dsize=(nw, nh), interpolation=mode)
+
+
+def resize_image_with_padding(image: np.array, nw: int, nh: int, padding_color: Tuple[int] = (0, 0, 0)) -> np.array:
+    """Maintains aspect ratio and resizes with padding.
+    Params:
+        image: Image to be resized.
+        new_shape: Expected (width, height) of new image.
+        padding_color: Tuple in BGR of padding color
+    Returns:
+        image: Resized image with padding
+    """
+    original_shape = (image.shape[1], image.shape[0])  # (w, h)
+    ratio_w = nw / original_shape[0]
+    ratio_h = nh / original_shape[1]
+
+    if ratio_w == ratio_h:
+        image = cv2.resize(image, (nw, nh), interpolation=cv2.INTER_NEAREST)
+
+    ratio = ratio_w if ratio_w < ratio_h else ratio_h
+
+    new_size = tuple([int(x * ratio) for x in original_shape])
+    image = cv2.resize(image, new_size, interpolation=cv2.INTER_NEAREST)
+    delta_w = nw - new_size[0] if nw > new_size[0] else new_size[0] - nw
+    delta_h = nh - new_size[1] if nh > new_size[1] else new_size[1] - nh
+
+    left, right = delta_w // 2, delta_w - (delta_w // 2)
+    top, bottom = delta_h // 2, delta_h - (delta_h // 2)
+
+    # print('top, bottom, left, right: ', top, bottom, left, right)
+    image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=padding_color)
+    return image

@@ -207,7 +207,6 @@ if __name__ == '__main__':
     parser.add_argument('--inlier_thresh', type=int, default=50)
     parser.add_argument('--obs_thresh', type=float, default=3)
     parser.add_argument('--opt_thresh', type=float, default=12)
-    parser.add_argument('--radius', type=int, default=20)
     parser.add_argument('--save_root', type=str, required=True)
     parser.add_argument('--retrieval', type=Path, default=None)
     parser.add_argument('--gt_pose_fn', type=str, default=None)
