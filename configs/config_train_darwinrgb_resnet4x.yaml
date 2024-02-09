@@ -66,8 +66,7 @@ cluster_method: 'birch'
 
 weight_path_: null
 weight_path_1: '20240111_224902_segnet_L15_DarwinRGB_resnet4x_B24_K1024_relu_bn_od1024_nc129_adam_cew_md_A_birch/segnet.300.pth'
-weight_path_2: '20240119_155423_segnetvit_L15_DarwinRGB_resnet4x_B24_K1024_relu_bn_od1024_nc129_adam_cew_md_A_birch/segnetvit.430.pth'
-weight_path: '20240208_113630_segnetvit_L15_DarwinRGB_resnet4x_B32_K1024_relu_bn_od1024_nc129_adamw_cew_md_A_birch/segnetvit.90.pth'
+weight_path: '20240208_113630_segnetvit_L15_DarwinRGB_resnet4x_B32_K1024_relu_bn_od1024_nc129_adamw_cew_md_A_birch/segnetvit.396.pth'
 resume_path: null
 
 eval: false

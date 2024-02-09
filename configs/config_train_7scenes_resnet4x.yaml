@@ -83,10 +83,8 @@ n_class: 113
 eval_max_keypoints: 4096
 
 localization:
-  dataset: [ '7Scenes' ]
-
   loc_scene_name_: [ 'stairs' ]
-  loc_scene_name: [ 'fire' ]
+  loc_scene_name: [ 'chess' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
 
   seg_k: 20
@@ -108,7 +106,7 @@ localization:
   with_extra: false
   with_compress: true
   semantic_matching: true
-  do_refinement: true
+  do_refinement: false
   refinement_method: 'matching'
   refinement_method_: 'projection'
   covisibility_frame: 20
