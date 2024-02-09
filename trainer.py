@@ -19,7 +19,8 @@ import shutil
 import torch
 from torch.autograd import Variable
 from tools.common import save_args_yaml, merge_tags
-from tools.metrics import compute_iou, compute_precision
+from tools.metrics import compute_iou, compute_precision, SeqIOU, compute_corr_incorr, compute_seg_loss_weight
+from tools.metrics import compute_cls_loss_ce, compute_cls_corr
 
 
 class Trainer:
@@ -38,17 +39,8 @@ class Trainer:
         self.min_lr = self.config['min_lr']
 
         params = [p for p in self.model.parameters() if p.requires_grad]
-        if self.config['optimizer'] == 'adamw':
-            self.optimizer = optim.AdamW(
-                params=params,
-                lr=self.init_lr)
-        elif self.config['optimizer'] == 'adam':
-            self.optimizer = optim.Adam(params=params, lr=self.init_lr)
-
-        if self.config['seg_loss'] == 'ce':
-            self.seg_loss_func = torch.nn.CrossEntropyLoss().cuda()
-        elif self.config['seg_loss'] == 'cew':
-            self.seg_loss_func = self.compute_seg_loss_weight
+        self.optimizer = optim.AdamW(params=params, lr=self.init_lr)
+        self.seg_loss_func = self.compute_seg_loss_weight
 
         self.num_epochs = self.config['epochs']
 
@@ -105,13 +97,6 @@ class Trainer:
             self.eval_fun = None
             self.seq_metric = SeqIOU(n_class=self.config['n_class'], ignored_sids=[0])
 
-    def compute_seg_loss_weight(self, pred, target):
-        weight = torch.ones(size=(pred.shape[1],), device=pred.device).float()
-        pred = torch.log_softmax(pred, dim=1)
-        weight[0] = 0.1
-        seg_loss = F.cross_entropy(pred, target, weight=weight)
-        return seg_loss
-
     def preprocess_input(self, pred):
         for k in pred.keys():
             if k.find('name') >= 0:
@@ -122,7 +107,6 @@ class Trainer:
                 else:
                     pred[k] = Variable(torch.stack(pred[k]).float().cuda())
 
-        # print('bf scores: ', pred['scores'].shape, pred['descriptors'].shape, len(pred['image']))
         if self.with_aug:
             new_scores = []
             new_descs = []
@@ -147,7 +131,7 @@ class Trainer:
                     new_descs.append(seg_descs[None])
             pred['global_descriptors'] = global_descs
             pred['scores'] = torch.cat(new_scores, dim=0)
-            pred['descriptors'] = torch.cat(new_descs, dim=0).permute(0, 2, 1)  # -> [B, N, D]
+            # pred['descriptors'] = torch.cat(new_descs, dim=0).permute(0, 2, 1)  # -> [B, N, D]
             pred['seg_descriptors'] = torch.cat(new_descs, dim=0).permute(0, 2, 1)  # -> [B, N, D]
 
     def process_epoch(self):
@@ -164,7 +148,7 @@ class Trainer:
 
         for bidx, pred in tqdm(enumerate(self.train_loader), total=len(self.train_loader)):
             self.preprocess_input(pred)
-            if self.config['its_per_epoch'] >= 0 and bidx >= self.config['its_per_epoch']:
+            if 0 <= self.config['its_per_epoch'] <= bidx:
                 break
 
             data = self.model(pred)
@@ -172,10 +156,13 @@ class Trainer:
                 pred[k] = v
             pred = {**pred, **data}
 
-            seg_loss = self.compute_seg_loss(pred=pred['prediction'], target=pred['gt_seg'])
-            acc_corr, acc_incorr = self.compute_corr_incorr(pred=pred['prediction'],
-                                                            target=pred['gt_seg'],
-                                                            ignored_ids=[0])
+            seg_loss = compute_seg_loss_weight(pred=pred['prediction'],
+                                               target=pred['gt_seg'],
+                                               background_id=0,
+                                               weight_background=0.1)
+            acc_corr, acc_incorr = compute_corr_incorr(pred=pred['prediction'],
+                                                       target=pred['gt_seg'],
+                                                       ignored_ids=[0])
 
             if self.with_cls:
                 pred_cls_dist = pred['classification']
@@ -184,30 +171,18 @@ class Trainer:
                     gt_cls_dist_full = gt_cls_dist.unsqueeze(-1).repeat(1, 1, pred_cls_dist.shape[-1])
                 else:
                     gt_cls_dist_full = gt_cls_dist.unsqueeze(-1)
-                cls_loss = self.cls_loss_func(pred=pred_cls_dist, target=gt_cls_dist_full)
+                cls_loss = compute_cls_loss_ce(pred=pred_cls_dist, target=gt_cls_dist_full)
                 loss = seg_loss + cls_loss
 
                 # gt_n_seg = pred['gt_n_seg']
-                cls_acc = self.compute_cls_corr(pred=pred_cls_dist.squeeze(-1), target=gt_cls_dist)
+                cls_acc = compute_cls_corr(pred=pred_cls_dist.squeeze(-1), target=gt_cls_dist)
             else:
                 loss = seg_loss
                 cls_loss = torch.zeros_like(seg_loss)
                 cls_acc = torch.zeros_like(seg_loss)
 
             if self.with_sc:
-                pred_sc = pred['sc']  # [B, C, N]
-                gt_sc = pred['gt_norm_sc']
-                mask = (pred['gt_seg'] > 0)
-                sc_loss_l1 = self.compute_sc_loss_l1(pred=pred_sc, target=gt_sc, mean_xyz=pred['mean_xyz'],
-                                                     scale_xyz=pred['scale_xyz'], mask=mask)
-                sc_loss = sc_loss_l1
-                if self.config['sc_loss'].find('g') >= 0:
-                    sc_loss_geo = self.compute_sc_loss_geo(pred=pred_sc, p2ds=pred['keypoints'], P=pred['gt_P'],
-                                                           K=pred['K'], mean_xyz=pred['mean_xyz'],
-                                                           scale_xyz=pred['scale_xyz'], mask=mask)
-                    sc_loss = sc_loss + sc_loss_geo
-
-                loss = loss + sc_loss
+                pass
             else:
                 sc_loss = torch.zeros_like(seg_loss)
 
