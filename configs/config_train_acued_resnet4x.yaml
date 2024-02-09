@@ -82,7 +82,6 @@ eval_max_keypoints: 4096
 localization:
   loc_scene_name: [ ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  dataset: [ 'ACUED' ]
   seg_k: 20
   threshold: 12
   min_kpts: 256

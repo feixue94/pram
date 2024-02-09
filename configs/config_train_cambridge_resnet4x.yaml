@@ -37,9 +37,7 @@ inlier_th: 0.5
 lr: 0.0001
 min_lr: 0.00001
 epochs: 300
-optimizer: "adamw"
 seg_loss: "cew"
-seg_loss_nx: "cei"
 cls_loss: "ce"
 cls_loss_: "bce"
 sc_loss: 'l1g'
@@ -81,8 +79,6 @@ n_class: 161
 eval_max_keypoints: 4096
 
 localization:
-  dataset: [ 'CambridgeLandmarks' ]
-
   loc_scene_name: [ 'GreatCourt' ]
   loc_scene_name_1: [ 'KingsCollege' ]
   loc_scene_name_x: [ 'StMarysChurch' ]

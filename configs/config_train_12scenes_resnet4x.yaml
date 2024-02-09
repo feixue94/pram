@@ -83,8 +83,6 @@ n_class: 193
 eval_max_keypoints: 4096
 
 localization:
-  dataset: [ '12Scenes' ]
-
   #    loc_scene_name: ['office2/5b' ]
   loc_scene_name: [ 'office2/5b' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
@@ -105,9 +103,9 @@ localization:
   max_vrf: 1
   with_original: true
   with_extra: false
-  with_compress: false
+  with_compress: true
   semantic_matching: True
-  do_refinement: true
+  do_refinement: false
   refinement_method: 'matching'
   refinement_method_: 'projection'
   covisibility_frame: 20

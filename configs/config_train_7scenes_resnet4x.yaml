@@ -35,11 +35,7 @@ train: true
 inlier_th: 0.5
 lr: 0.0001
 min_lr: 0.00001
-optimizer: "adamw"
-seg_loss: "cew"
-seg_loss_nx: "cei"
 cls_loss: "ce"
-cls_loss_: "bce"
 sc_loss: 'l1g'
 ac_fn: "relu"
 norm_fn: "bn"
@@ -63,7 +59,6 @@ decay_rate: 0.999992
 decay_iter: 80000
 epochs: 200
 
-cluster_method_: 'kmeans'
 cluster_method: 'birch'
 
 weight_path_: null
