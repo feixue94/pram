@@ -130,8 +130,6 @@ class SegNetViT(nn.Module):
         'n_layers': 9,
         'num_heads': 4,
         'hidden_dim': 256,
-        'ac_fn': 'relu',
-        'norm_fn': 'in',
         'with_score': False,
         'with_global': False,
         'with_cls': False,
@@ -192,10 +190,10 @@ class SegNetViT(nn.Module):
         desc = self.input_proj(desc)
 
         desc = self.gnn(desc, enc)
-        cls_output = self.seg(desc)  # [B, N, C]
+        seg_output = self.seg(desc)  # [B, N, C]
 
         output = {
-            'prediction': cls_output,
+            'prediction': seg_output,
         }
 
         if self.with_sc:

@@ -300,7 +300,6 @@ class Trainer:
                                                                norm_desc=self.config['norm_desc'])
                         # print('eval: ', scores.shape, descs.shape)
                         pred['scores'] = scores[None]
-                        # pred['descriptors'] = descs[None].permute(0, 2, 1)  # -> [B, N, D]
                         pred['seg_descriptors'] = descs[None].permute(0, 2, 1)  # -> [B, N, D]
                     else:
                         pred['seg_descriptors'] = pred['descriptors']
@@ -378,8 +377,7 @@ class Trainer:
                     hist_values.append(-train_loss)  # lower better
 
                 checkpoint_path = os.path.join(self.save_dir,
-                                               '%s.%02d.pth' % (self.config['network'], self.epoch)
-                                               )
+                                               '%s.%02d.pth' % (self.config['network'], self.epoch))
                 checkpoint = {
                     'epoch': self.epoch,
                     'iteration': self.iteration,
