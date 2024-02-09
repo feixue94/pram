@@ -83,7 +83,7 @@ class SegNet(nn.Module):
                           )
 
     def preprocess(self, data):
-        desc0 = data['descriptors']
+        desc0 = data['seg_descriptors']
         desc0 = desc0.transpose(1, 2)  # [B, N, D] - > [B, D, N]
 
         if 'norm_keypoints' in data.keys():

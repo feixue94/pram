@@ -305,7 +305,7 @@ class Trainer:
                                                                norm_desc=self.config['norm_desc'])
                         # print('eval: ', scores.shape, descs.shape)
                         pred['scores'] = scores[None]
-                        pred['descriptors'] = descs[None].permute(0, 2, 1)  # -> [B, N, D]
+                        # pred['descriptors'] = descs[None].permute(0, 2, 1)  # -> [B, N, D]
                         pred['seg_descriptors'] = descs[None].permute(0, 2, 1)  # -> [B, N, D]
                     else:
                         pred['seg_descriptors'] = pred['descriptors']
@@ -315,7 +315,7 @@ class Trainer:
                 out = self.model(pred)
                 pred = {**pred, **out}
 
-                pred_seg = torch.max(pred['prediction'], dim=1)[1]  # [B, C, N]
+                pred_seg = torch.max(pred['prediction'], dim=-1)[1]  # [B, N, C]
                 pred_seg = pred_seg[0].cpu().numpy()
                 gt_seg = pred['gt_seg'][0].cpu().numpy()
                 iou = compute_iou(pred=pred_seg, target=gt_seg, n_class=self.config['n_class'], ignored_ids=[0])
@@ -324,7 +324,7 @@ class Trainer:
                 if self.with_cls:
                     pred_cls_dist = pred['classification']
                     gt_cls_dist = pred['gt_cls_dist']
-                    cls_acc = self.compute_cls_corr(pred=pred_cls_dist.squeeze(-1), target=gt_cls_dist).item()
+                    cls_acc = compute_cls_corr(pred=pred_cls_dist.squeeze(-1), target=gt_cls_dist).item()
                 else:
                     cls_acc = 0.
 
@@ -382,10 +382,9 @@ class Trainer:
                 else:
                     hist_values.append(-train_loss)  # lower better
 
-                checkpoint_path = os.path.join(
-                    self.save_dir,
-                    '%s.%02d.pth' % (self.config['network'], self.epoch)
-                )
+                checkpoint_path = os.path.join(self.save_dir,
+                                               '%s.%02d.pth' % (self.config['network'], self.epoch)
+                                               )
                 checkpoint = {
                     'epoch': self.epoch,
                     'iteration': self.iteration,

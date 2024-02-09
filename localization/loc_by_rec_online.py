@@ -98,7 +98,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                                                        kpts=kpts_cuda[0],
                                                        norm_desc=config['norm_desc'])
                 rec_out = rec_model({'scores': scores_cuda,
-                                     'descriptors': seg_descriptors[None].permute(0, 2, 1),
+                                     'seg_descriptors': seg_descriptors[None].permute(0, 2, 1),
                                      'keypoints': kpts_cuda,
                                      'image': img_cuda})
                 t_rec = time.time() - t_start

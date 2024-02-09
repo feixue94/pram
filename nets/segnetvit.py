@@ -174,7 +174,7 @@ class SegNetViT(nn.Module):
             )
 
     def preprocess(self, data):
-        desc0 = data['descriptors']
+        desc0 = data['seg_descriptors']
         if 'norm_keypoints' in data.keys():
             norm_kpts0 = data['norm_keypoints']
         elif 'image' in data.keys():
