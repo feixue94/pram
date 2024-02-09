@@ -53,7 +53,7 @@ with_score: false
 with_aug: true
 with_dist: true
 
-batch_size: 32
+batch_size: 8
 its_per_epoch: 1000
 decay_rate: 0.999992
 decay_iter: 80000
@@ -61,16 +61,16 @@ epochs: 200
 
 cluster_method: 'birch'
 
-weight_path_: null
+weight_path: null
 weight_path_1: '20230724_203230_segnet_L15_S_resnet4x_B32_K1024_relu_bn_od1024_nc113_adam_cew_md_A_birch/segnet.180.pth'
-weight_path: '20240202_152519_segnetvit_L15_S_resnet4x_B32_K512_relu_bn_od1024_nc113_adamw_cew_md_A_birch/segnetvit.199.pth'
+weight_path_2: '20240202_152519_segnetvit_L15_S_resnet4x_B32_K512_relu_bn_od1024_nc113_adamw_cew_md_A_birch/segnetvit.199.pth'
 
 resume_path: null
 
-#eval: false
-eval: true
-#loc: false
-loc: true
+eval: false
+#eval: true
+loc: false
+#loc: true
 #online: false
 online: true
 n_class: 113

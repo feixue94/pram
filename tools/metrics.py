@@ -129,12 +129,22 @@ def compute_corr_incorr(pred: torch.Tensor, target: torch.Tensor, ignored_ids: l
     return acc_ratio, inacc_ratio
 
 
-def compute_seg_loss_weight(pred: torch.Tensor, target: torch.Tensor, background_id: int = 0,
+def compute_seg_loss_weight(pred: torch.Tensor,
+                            target: torch.Tensor,
+                            background_id: int = 0,
                             weight_background: float = 0.1) -> torch.Tensor:
+    '''
+    :param pred: [B, C, N]
+    :param target: [B, N]
+    :param background_id:
+    :param weight_background:
+    :return:
+    '''
+    pred = pred.transpose(-2, -1).contiguous()  # [B, N, C] -> [B, C, N]
     weight = torch.ones(size=(pred.shape[1],), device=pred.device).float()
     pred = torch.log_softmax(pred, dim=1)
     weight[background_id] = weight_background
-    seg_loss = F.cross_entropy(pred, target, weight=weight)
+    seg_loss = F.cross_entropy(pred, target.long(), weight=weight)
     return seg_loss
 
 

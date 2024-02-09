@@ -40,11 +40,9 @@ class Trainer:
 
         params = [p for p in self.model.parameters() if p.requires_grad]
         self.optimizer = optim.AdamW(params=params, lr=self.init_lr)
-        self.seg_loss_func = self.compute_seg_loss_weight
-
         self.num_epochs = self.config['epochs']
 
-        if config['resume_path'] != None:
+        if config['resume_path'] is not None:
             log_dir = config['resume_path'].split('/')[-2]
             resume_log = torch.load(osp.join(osp.join(config['save_path'], config['resume_path'])), map_location='cpu')
             self.epoch = resume_log['epoch'] + 1
@@ -64,10 +62,8 @@ class Trainer:
             all_tags = all_tags + [self.config['network'], 'L' + str(self.config['layers']),
                                    dataset_name,
                                    str(self.config['feature']), 'B' + str(self.config['batch_size']),
-                                   'K' + str(self.config['max_keypoints']), self.config['ac_fn'],
-                                   self.config['norm_fn'], 'od' + str(self.config['output_dim']),
-                                   'nc' + str(self.config['n_class']), self.config['optimizer'],
-                                   self.config['seg_loss']]
+                                   'K' + str(self.config['max_keypoints']), 'od' + str(self.config['output_dim']),
+                                   'nc' + str(self.config['n_class'])]
             if self.config['use_mid_feature']:
                 all_tags.append('md')
             if self.with_cls:
@@ -131,7 +127,6 @@ class Trainer:
                     new_descs.append(seg_descs[None])
             pred['global_descriptors'] = global_descs
             pred['scores'] = torch.cat(new_scores, dim=0)
-            # pred['descriptors'] = torch.cat(new_descs, dim=0).permute(0, 2, 1)  # -> [B, N, D]
             pred['seg_descriptors'] = torch.cat(new_descs, dim=0).permute(0, 2, 1)  # -> [B, N, D]
 
     def process_epoch(self):
