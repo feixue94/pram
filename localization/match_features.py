@@ -28,6 +28,15 @@ confs = {
         },
     },
 
+    'adagml': {
+        'output': 'adagml',
+        'model': {
+            'name': 'adagml',
+            'weight_path': '/scratches/flyer_3/fx221/exp/uniloc/20240210_154552_adagml2_L9_resnet4x_B32_K1024_M0.2_relu_bn_adam/adagml2.80.pth',
+            'sinkhorn_iterations': 20,
+        },
+    },
+
     'superglue': {
         'output': 'superglue',
         'model': {

@@ -1,19 +1,24 @@
 # -*- coding: UTF-8 -*-
 '''=================================================
-@Project -> File   pram -> gml
+@Project -> File   pram -> adagml
 @IDE    PyCharm
 @Author fx221@cam.ac.uk
-@Date   07/02/2024 10:56
+@Date   11/02/2024 14:29
 =================================================='''
 import torch
 from torch import nn
 import torch.nn.functional as F
 from typing import Callable
-from nets.utils import arange_like, normalize_keypoints
+import time
+import numpy as np
 
 torch.backends.cudnn.deterministic = True
 
 eps = 1e-8
+
+
+def arange_like(x, dim: int):
+    return x.new_ones(x.shape[dim]).cumsum(0) - 1  # traceable in 1.1
 
 
 def dual_softmax(M, dustbin):
@@ -43,6 +48,16 @@ def sink_algorithm(M, dustbin, iteration):
     c = torch.cat([c, torch.ones([M.shape[0], 1], device='cuda') * M.shape[2]], dim=-1)
     p = sinkhorn(M, r, c, iteration)
     return p
+
+
+def normalize_keypoints(kpts, image_shape):
+    """ Normalize keypoints locations based on image image_shape"""
+    _, _, height, width = image_shape
+    one = kpts.new_tensor(1)
+    size = torch.stack([one * width, one * height])[None]
+    center = size / 2
+    scaling = size.max(1, keepdim=True).values * 0.7
+    return (kpts - center[:, None, :]) / scaling[:, None, :]
 
 
 def rotate_half(x: torch.Tensor) -> torch.Tensor:
@@ -96,6 +111,33 @@ class KeypointEncoder(nn.Module):
         return self.encoder(torch.cat(inputs, dim=-1))
 
 
+class PoolingLayer(nn.Module):
+    def __init__(self, hidden_dim: int, score_dim: int = 2):
+        super().__init__()
+
+        self.score_enc = nn.Sequential(
+            nn.Linear(score_dim, hidden_dim),
+            nn.LayerNorm(hidden_dim, elementwise_affine=True),
+            nn.GELU(),
+            nn.Linear(hidden_dim, hidden_dim),
+        )
+        self.proj = nn.Linear(hidden_dim, hidden_dim)
+        self.predict = nn.Sequential(
+            nn.Linear(hidden_dim * 2, hidden_dim),
+            nn.LayerNorm(hidden_dim, elementwise_affine=True),
+            nn.GELU(),
+            nn.Linear(hidden_dim, 1),
+        )
+
+    def forward(self, x, score):
+        score_ = self.score_enc(score)
+        x_ = self.proj(x)
+        confidence = self.predict(torch.cat([x_, score_], -1))
+        confidence = torch.sigmoid(confidence)
+
+        return confidence
+
+
 class Attention(nn.Module):
     def __init__(self):
         super().__init__()
@@ -103,7 +145,7 @@ class Attention(nn.Module):
     def forward(self, q, k, v):
         s = q.shape[-1] ** -0.5
         attn = F.softmax(torch.einsum('...id,...jd->...ij', q, k) * s, -1)
-        return torch.einsum('...ij,...jd->...id', attn, v)
+        return torch.einsum('...ij,...jd->...id', attn, v), torch.mean(torch.mean(attn, dim=1), dim=1)
 
 
 class SelfMultiHeadAttention(nn.Module):
@@ -131,12 +173,14 @@ class SelfMultiHeadAttention(nn.Module):
         if encoding is not None:
             q = apply_cached_rotary_emb(encoding, q)
             k = apply_cached_rotary_emb(encoding, k)
-        attn = self.attn(q, k, v)
+        attn, attn_score = self.attn(q, k, v)
         message = self.proj(attn.transpose(1, 2).flatten(start_dim=-2))
-        return x + self.mlp(torch.cat([x, message], -1))
+        return x + self.mlp(torch.cat([x, message], -1)), attn_score
 
     def forward(self, x0, x1, encoding0=None, encoding1=None):
-        return self.forward_(x0, encoding0), self.forward_(x1, encoding1)
+        x0_, att_score00 = self.forward_(x=x0, encoding=encoding0)
+        x1_, att_score11 = self.forward_(x=x1, encoding=encoding1)
+        return x0_, x1_, att_score00, att_score11
 
 
 class CrossMultiHeadAttention(nn.Module):
@@ -182,13 +226,10 @@ class CrossMultiHeadAttention(nn.Module):
         m0, m1 = self.map_(self.proj, m0, m1)
         x0 = x0 + self.mlp(torch.cat([x0, m0], -1))
         x1 = x1 + self.mlp(torch.cat([x1, m1], -1))
-        return x0, x1
+        return x0, x1, torch.mean(torch.mean(attn10, dim=1), dim=1), torch.mean(torch.mean(attn01, dim=1), dim=1)
 
 
-class GML(nn.Module):
-    '''
-    the architecture of lightglue, but trained with imp
-    '''
+class AdaGML(nn.Module):
     default_config = {
         'descriptor_dim': 128,
         'hidden_dim': 256,
@@ -197,20 +238,24 @@ class GML(nn.Module):
         'GNN_layers': ['self', 'cross'] * 9,  # [self, cross, self, cross, ...] 9 in total
         'sinkhorn_iterations': 20,
         'match_threshold': 0.2,
-        'with_pose': False,
+        'with_pose': True,
         'n_layers': 9,
         'n_min_tokens': 256,
         'with_sinkhorn': True,
+        'min_confidence': 0.9,
 
-        'ac_fn': 'relu',
-        'norm_fn': 'bn',
-
+        'classification_background_weight': 0.05,
+        'pretrained': True,
     }
 
     def __init__(self, config):
         super().__init__()
         self.config = {**self.default_config, **config}
         self.n_layers = self.config['n_layers']
+        self.first_layer_pooling = 0
+        self.n_min_tokens = self.config['n_min_tokens']
+        self.min_confidence = self.config['min_confidence']
+        self.classification_background_weight = self.config['classification_background_weight']
 
         self.with_sinkhorn = self.config['with_sinkhorn']
         self.match_threshold = self.config['match_threshold']
@@ -238,18 +283,31 @@ class GML(nn.Module):
         bin_score = torch.nn.Parameter(torch.tensor(1.))
         self.register_parameter('bin_score', bin_score)
 
+        self.pooling = nn.ModuleList(
+            [PoolingLayer(score_dim=2, hidden_dim=self.config['hidden_dim']) for _ in range(self.n_layers)]
+        )
+        # self.pretrained = config['pretrained']
+        # if self.pretrained:
+        #     bin_score.requires_grad = False
+        #     for m in [self.input_proj, self.out_proj, self.poseenc, self.self_attn, self.cross_attn]:
+        #         for p in m.parameters():
+        #             p.requires_grad = False
+
     def forward(self, data, mode=0):
         if not self.training:
-            return self.produce_matches(data=data)
+            if mode == 0:
+                return self.produce_matches(data=data)
+            else:
+                return self.run(data=data)
         return self.forward_train(data=data)
 
     def forward_train(self, data: dict, p=0.2, **kwargs):
         pass
 
-    def produce_matches(self, data: dict, p=0.2, **kwargs):
+    def produce_matches(self, data: dict, p: float = 0.2, **kwargs):
         desc0, desc1 = data['descriptors0'], data['descriptors1']
         kpts0, kpts1 = data['keypoints0'], data['keypoints1']
-        # scores0, scores1 = data['scores0'], data['scores1']
+        scores0, scores1 = data['scores0'], data['scores1']
 
         # Keypoint normalization.
         if 'norm_keypoints0' in data.keys() and 'norm_keypoints1' in data.keys():
@@ -259,37 +317,173 @@ class GML(nn.Module):
             norm_kpts0 = normalize_keypoints(kpts0, data['image0'].shape)
             norm_kpts1 = normalize_keypoints(kpts1, data['image1'].shape)
         elif 'image_shape0' in data.keys() and 'image_shape1' in data.keys():
-            # print(data['image_shape0'], data['image_shape1'])
             norm_kpts0 = normalize_keypoints(kpts0, data['image_shape0'])
             norm_kpts1 = normalize_keypoints(kpts1, data['image_shape1'])
         else:
             raise ValueError('Require image shape for keypoint coordinate normalization')
+
+        desc0 = desc0.detach()  # [B, N, D]
+        desc1 = desc1.detach()
 
         desc0 = self.input_proj(desc0)
         desc1 = self.input_proj(desc1)
         enc0 = self.poseenc(norm_kpts0)
         enc1 = self.poseenc(norm_kpts1)
 
-        nI = self.n_layers
+        nI = self.config['n_layers']
+        nB = desc0.shape[0]
+        m = desc0.shape[1]
+        n = desc1.shape[1]
+        dev = desc0.device
 
-        for i in range(nI):
-            desc0, desc1 = self.self_attn[i](desc0, desc1, enc0, enc1)
-            desc0, desc1 = self.cross_attn[i](desc0, desc1)
+        ind0 = torch.arange(0, m, device=dev)[None]
+        ind1 = torch.arange(0, n, device=dev)[None]
 
+        do_pooling = True
+
+        for ni in range(nI):
+            desc0, desc1, att_score00, att_score11 = self.self_attn[ni](desc0, desc1, enc0, enc1)
+            desc0, desc1, att_score01, att_score10 = self.cross_attn[ni](desc0, desc1)
+
+            att_score0 = torch.cat([att_score00.unsqueeze(-1), att_score01.unsqueeze(-1)], dim=-1)
+            att_score1 = torch.cat([att_score11.unsqueeze(-1), att_score10.unsqueeze(-1)], dim=-1)
+
+            conf0 = self.pooling[ni](desc0, att_score0).squeeze(-1)
+            conf1 = self.pooling[ni](desc1, att_score1).squeeze(-1)
+
+            if do_pooling and ni >= 1:
+                if desc0.shape[1] >= self.n_min_tokens:
+                    mask0 = conf0 > self.confidence_threshold(layer_index=ni)
+                    ind0 = ind0[mask0][None]
+                    desc0 = desc0[mask0][None]
+                    enc0 = enc0[:, :, mask0][:, None]
+
+                if desc1.shape[1] >= self.n_min_tokens:
+                    mask1 = conf1 > self.confidence_threshold(layer_index=ni)
+                    ind1 = ind1[mask1][None]
+                    desc1 = desc1[mask1][None]
+                    enc1 = enc1[:, :, mask1][:, None]
+
+                # print('pooling: ', ni, desc0.shape, desc1.shape)
+                # print('ni: {:d}: pooling: {:.4f}'.format(ni, time.time() - t_start))
+                # t_start = time.time()
+                if self.check_if_stop(confidences0=conf0, confidences1=conf1, layer_index=ni, num_points=m + n):
+                    # print('ni:{:d}: checking: {:.4f}'.format(ni, time.time() - t_start))
+                    break
+
+        if ni == nI: ni = nI - 1
         d = desc0.shape[-1]
-        mdesc0 = self.out_proj[-1](desc0) / d ** .25
-        mdesc1 = self.out_proj[-1](desc1) / d ** .25
+        mdesc0 = self.out_proj[ni](desc0) / d ** .25
+        mdesc1 = self.out_proj[ni](desc1) / d ** .25
 
         dist = torch.einsum('bmd,bnd->bmn', mdesc0, mdesc1)
-
         score = self.compute_score(dist=dist, dustbin=self.bin_score, iteration=self.sinkhorn_iterations)
         indices0, indices1, mscores0, mscores1 = self.compute_matches(scores=score, p=p)
+        valid = indices0 > -1
+        m_indices0 = torch.where(valid)[1]
+        m_indices1 = indices0[valid]
+
+        mind0 = ind0[0, m_indices0]
+        mind1 = ind1[0, m_indices1]
+
+        indices0_full = torch.full((nB, m), -1, device=dev, dtype=indices0.dtype)
+        indices0_full[:, mind0] = mind1
+
+        mscores0_full = torch.zeros((nB, m), device=dev)
+        mscores0_full[:, ind0] = mscores0
+
+        indices0 = indices0_full
+        mscores0 = mscores0_full
 
         output = {
             'matches0': indices0,  # use -1 for invalid match
-            'matches1': indices1,  # use -1 for invalid match
+            # 'matches1': indices1,  # use -1 for invalid match
             'matching_scores0': mscores0,
-            'matching_scores1': mscores1,
+        }
+
+        return output
+
+    def run(self, data, p=0.2):
+        desc0 = data['desc1']
+        # print('desc0: ', torch.sum(desc0 ** 2, dim=-1))
+        # desc0 = torch.nn.functional.normalize(desc0, dim=-1)
+        desc0 = desc0.detach()
+
+        desc1 = data['desc2']
+        # desc1 = torch.nn.functional.normalize(desc1, dim=-1)
+        desc1 = desc1.detach()
+
+        kpts0 = data['x1'][:, :, :2]
+        kpts1 = data['x2'][:, :, :2]
+        # kpts0 = normalize_keypoints(kpts=kpts0, image_shape=data['image_shape1'])
+        # kpts1 = normalize_keypoints(kpts=kpts1, image_shape=data['image_shape2'])
+        scores0 = data['x1'][:, :, -1]
+        scores1 = data['x2'][:, :, -1]
+
+        desc0 = self.input_proj(desc0)
+        desc1 = self.input_proj(desc1)
+        enc0 = self.poseenc(kpts0)
+        enc1 = self.poseenc(kpts1)
+
+        nB = desc0.shape[0]
+        nI = self.n_layers
+        m, n = desc0.shape[1], desc1.shape[1]
+        dev = desc0.device
+        ind0 = torch.arange(0, m, device=dev)[None]
+        ind1 = torch.arange(0, n, device=dev)[None]
+        do_pooling = True
+
+        for ni in range(nI):
+            desc0, desc1, att_score00, att_score11 = self.self_attn[ni](desc0, desc1, enc0, enc1)
+            desc0, desc1, att_score01, att_score10 = self.cross_attn[ni](desc0, desc1)
+
+            att_score0 = torch.cat([att_score00.unsqueeze(-1), att_score01.unsqueeze(-1)], dim=-1)
+            att_score1 = torch.cat([att_score11.unsqueeze(-1), att_score10.unsqueeze(-1)], dim=-1)
+
+            conf0 = self.pooling[ni](desc0, att_score0).squeeze(-1)
+            conf1 = self.pooling[ni](desc1, att_score1).squeeze(-1)
+
+            if do_pooling and ni >= 1:
+                if desc0.shape[1] >= self.n_min_tokens:
+                    mask0 = conf0 > self.confidence_threshold(layer_index=ni)
+                    ind0 = ind0[mask0][None]
+                    desc0 = desc0[mask0][None]
+                    enc0 = enc0[:, :, mask0][:, None]
+
+                if desc1.shape[1] >= self.n_min_tokens:
+                    mask1 = conf1 > self.confidence_threshold(layer_index=ni)
+                    ind1 = ind1[mask1][None]
+                    desc1 = desc1[mask1][None]
+                    enc1 = enc1[:, :, mask1][:, None]
+                if desc0.shape[1] <= 5 or desc1.shape[1] <= 5:
+                    return {
+                        'index0': torch.zeros(size=(1,), device=desc0.device).long(),
+                        'index1': torch.zeros(size=(1,), device=desc1.device).long(),
+                    }
+
+                if self.check_if_stop(confidences0=conf0, confidences1=conf1, layer_index=ni,
+                                      num_points=m + n):
+                    break
+
+        if ni == nI: ni = -1
+        d = desc0.shape[-1]
+        mdesc0 = self.out_proj[ni](desc0) / d ** .25
+        mdesc1 = self.out_proj[ni](desc1) / d ** .25
+
+        dist = torch.einsum('bmd,bnd->bmn', mdesc0, mdesc1)
+        score = self.compute_score(dist=dist, dustbin=self.bin_score, iteration=self.sinkhorn_iterations)
+        indices0, indices1, mscores0, mscores1 = self.compute_matches(scores=score, p=p)
+        valid = indices0 > -1
+        m_indices0 = torch.where(valid)[1]
+        m_indices1 = indices0[valid]
+
+        mind0 = ind0[0, m_indices0]
+        mind1 = ind1[0, m_indices1]
+
+        output = {
+            # 'p': score,
+            'index0': mind0,
+            'index1': mind1,
         }
 
         return output
@@ -318,3 +512,25 @@ class GML(nn.Module):
         indices1 = torch.where(valid1, indices1, indices1.new_tensor(-1))
 
         return indices0, indices1, mscores0, mscores1
+
+    def confidence_threshold(self, layer_index: int):
+        """scaled confidence threshold"""
+        # threshold = 0.8 + 0.1 * np.exp(-4.0 * layer_index / self.n_layers)
+        threshold = 0.5 + 0.1 * np.exp(-4.0 * layer_index / self.n_layers)
+        return np.clip(threshold, 0, 1)
+
+    def check_if_stop(self,
+                      confidences0: torch.Tensor,
+                      confidences1: torch.Tensor,
+                      layer_index: int, num_points: int) -> torch.Tensor:
+        """ evaluate stopping condition"""
+        confidences = torch.cat([confidences0, confidences1], -1)
+        threshold = self.confidence_threshold(layer_index)
+        pos = 1.0 - (confidences < threshold).float().sum() / num_points
+        # print('check_stop: ', pos)
+        return pos > 0.95
+
+    def stop_iteration(self, m_last, n_last, m_current, n_current, confidence=0.975):
+        prob = (m_current + n_current) / (m_last + n_last)
+        # print('prob: ', prob)
+        return prob > confidence

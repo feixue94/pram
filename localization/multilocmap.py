@@ -65,11 +65,7 @@ class MultiLocMap:
         self.config = config
         self.save_dir = save_dir
         self.matching_method = config['localization']['matching_method']
-        if self.matching_method in ['gm', 'gml']:
-            device = 'cuda' if torch.cuda.is_available() else 'cpu'
-            Model = dynamic_load(matchers, self.matching_method)
-            self.matcher = Model(matcher_confs[self.matching_method]['model']).eval().to(device)
-        elif self.matching_method == 'gm':
+        if self.matching_method == 'gm':
             desc_dim = config['feat_dim']
             self.gm = GM(config={
                 'descriptor_dim': desc_dim,
@@ -97,7 +93,9 @@ class MultiLocMap:
             self.gm.cuda().eval()
             self.matcher = self.gm
         else:
-            self.gm = None
+            device = 'cuda' if torch.cuda.is_available() else 'cpu'
+            Model = dynamic_load(matchers, self.matching_method)
+            self.matcher = Model(matcher_confs[self.matching_method]['model']).eval().to(device)
 
         self.initialize_map(config=config)
 
