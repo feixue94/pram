@@ -1,6 +1,7 @@
 dataset: [ 'Aachen' ]
 
-network: "segnet"
+network_: "segnet"
+network: "segnetvit"
 local_rank: 0
 gpu: [ 0 ]
 
@@ -65,10 +66,8 @@ cluster_method_: 'kmeans'
 cluster_method: 'birch'
 
 weight_path_: null
-weight_path_1: '20230706_164526_segnet_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_A_kmeans/segnet.799.pth'
-weight_path_2: '20230714_182825_gsegnet3_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_ce_A_kmeans/gsegnet3.799.pth'
-
-weight_path: '20230719_221442_segnet_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adamw_cew_md_A_birch/segnet.899.pth'
+weight_path_1: '20230719_221442_segnet_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adamw_cew_md_A_birch/segnet.899.pth'
+weight_path: '20240211_142623_segnetvit_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_A_birch/segnetvit.322.pth'
 resume_path: null
 
 eval: true

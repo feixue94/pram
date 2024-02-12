@@ -92,8 +92,8 @@ localization:
   matching_method_: "mnn"
   matching_method_1: "spg"
   matching_method_2: "gm"
-  matching_method: "gml"
-  matching_method_4: "adagml"
+  matching_method_3: "gml"
+  matching_method: "adagml"
   show: true
   show_time: 1
   save: false

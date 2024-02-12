@@ -249,8 +249,6 @@ class GML(nn.Module):
     def produce_matches(self, data: dict, p=0.2, **kwargs):
         desc0, desc1 = data['descriptors0'], data['descriptors1']
         kpts0, kpts1 = data['keypoints0'], data['keypoints1']
-        # scores0, scores1 = data['scores0'], data['scores1']
-
         # Keypoint normalization.
         if 'norm_keypoints0' in data.keys() and 'norm_keypoints1' in data.keys():
             norm_kpts0 = data['norm_keypoints0']
@@ -259,7 +257,6 @@ class GML(nn.Module):
             norm_kpts0 = normalize_keypoints(kpts0, data['image0'].shape)
             norm_kpts1 = normalize_keypoints(kpts1, data['image1'].shape)
         elif 'image_shape0' in data.keys() and 'image_shape1' in data.keys():
-            # print(data['image_shape0'], data['image_shape1'])
             norm_kpts0 = normalize_keypoints(kpts0, data['image_shape0'])
             norm_kpts1 = normalize_keypoints(kpts1, data['image_shape1'])
         else:
@@ -271,14 +268,15 @@ class GML(nn.Module):
         enc1 = self.poseenc(norm_kpts1)
 
         nI = self.n_layers
+        # nI = 5
 
         for i in range(nI):
             desc0, desc1 = self.self_attn[i](desc0, desc1, enc0, enc1)
             desc0, desc1 = self.cross_attn[i](desc0, desc1)
 
         d = desc0.shape[-1]
-        mdesc0 = self.out_proj[-1](desc0) / d ** .25
-        mdesc1 = self.out_proj[-1](desc1) / d ** .25
+        mdesc0 = self.out_proj[nI - 1](desc0) / d ** .25
+        mdesc1 = self.out_proj[nI - 1](desc1) / d ** .25
 
         dist = torch.einsum('bmd,bnd->bmn', mdesc0, mdesc1)
 

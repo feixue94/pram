@@ -965,11 +965,6 @@ def process_dataset():
     dataset = configs['dataset']
     all_scenes = configs['scenes']
     for scene in all_scenes:
-        # if scene.find('stairs') < 0:
-        # if scene.find('heads') < 0:
-        # if scene.find('KingsCollege') < 0:
-        #    continue
-
         n_cluster = configs[scene]['n_cluster']
         cluster_mode = configs[scene]['cluster_mode']
         cluster_method = configs[scene]['cluster_method']
