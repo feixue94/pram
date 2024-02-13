@@ -90,6 +90,8 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                                                                       'max_keypoints': config['eval_max_keypoints'],
                                                                       }
                                                               )
+                t_feat = time.time() - t_start
+                t_start = time.time()
                 # global_descriptors_cuda = encoder_out['global_descriptors']
                 scores_cuda = encoder_out['scores'][0][None]
                 kpts_cuda = encoder_out['keypoints'][0][None]
@@ -165,6 +167,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                     #                 np.hstack([img_pred_seg, loc_out['img_loc']]))
 
                     Viewer.update_rec_image(img=[img_rec, img_loc])
+                    Viewer.update_feat_time(t=t_feat)
                     Viewer.update_rec_time(t=t_rec)
                     Viewer.update_loc_time(t=loc_out['time_loc'])
                     Viewer.update_ref_time(t=loc_out['time_ref'])

@@ -85,6 +85,7 @@ class Visualizer:
         self.last_pred_scene_name = None
         self.reference_image_ids = None
         self.vrf_image_id = None
+        self.feat_time = np.NAN
         self.rec_time = np.NAN
         self.loc_time = np.NAN
         self.ref_time = np.NAN
@@ -507,6 +508,13 @@ class Visualizer:
 
         lock.release()
 
+    def update_feat_time(self, t):
+        lock = threading.Lock()
+        lock.acquire()
+        self.feat_time = t
+
+        lock.release()
+
     def update_loc_time(self, t):
         lock = threading.Lock()
         lock.acquire()
@@ -553,6 +561,7 @@ class Visualizer:
 
         menu.Refinement = (self.refinement, pangolin.VarMeta(toggle=True))
 
+        menu.featTime = 'NaN'
         menu.recTime = 'NaN'
         menu.locTime = 'NaN'
         menu.refTime = 'NaN'
@@ -637,6 +646,8 @@ class Visualizer:
                 d_img_rec_texture.Upload(self.image_rec, GL_RGB, GL_UNSIGNED_BYTE)
                 d_img_rec_texture.RenderToViewportFlipY()
 
+            if self.feat_time != np.NAN:
+                menu.featTime = '{:.2f}s'.format(self.feat_time)
             if self.rec_time != np.NAN:
                 menu.recTime = '{:.2f}s'.format(self.rec_time)
             if self.loc_time != np.NAN:
@@ -644,7 +655,7 @@ class Visualizer:
             if self.ref_time != np.NAN:
                 menu.refTime = '{:.2f}s'.format(self.ref_time)
             if self.rec_time != np.NAN and self.loc_time != np.NAN and self.ref_time != np.NAN:
-                self.total_time = self.rec_time + self.loc_time + self.ref_time
+                self.total_time = self.feat_time + self.rec_time + self.loc_time + self.ref_time
                 menu.totalTime = '{:.2f}s'.format(self.total_time)
 
             time.sleep(50 / 1000)
