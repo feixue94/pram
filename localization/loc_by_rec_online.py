@@ -18,9 +18,6 @@ from visualization.visualizer import Visualizer
 from localization.utils import read_query_info
 
 
-# from configs.datasets.dataset_config import dataset_config
-
-
 def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
     seg_color = generate_color_dic(n_seg=2000)
     dataset_path = config['dataset_path']
@@ -88,7 +85,11 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                     img_cuda = img_cuda[None]
 
                 t_start = time.time()
-                encoder_out = local_feat.extract_local_global(data={'image': img_cuda})
+                encoder_out = local_feat.extract_local_global(data={'image': img_cuda},
+                                                              config={'min_keypoints': 128,
+                                                                      'max_keypoints': config['eval_max_keypoints'],
+                                                                      }
+                                                              )
                 # global_descriptors_cuda = encoder_out['global_descriptors']
                 scores_cuda = encoder_out['scores'][0][None]
                 kpts_cuda = encoder_out['keypoints'][0][None]

@@ -125,6 +125,13 @@ class ResBlock(nn.Module):
 
 
 class ResNet4x(nn.Module):
+    default_config = {
+        'conf_th': 0.005,
+        'remove_borders': 4,
+        'min_keypoints': 128,
+        'max_keypoints': 4096,
+    }
+
     def __init__(self, inputdim=3, outdim=128, desc_compressor=None):
         super().__init__()
         self.outdim = outdim
@@ -267,6 +274,8 @@ class ResNet4x(nn.Module):
                                  'max_keypoints': 4096,
                              }
                              ):
+
+        config = {**self.default_config, **config}
 
         b, ic, ih, iw = data['image'].shape
         out1a = self.conv1a(data['image'])
