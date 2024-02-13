@@ -60,14 +60,14 @@ batch_size: 32
 its_per_epoch: 1000
 decay_rate: 0.999992
 decay_iter: 80000
-epochs: 900
+epochs: 800
 
 cluster_method_: 'kmeans'
 cluster_method: 'birch'
 
 weight_path_: null
 weight_path_1: '20230719_221442_segnet_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adamw_cew_md_A_birch/segnet.899.pth'
-weight_path: '20240211_142623_segnetvit_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_A_birch/segnetvit.322.pth'
+weight_path: '20240211_142623_segnetvit_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_A_birch/segnetvit.780.pth'
 resume_path: null
 
 eval: true
@@ -82,7 +82,7 @@ eval_max_keypoints: 4096
 localization:
   loc_scene_name: [ ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  seg_k: 1
+  seg_k: 10
   threshold: 12
   min_kpts: 256
   min_matches: 8

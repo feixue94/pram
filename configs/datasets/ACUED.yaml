@@ -6,7 +6,6 @@ cued:
   n_cluster: 128
   n_cluster_: 256
   cluster_mode: 'xy'
-  cluster_method_: 'kmeans'
   cluster_method: 'birch'
 
   training_sample_ratio: 1
@@ -14,13 +13,8 @@ cued:
   gt_pose_path_: 'queries_poses.txt'
   query_path_: 'queries_with_intrinsics.txt'
 
-  query_path_1: 'queries_with_intrinsics_acued_test.txt'
-
-  query_path: 'queries_with_intrinsics_cuedcloudy.txt'
-
-
-  gt_pose_path: 'queries_poses_empty.txt'
-  query_path_2: 'queries_with_intrinsics_acued_test2.txt'
+  query_path: 'queries_with_intrinsics_aligned.txt'
+  gt_pose_path: 'queries_poses_aligned.txt'
 
   gt_pose_path_3: 'queries_poses_realme.txt'
   query_path_3: 'queries_with_intrinsics_realme.txt'
