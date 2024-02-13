@@ -54,9 +54,6 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
     with open(osp.join(config['config_path'], '{:s}.yaml'.format(dataset_name)), 'r') as f:
         scene_config = yaml.load(f, Loader=yaml.Loader)
 
-    print('scene_config: ', scene_config)
-    exit(0)
-
     # multiple scenes in a single dataset
     show_time = -1
     scenes = scene_config['scenes']
