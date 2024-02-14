@@ -55,7 +55,7 @@ with_score: false
 with_aug: true
 with_dist: true
 
-batch_size: 24
+batch_size: 32
 its_per_epoch: 1000
 decay_rate: 0.999992
 decay_iter: 40000
@@ -67,6 +67,7 @@ cluster_method: 'birch'
 
 weight_path_: null
 weight_path: '20240115_165909_segnet_L15_ACUED_resnet4x_B24_K1024_relu_bn_od1024_nc129_adam_cew_md_A_birch/segnet.599.pth'
+weight_path_2: '20240214_100731_segnetvit_L15_ACUED_resnet4x_B32_K1024_relu_bn_od1024_nc129_adam_cew_md_A_birch/segnetvit.130.pth'
 resume_path: null
 
 eval: false
@@ -76,7 +77,7 @@ loc: true
 online: true
 n_class: 129
 
-eval_max_keypoints: 1024
+eval_max_keypoints: 4096
 
 localization:
   loc_scene_name: [ ]
