@@ -63,8 +63,8 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         query_info = read_query_info(query_fn=query_path)
         all_scene_query_info[dataset_name + '/' + scene] = query_info
         image_path = osp.join(dataset_path, dataset_name, scene)
-        for fn in sorted(query_info.keys()):
-            # for fn in sorted(query_info.keys())[::5]:
+        # for fn in sorted(query_info.keys()):
+        for fn in sorted(query_info.keys())[::5]:
             # for fn in sorted(query_info.keys())[2100:][::5]: # darwinRGB-loc-outdoor
             # for fn in sorted(query_info.keys())[4360:][::5]:  # darwinRGB-loc-indoor
             # for fn in sorted(query_info.keys())[1380:]:  # Cam-Church

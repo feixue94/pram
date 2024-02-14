@@ -685,26 +685,26 @@ class MultiLocMap:
                 best_results['num_inliers'],
                 best_results['ref_img_name'],
                 best_results['order']))
-            # if self.loc_config['do_refinement']:
             if self.do_refinement:
                 t_start = time.time()
-                ref_ret = best_sub_map.refine_pose(data={
-                    'query_data': {
-                        'cfg': cfg,
-                        'descriptors': q_descs,
-                        'scores': q_scores,
-                        'keypoints': q_kpts,
-                        'width': width,
-                        'height': height,
-                        'qvec': None,
-                        'tvec': None,
-                        'n_inliers': best_results['num_inliers'],
-                        'loc_success': False,
-                        'mp2ds': None,
-                        'mp3ds': None,
-                    },
-                    'frame_id': best_results['ref_img_id'],
-                })
+                ref_ret = best_sub_map.refine_pose_by_matching(
+                    data={
+                        'query_data': {
+                            'cfg': cfg,
+                            'descriptors': q_descs,
+                            'scores': q_scores,
+                            'keypoints': q_kpts,
+                            'width': width,
+                            'height': height,
+                            'qvec': None,
+                            'tvec': None,
+                            'n_inliers': best_results['num_inliers'],
+                            'loc_success': False,
+                            'mp2ds': None,
+                            'mp3ds': None,
+                        },
+                        'frame_id': best_results['ref_img_id'],
+                    })
 
                 t_ref = time.time() - t_start
 
