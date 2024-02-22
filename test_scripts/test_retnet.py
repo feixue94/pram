@@ -52,18 +52,27 @@ if __name__ == '__main__':
     rnet = RetNet(indim=256, outdim=1024).cuda().eval()
     rnet.load_state_dict(torch.load(rnet_weight_path, map_location='cpu')['state_dict'], strict=True)
 
-    root_dir = '/scratches/flyer_3/fx221/dataset/ACUED/cued'
-    query_img_dir = osp.join(root_dir, 'query')
+    root_dir = '/scratches/flyer_3/fx221/dataset/JesusCollege/jesuscollege'
+    query_img_dir = osp.join(root_dir)
     query_fns = sorted(os.listdir(query_img_dir))
     db_img_dir = osp.join(root_dir, 'image')
 
     vrf_data = np.load(
-        '/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gm/ACUED/cued/point3D_vrf_n128_xy_birch.npy',
+        # '/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gm/ACUED/cued/point3D_vrf_n128_xy_birch.npy',
+        '/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gml2/JesusCollege/jesuscollege/point3D_vrf_n256_xy_birch.npy',
         allow_pickle=True)[()]
     db_img_list = [vrf_data[k][0]['image_name'] for k in vrf_data.keys()]
     db_images = [cv2.imread(osp.join(root_dir, fn)) for fn in db_img_list]
     db_feats = [extract_features(sfd2, rnet, img) for img in db_images]
     db_feats = torch.cat(db_feats, dim=0)
+
+    query_img_list = osp.join('/scratches/flyer_3/fx221/dataset/JesusCollege/jesuscollege/queries_poses_aligned.txt')
+
+    query_fns = []
+    with open(query_img_list, 'r') as f:
+        lines = f.readlines()
+        for l in lines:
+            query_fns.append(l.strip().split(' ')[0])
 
     cv2.namedWindow('img', cv2.WINDOW_NORMAL)
     for qfn in query_fns:
@@ -75,4 +84,6 @@ if __name__ == '__main__':
             kinds = kinds.cpu().numpy()[0]
             for i in kinds:
                 cv2.imshow('img', np.hstack([qimg, db_images[i]]))
-                cv2.waitKey(0)
+                key = cv2.waitKey()
+                if key == ord('q'):
+                    exit(0)
