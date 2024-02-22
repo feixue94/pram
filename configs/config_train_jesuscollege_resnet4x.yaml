@@ -77,7 +77,7 @@ loc: true
 online: true
 n_class: 257
 
-eval_max_keypoints: 1024
+eval_max_keypoints: 2048
 
 localization:
   loc_scene_name: [ ]
@@ -86,7 +86,7 @@ localization:
   threshold: 12
   min_kpts: 256
   min_matches: 16
-  min_inliers: 128
+  min_inliers: 32
   matching_method_: "mnn"
   matching_method_1: "spg"
   matching_method_2: "gm"

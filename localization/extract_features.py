@@ -63,6 +63,26 @@ confs = {
         },
         'mask': False,
     },
+
+    'sfd2': {
+        'output': 'sfd2',
+        'model': {
+            'outdim': 128,
+            'name': 'resnet4x',
+            'use_stability': False,
+            'max_keypoints': 4096,
+            'conf_th': 0.005,
+            'multiscale': False,
+            'scales': [1.0],
+            'model_fn': osp.join(os.getcwd(),
+                                 "weights/20230511_210205_resnet4x.79.pth"),
+        },
+        'preprocessing': {
+            'grayscale': False,
+            'resize_max': False,
+        },
+        'mask': False,
+    },
 }
 
 
