@@ -111,6 +111,13 @@ class MultiLocMap:
         self.refinement_method = self.loc_config['refinement_method']
         self.semantic_matching = self.loc_config['semantic_matching']
 
+        # used for tracking option
+        self.tracking = False
+        self.last_qvec = None
+        self.last_tvec = None
+        self.last_ref_image_id = None
+        self.last_scene = None
+
     def set_viewer(self, viewer):
         self.viewer = viewer
 
@@ -151,6 +158,12 @@ class MultiLocMap:
         print('Load {} sub_maps from {} datasets'.format(len(self.sub_maps), len(datasets)))
 
     def run(self, query_data):
+        # reset tracking information
+        self.last_ref_image_id = None
+        self.last_qvec = None
+        self.last_tvec = None
+        self.last_scene = None
+
         t_loc = 0
         t_ref = 0
         img_loc = None
@@ -337,7 +350,7 @@ class MultiLocMap:
                 print(print_text)
                 log_text.append(print_text)
 
-                # for visualization
+                # for visualization only
                 ref_img_id = pred_vrf['image_id']
                 if show and 'ref_keypoints' in match_out.keys():
                     # build matches between query and map points
@@ -518,6 +531,10 @@ class MultiLocMap:
                 continue
             else:
                 loc_success = True
+                self.last_qvec = ret['qvec']
+                self.last_tvec = ret['tvec']
+                self.last_ref_image_id = pred_vrf['image_id']
+                self.last_scene = pred_scene_name
 
             print_text = 'Find {}/{} 2D-3D inliers'.format(num_inliers, len(inliers))
             print(print_text)
