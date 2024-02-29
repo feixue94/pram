@@ -11,8 +11,17 @@ from localization.multilocmap import MultiLocMap
 
 
 class Tracker:
-    def __init__(self):
-        pass
+    def __init__(self, mmap):
+        self.curr_qvec = None
+        self.curr_tvec = None
+        self.curr_ref_img_id = None
+        self.curr_scene = None
+        self.last_qvec = None
+        self.last_tvec = None
+        self.last_ref_img_id = None
+        self.last_scene = None
+
+        self.lost = True
 
     def update_status():
         pass
