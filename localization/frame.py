@@ -10,14 +10,17 @@ from colmap_utils.read_write_model import qvec2rotmat
 
 
 class Frame:
-    def __init__(self, name=None, qvec=None, tvec=None, scene_name=None, reference_frame_id=-1):
+    def __init__(self, cfg, name=None, image_size=None, qvec=None, tvec=None, scene_name=None,
+                 reference_frame=None):
+        self.cfg = cfg
         self.name = name
+        self.image_size = image_size
         self.qvec = qvec
         self.tvec = tvec
         self.scene_name = scene_name
-        self.reference_frame_id = reference_frame_id
+        self.reference_frame = reference_frame
 
         self.keypoints = None  # [N, 3]
         self.descriptors = None  # [N, D]
         self.seg_ids = None  # [N, 1]
-       
+        self.points3d = None
