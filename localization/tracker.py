@@ -8,20 +8,22 @@
 import numpy as np
 from localization.simglelocmap import SingleLocMap
 from localization.multilocmap import MultiLocMap
+from localization.frame import Frame
 
 
 class Tracker:
-    def __init__(self, mmap):
-        self.curr_qvec = None
-        self.curr_tvec = None
-        self.curr_ref_img_id = None
-        self.curr_scene = None
-        self.last_qvec = None
-        self.last_tvec = None
-        self.last_ref_img_id = None
-        self.last_scene = None
+    def __init__(self, locMap, viewer, matcher):
+        self.locMap = locMap
+        self.viewer = viewer
+        self.matcher = matcher
 
         self.lost = True
 
-    def update_status():
+        self.curr_frame = None
+        self.last_frame = None
+
+    def track(self, frame: Frame):
+        pass
+
+    def match_frame(self, frame: Frame, reference_frame: Frame):
         pass
