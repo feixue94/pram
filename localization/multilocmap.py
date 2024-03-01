@@ -243,13 +243,10 @@ class MultiLocMap:
         for v in q_loc_segs:
             q_loc_sids[v[0]] = (v[1], v[2])
         query_sids = list(q_loc_sids.keys())
-        # query_sids = sorted_query_sids.keys()
         q_full_name = osp.join(q_scene_name, q_name)
 
         t_start = time.time()
         for i, sid in enumerate(query_sids):
-            loc_success = False
-
             q_seg_ids = q_loc_sids[sid][0]
 
             print(q_scene_name, q_name, sid)
@@ -392,7 +389,7 @@ class MultiLocMap:
                     q_ref_img = np.hstack([q_img_seg, ref_img, img_loc_matching])
 
             if len(all_mp2ds) > 0:
-                all_mp2ds = np.vstack(all_mp2ds) + 0.5
+                all_mp2ds = np.vstack(all_mp2ds)
                 all_mp3ds = np.vstack(all_mp3ds)
                 all_p3ds = np.vstack(all_p3ds)
                 n_matches = all_mp2ds.shape[0]
@@ -417,7 +414,7 @@ class MultiLocMap:
                 log_text.append(print_text)
 
             # ret = pycolmap.absolute_pose_estimation(all_mp2ds, all_mp3ds, cfg, self.loc_config['threshold'])
-            ret = pycolmap.absolute_pose_estimation(all_mp2ds, all_mp3ds, cfg, 12)
+            ret = pycolmap.absolute_pose_estimation(all_mp2ds + 0.5, all_mp3ds, cfg, 12)
 
             t_loc = time.time() - t_start
 
@@ -612,6 +609,8 @@ class MultiLocMap:
                     out = {
                         'qvec': ref_ret['qvec'],
                         'tvec': ref_ret['tvec'],
+                        'mp2ds': ret['mp2ds'],
+                        'mp3ds': ret['mp3ds'],
                         'success': True,
                         'log': log_text,
                         'q_err': q_err,
@@ -675,6 +674,9 @@ class MultiLocMap:
                     'gt_tvec': gt_tcw,
                     'qvec': ret['qvec'],
                     'tvec': ret['tvec'],
+                    'mp2ds': all_mp2ds,
+                    'mp3ds': all_mp3ds,
+                    'inliers': np.array(ret['inliers']),
                     'log': log_text,
                     'n_inliers': len(inliers),
                     'success': True,

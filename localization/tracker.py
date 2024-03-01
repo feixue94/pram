@@ -8,15 +8,12 @@
 import numpy as np
 import torch
 import pycolmap
-from localization.simglelocmap import SingleLocMap
-from localization.multilocmap import MultiLocMap
 from localization.frame import Frame
 
 
 class Tracker:
-    def __init__(self, locMap, viewer, matcher, loc_config):
+    def __init__(self, locMap, matcher, loc_config):
         self.locMap = locMap
-        self.viewer = viewer
         self.matcher = matcher
         self.loc_config = loc_config
 
@@ -25,7 +22,7 @@ class Tracker:
         self.curr_frame = None
         self.last_frame = None
 
-    def track(self, frame: Frame):
+    def run(self, frame: Frame):
         self.last_frame = self.curr_frame
         self.curr_frame = frame
 
@@ -46,6 +43,7 @@ class Tracker:
             num_inliers = ret['num_inliers']
             if num_inliers > self.loc_config['tracking_inliers']:
                 track_reference = False
+                self.lost = False
 
         if not track_reference:
             self.update_current_frame(mids=mids1[inliers], mp3ds=matched_p3ds_last[inliers],
@@ -71,6 +69,7 @@ class Tracker:
             num_inliers = ret['num_inliers']
             if num_inliers > self.loc_config['tracking_inliers']:
                 do_refinement = False
+                self.lost = False
                 self.update_current_frame(mids=mids[inliers], mp3ds=matched_p3ds[inliers], qvec=ret['qvec'],
                                           tvec=ret['tvec'], reference_frame=reference_frame)
 
@@ -82,6 +81,11 @@ class Tracker:
         self.curr_frame.qvec = qvec
         self.curr_frame.tvec = tvec
         self.curr_frame.reference_frame = reference_frame
+        self.lost = False
+
+    def update_current_frame_from_reloc(self, frame, mp2ds, mp3ds, qvec, tvec, reference_frame):
+        
+        self.lost = False
 
     @torch.no_grad()
     def match_frame(self, frame: Frame, reference_frame: Frame):

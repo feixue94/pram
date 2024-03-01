@@ -259,7 +259,7 @@ class SingleLocMap:
 
         print('Time of matching: {:.2f}s'.format(time.time() - t_start))
 
-        matched_qkp = np.array(matched_qkp, float).reshape(-1, 2) + 0.5
+        matched_qkp = np.array(matched_qkp, float).reshape(-1, 2)
         matched_xyzs = np.array(matched_xyzs, float).reshape(-1, 3)
 
         if init_mp2ds is not None and init_mp3ds is not None:
@@ -272,12 +272,13 @@ class SingleLocMap:
         print(print_text)
 
         t_start = time.time()
-        ret = pycolmap.absolute_pose_estimation(matched_qkp, matched_xyzs, query_cfg,
+        ret = pycolmap.absolute_pose_estimation(matched_qkp + 0.5, matched_xyzs, query_cfg,
                                                 max_error_px=self.config['localization']['threshold'],
                                                 min_num_trials=1000, max_num_trials=10000, confidence=0.995)
         print('Time of RANSAC: {:.2f}s'.format(time.time() - t_start))
 
-        ret['matched_qkp'] = matched_qkp
+        ret['mp2ds'] = matched_qkp
+        ret['mp3ds'] = matched_xyzs
         ret['reference_db_ids'] = db_ids
 
         return ret

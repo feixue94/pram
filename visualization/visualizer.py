@@ -95,6 +95,7 @@ class Visualizer:
 
         # options
         self.refinement = False
+        self.tracking = False
         self.point_clouds = None
 
     def draw_3d_point_white(self):
@@ -550,6 +551,7 @@ class Visualizer:
                                                )
 
         menu = pangolin.Var("menu")
+        menu.Tracking = (False, pangolin.VarMeta(toggle=True))
         menu.FollowCamera = (True, pangolin.VarMeta(toggle=True))
         menu.ShowPoints = (False, pangolin.VarMeta(toggle=True))
         menu.ShowSegs = (False, pangolin.VarMeta(toggle=True))
@@ -634,6 +636,11 @@ class Visualizer:
                 self.refinement = True
             else:
                 self.refinement = False
+
+            if menu.Tracking:
+                self.tracking = True
+            else:
+                self.tracking = False
 
             self.draw_current_image(Tcw=self.Tcw)
             if self.gt_Tcw is not None:  # draw gt pose with color (0, 0, 1.0)

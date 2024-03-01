@@ -6,7 +6,6 @@
 @Date   01/03/2024 10:08
 =================================================='''
 import numpy as np
-from colmap_utils.read_write_model import qvec2rotmat
 
 
 class Frame:
@@ -25,3 +24,16 @@ class Frame:
         self.descriptors = None  # [N, D]
         self.seg_ids = None  # [N, 1]
         self.points3d = None
+
+    def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
+        self.keypoints = keypoints
+        self.descriptors = descriptors
+        n = keypoints.shape[0]
+        if points3d is None:
+            self.points3d = np.zeros(shape=(n, 3), dtype=float)
+
+        if seg_ids is None:
+            self.seg_ids = np.zeros(shape=(n,), dtype=int) - 1
+
+    def update_mp3ds(self, mp2ds, mp3ds):
+        pass

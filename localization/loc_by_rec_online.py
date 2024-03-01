@@ -7,6 +7,8 @@
 =================================================='''
 import torch
 from localization.multilocmap import MultiLocMap
+from localization.frame import Frame
+from localization.tracker import Tracker
 import yaml, cv2, time
 import numpy as np
 import os
@@ -45,6 +47,9 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
     locMap.set_viewer(viewer=Viewer)
     viewer_thread = threading.Thread(target=Viewer.run)
     viewer_thread.start()
+
+    # start tracker
+    mTracker = Tracker(locMap=locMap, matcher=locMap.matcher, loc_config=config)
 
     dataset_name = config['dataset'][0]
     all_scene_query_info = {}
@@ -115,6 +120,23 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                     # 'global_descriptors': global_descriptors_cuda,
                     'image_size': np.array([img.shape[1], img.shape[0]])[None],
                 }
+
+                camera_model, width, height, params = all_scene_query_info[dataset_name + '/' + scene][fn]
+                cfg = {
+                    'model': camera_model,
+                    'width': width,
+                    'height': height,
+                    'params': params,
+                }
+                curr_frame = Frame(name=fn, image_size=pred['image_size'],
+                                   scene_name=dataset_name + '/' + scene,
+                                   cfg=cfg, id=0)
+                curr_frame.update_features(keypoints=np.hstack([pred['keypoints'], pred['scores']]),
+                                           descriptors=pred['descriptors'])
+
+                if Viewer.tracking and not mTracker.lost:
+                    mTracker.run(frame=curr_frame)
+
                 pred = {**pred, **rec_out}
                 pred_seg = torch.max(pred['prediction'], dim=2)[1]  # [B, N, C]
                 pred_seg = pred_seg[0].cpu().numpy()
@@ -155,6 +177,15 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                 success = loc_out['success']
 
                 if success:
+                    # update tracker
+                    inliers = loc_out['inliers']
+                    mTracker.update_current_frame_from_reloc(frame=curr_frame,
+                                                             mp2ds=loc_out['mp2ds'][inliers],
+                                                             mp3ds=loc_out['mp3ds'][inliers],
+                                                             qvec=loc_out['qvec'],
+                                                             tvec=loc_out['tvec'],
+                                                             reference_frame=None)
+
                     # send to visualizer
                     img_rec = np.hstack([cv2.cvtColor(img_pred_seg, cv2.COLOR_BGR2RGB),
                                          cv2.cvtColor(loc_out['img_loc'], cv2.COLOR_BGR2RGB)])
