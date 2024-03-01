@@ -26,7 +26,9 @@ class Tracker:
         self.last_frame = None
 
     def track(self, frame: Frame):
+        self.last_frame = self.curr_frame
         self.curr_frame = frame
+
         reference_frame = self.last_frame.reference_frame
 
         mids1, last_mids = self.match_frame(frame=self.curr_frame, reference_frame=self.last_frame)
@@ -46,15 +48,20 @@ class Tracker:
                 track_reference = False
 
         if not track_reference:
-            pass
+            self.update_current_frame(mids=mids1[inliers], mp3ds=matched_p3ds_last[inliers],
+                                      qvec=ret['qvec'], tvec=ret['tvec'],
+                                      reference_frame=reference_frame)
 
         # tracking reference frame with graph-matcher
         mids2, ref_mids = self.match_frame(frame=self.curr_frame, reference_frame=reference_frame)
         matched_kpts_ref = frame.keypoints[mids1, :2]  # [N 2]
         matched_p3ds_ref = reference_frame.points3d[last_mids]  # [N 3]
 
-        ret = pycolmap.absolute_pose_estimation(np.vstack([matched_kpts_last[inliers], matched_kpts_ref]),
-                                                np.vstack([matched_p3ds_last[inliers], matched_p3ds_ref]),
+        mids = np.vstack([mids1[inliers], mids2])
+        matched_kpts = np.vstack([matched_kpts_last[inliers], matched_kpts_ref])
+        matched_p3ds = np.vstack([[matched_p3ds_last[inliers], matched_p3ds_ref]])
+
+        ret = pycolmap.absolute_pose_estimation(matched_kpts, matched_p3ds, self.curr_frame.cfg,
                                                 max_error_px=self.config['localization']['threshold'])
 
         do_refinement = True
@@ -64,15 +71,17 @@ class Tracker:
             num_inliers = ret['num_inliers']
             if num_inliers > self.loc_config['tracking_inliers']:
                 do_refinement = False
+                self.update_current_frame(mids=mids[inliers], mp3ds=matched_p3ds[inliers], qvec=ret['qvec'],
+                                          tvec=ret['tvec'], reference_frame=reference_frame)
 
         if do_refinement:
             pass
 
-    def refine_pose(self):
-        pass
-
-    def update_current_frame(self):
-        pass
+    def update_current_frame(self, mids, mp3ds, qvec, tvec, reference_frame):
+        self.curr_frame.points3d[mids] = mp3ds
+        self.curr_frame.qvec = qvec
+        self.curr_frame.tvec = tvec
+        self.curr_frame.reference_frame = reference_frame
 
     @torch.no_grad()
     def match_frame(self, frame: Frame, reference_frame: Frame):
