@@ -9,12 +9,12 @@ import numpy as np
 
 
 class Frame:
-    def __init__(self, cfg, id, name=None, image_size=None, qvec=None, tvec=None, scene_name=None,
+    def __init__(self, cfg, id, name=None, qvec=None, tvec=None, scene_name=None,
                  reference_frame=None):
         self.cfg = cfg
         self.id = id
         self.name = name
-        self.image_size = image_size
+        self.image_size = np.array([cfg['height'], cfg['width']])
         self.qvec = qvec
         self.tvec = tvec
         self.scene_name = scene_name
@@ -24,6 +24,7 @@ class Frame:
         self.descriptors = None  # [N, D]
         self.seg_ids = None  # [N, 1]
         self.points3d = None
+        self.points3d_mask = None
 
     def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
         self.keypoints = keypoints
@@ -31,6 +32,7 @@ class Frame:
         n = keypoints.shape[0]
         if points3d is None:
             self.points3d = np.zeros(shape=(n, 3), dtype=float)
+            self.points3d_mask = np.zeros(shape=(n,), dtype=bool)
 
         if seg_ids is None:
             self.seg_ids = np.zeros(shape=(n,), dtype=int) - 1

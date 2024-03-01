@@ -49,7 +49,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
     viewer_thread.start()
 
     # start tracker
-    mTracker = Tracker(locMap=locMap, matcher=locMap.matcher, loc_config=config)
+    mTracker = Tracker(locMap=locMap, matcher=locMap.matcher, config=config)
 
     dataset_name = config['dataset'][0]
     all_scene_query_info = {}
@@ -128,11 +128,11 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                     'height': height,
                     'params': params,
                 }
-                curr_frame = Frame(name=fn, image_size=pred['image_size'],
-                                   scene_name=dataset_name + '/' + scene,
-                                   cfg=cfg, id=0)
-                curr_frame.update_features(keypoints=np.hstack([pred['keypoints'], pred['scores']]),
-                                           descriptors=pred['descriptors'])
+                curr_frame = Frame(cfg=cfg, id=0, name=fn, scene_name=dataset_name + '/' + scene)
+                curr_frame.update_features(
+                    keypoints=np.hstack([pred['keypoints'][0].cpu().numpy(),
+                                         pred['scores'][0].cpu().numpy().reshape(-1, 1)]),
+                    descriptors=pred['descriptors'][0].cpu().numpy())
 
                 if Viewer.tracking and not mTracker.lost:
                     mTracker.run(frame=curr_frame)
