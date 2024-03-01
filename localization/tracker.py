@@ -37,13 +37,13 @@ class Tracker:
         ret = pycolmap.absolute_pose_estimation(matched_kpts_last, matched_p3ds_last, frame.cfg,
                                                 max_error_px=self.config['localization']['threshold'])
 
-        track_reference = False
+        track_reference = True
         success = ret['success']
         inliers = np.array(ret['inliers'])
         if success:
             num_inliers = ret['num_inliers']
-            if num_inliers < self.loc_config['tracking_inliers']:
-                track_reference = True
+            if num_inliers > self.loc_config['tracking_inliers']:
+                track_reference = False
 
         if not track_reference:
             pass
@@ -57,12 +57,16 @@ class Tracker:
                                                 np.vstack([matched_p3ds_last[inliers], matched_p3ds_ref]),
                                                 max_error_px=self.config['localization']['threshold'])
 
+        do_refinement = True
         success = ret['success']
         inliers = np.array(ret['inliers'])
         if success:
             num_inliers = ret['num_inliers']
-            if num_inliers < self.loc_config['tracking_inliers']:
-                do_refinement = True
+            if num_inliers > self.loc_config['tracking_inliers']:
+                do_refinement = False
+
+        if do_refinement:
+            pass
 
     def refine_pose(self):
         pass
