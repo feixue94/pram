@@ -6,15 +6,18 @@
 @Date   01/03/2024 10:08
 =================================================='''
 import numpy as np
+from localization.camera import Camera
 
 
 class Frame:
-    def __init__(self, cfg, id, name=None, qvec=None, tvec=None, scene_name=None,
+    def __init__(self, image: np.ndarray, camera: Camera, id: int, name: str = None, qvec=None, tvec=None,
+                 scene_name=None,
                  reference_frame=None):
-        self.cfg = cfg
+        self.image = image
+        self.camera = camera
         self.id = id
         self.name = name
-        self.image_size = np.array([cfg['height'], cfg['width']])
+        self.image_size = np.array([camera.height, camera.width])
         self.qvec = qvec
         self.tvec = tvec
         self.scene_name = scene_name
@@ -25,6 +28,7 @@ class Frame:
         self.seg_ids = None  # [N, 1]
         self.points3d = None
         self.points3d_mask = None
+        self.segmentations = None
 
     def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
         self.keypoints = keypoints

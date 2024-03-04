@@ -7,6 +7,7 @@
 =================================================='''
 import numpy as np
 from localization.camera import Camera
+from localization.singlemap3d import SingleMap3D
 
 
 class RefFrame:
@@ -26,3 +27,48 @@ class RefFrame:
         self.point3D_ids = point3D_ids
         self.keypoints = keypoints
         self.seg_id = seg_id
+
+    def get_keypoints_by_sid(self, sid: int, point3Ds: dict):
+        valid_p3d_ids = []
+        valid_kpts = []
+        valid_descs = []
+        valid_scores = []
+        valid_xyzs = []
+        for i, v in enumerate(self.point3D_ids):
+            if v in point3Ds.keys():
+                p3d = point3Ds[v]
+                if p3d.seg_id == sid:
+                    valid_kpts.append(self.keypoints[i])
+                    valid_p3d_ids.append(v)
+                    valid_xyzs.append(p3d.xyz)
+                    valid_descs.append(p3d.descriptor)
+                    valid_scores.append(p3d.error)
+        return {
+            'p3d_ids': np.array(valid_p3d_ids),
+            'keypoints': np.array(valid_kpts),
+            'descriptors': np.array(valid_descs),
+            'scores': np.array(valid_scores),
+            'xyzs': np.array(valid_xyzs),
+        }
+
+    def get_keypoints(self, point3Ds: dict):
+        valid_p3d_ids = []
+        valid_kpts = []
+        valid_descs = []
+        valid_scores = []
+        valid_xyzs = []
+        for i, v in enumerate(self.point3D_ids):
+            if v in point3Ds.keys():
+                p3d = point3Ds[v]
+                valid_kpts.append(self.keypoints[i])
+                valid_p3d_ids.append(v)
+                valid_xyzs.append(p3d.xyz)
+                valid_descs.append(p3d.descriptor)
+                valid_scores.append(p3d.error)
+        return {
+            'p3d_ids': np.array(valid_p3d_ids),
+            'keypoints': np.array(valid_kpts),
+            'descriptors': np.array(valid_descs),
+            'scores': np.array(valid_scores),
+            'xyzs': np.array(valid_xyzs),
+        }

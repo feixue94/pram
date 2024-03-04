@@ -11,14 +11,18 @@ import os
 import os.path as osp
 import pycolmap
 import logging
+
+import torch
+
 from localization.refframe import RefFrame
 from localization.point3d import Point3D
 from colmap_utils.read_write_model import qvec2rotmat, read_model, read_compressed_model
 
 
 class SingleMap3D:
-    def __init__(self, config, with_compress=False):
+    def __init__(self, config, matcher, with_compress=False):
         self.config = config
+        self.matcer = matcher
         self.image_path_prefix = self.config['image_path_prefix']
         if not with_compress:
             cameras, images, p3ds = read_model(
@@ -62,9 +66,10 @@ class SingleMap3D:
         # construct 3D map
         self.initialize_point3Ds(p3ds=p3ds, p3d_descs=p3d_descs, p3d_seg=p3d_seg)
         self.initialize_ref_frames(cameras=cameras, images=images)
-        self.seg_vrf = seg_vrf  # [seg_id, ref_id]
         vrf_ids = []
-        for sid in self.seg_vrf.keys():
+        self.seg_ref_frame_ids = {}
+        for sid in seg_vrf.keys():
+            self.seg_ref_frame_ids[sid] = [seg_vrf[sid][v]['image_id'] for v in seg_vrf[sid].keys()]
             vrf_ids.extend([seg_vrf[sid][v]['image_id'] for v in seg_vrf[sid].keys()])
 
         vrf_ids = np.unique(vrf_ids)
@@ -75,11 +80,11 @@ class SingleMap3D:
         logging.info(f'Construct {len(self.ref_frames.keys())} ref frames and {len(self.point3ds.keys())} 3d points')
 
     def initialize_point3Ds(self, p3ds, p3d_descs, p3d_seg):
-        self.point3ds = {}
+        self.point3Ds = {}
         for id in p3ds.keys():
             if id not in p3d_seg.keys():
                 continue
-            self.point3ds[id] = Point3D(id=id, xyz=p3ds[id].xyz, error=p3ds[id].error, refframe_id=-1,
+            self.point3Ds[id] = Point3D(id=id, xyz=p3ds[id].xyz, error=p3ds[id].error, refframe_id=-1,
                                         descriptor=p3d_descs[id], seg_id=p3d_seg[id], frame_ids=p3ds[id].image_ids)
 
     def initialize_ref_frames(self, cameras, images):
@@ -92,6 +97,38 @@ class SingleMap3D:
                                            keypoints=im.xys,
                                            name=im.name)
 
+    def localize_with_ref_frame(self, query_data, sid, semantic_matching=False):
+        ref_frame = self.ref_frames[self.seg_ref_frame_ids[0]]
+        if semantic_matching and sid > 0:
+            ref_data = ref_frame.get_keypoints_by_sid(sid=sid, point3Ds=self.point3Ds)
+        else:
+            ref_data = ref_frame.get_keypoints(point3Ds=self.point3Ds)
+
+        q_descs = query_data['descriptors']
+        q_kpts = query_data['keypoints']
+        q_scores = query_data['scores']
+        xyzs = ref_data['xyzs']
+        with torch.no_grad():
+            indices0 = self.matcer({
+                'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
+                'keypoints0': torch.from_numpy(q_kpts)[None].cuda().float(),
+                'scores0': torch.from_numpy(q_scores)[None].cuda().float(),
+                'image_shape0': (1, 3, query_data['width'], query_data['height']),
+
+                'descriptors1': torch.from_numpy(ref_data['descriptors'])[None].cuda().float(),
+                'keypoints1': torch.from_numpy(ref_data['keypoints'])[None].cuda().float(),
+                'scores1': torch.from_numpy(ref_data['scores'])[None].cuda().float(),
+                'image_shape1': (1, 3, ref_data['width'], ref_data['height']),
+            }
+            )['matches0'][0].cpu().numpy()
+
+        mkqs = indices0[indices0 >= 0]
+        mxyzs = xyzs[indices0[indices0 >= 0]]
+        
+
+    def match(self, query_data, ref_data):
+        pass
+
     def build_covisibility_graph(self, frame_ids: list = None, n_frame: int = 20):
         def find_covisible_frames(frame_id):
             observed = self.ref_frames[frame_id].point3D_ids
@@ -99,9 +136,9 @@ class SingleMap3D:
             for pid in observed:
                 if pid == -1:
                     continue
-                if pid not in self.point3ds.keys():
+                if pid not in self.point3Ds.keys():
                     continue
-                for img_id in self.point3ds[pid].frame_ids:
+                for img_id in self.point3Ds[pid].frame_ids:
                     covis[img_id] += 1
 
             covis_ids = np.array(list(covis.keys()))
