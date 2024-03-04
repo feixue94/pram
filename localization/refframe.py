@@ -69,6 +69,6 @@ class RefFrame:
             'p3d_ids': np.array(valid_p3d_ids),
             'keypoints': np.array(valid_kpts),
             'descriptors': np.array(valid_descs),
-            'scores': np.array(valid_scores),
+            'scores': 1 / np.clip(np.array(valid_scores) * 5, a_min=1., a_max=20.),
             'xyzs': np.array(valid_xyzs),
         }

@@ -24,6 +24,7 @@ from tools.common import resize_img
 from localization.singlemap3d import SingleMap3D
 from localization.frame import Frame
 from localization.refframe import RefFrame
+from localization.utils import compute_pose_error
 
 
 class MultiMap3D:
@@ -119,16 +120,14 @@ class MultiMap3D:
         q_pred_segs_top1 = q_pred_segs_top1.cpu().numpy()
 
         log_text = ['qname: {:s} with {:d} kpts'.format(q_name, q_kpts.shape[0])]
-        best_results = {
-            'num_inliers': -1,
-            'ref_img_name': '',
-            'ref_img_id': -1,
-            'qvec': None,
-            'tvec': None,
-            'order': -1,
-            'scene_name': None,
-            'seg_id': -1,
-        }
+        best_result = None
+        gt_sub_map = self.sub_maps[q_scene_name]
+        if gt_sub_map.gt_poses is not None and q_name in gt_sub_map.gt_poses.keys():
+            gt_qcw = gt_sub_map.gt_poses[q_name]['qvec']
+            gt_tcw = gt_sub_map.gt_poses[q_name]['tvec']
+        else:
+            gt_qcw = None
+            gt_tcw = None
 
         gt_sub_map = self.sub_maps[q_scene_name]
         q_loc_sids = {}
@@ -138,6 +137,269 @@ class MultiMap3D:
         q_full_name = osp.join(q_scene_name, q_name)
 
         t_start = time.time()
+
+        for i, sid in enumerate(query_sids):
+            q_seg_ids = q_loc_sids[sid][0]
+
+            print(q_scene_name, q_name, sid)
+
+            pred_scene_name = self.sid_scene_name[sid]
+            start_seg_id = self.scene_name_start_sid[pred_scene_name]
+            pred_sid_in_sub_scene = sid - self.scene_name_start_sid[pred_scene_name]
+            pred_sub_map = self.sub_maps[pred_scene_name]
+            pred_image_path_prefix = pred_sub_map.image_path_prefix
+
+            print('pred/gt scene: {:s}, {:s}, sid: {:d}'.format(pred_scene_name, q_scene_name, pred_sid_in_sub_scene))
+
+            print('{:s}/{:s}, pred: {:s}, sid: {:d}, order: {:d}'.format(q_scene_name, q_name, pred_scene_name, sid,
+                                                                         i))
+            if q_seg_ids.shape[0] >= self.loc_config['min_kpts'] and self.semantic_matching:
+                print_text = 'Semantic matching! Query kpts {} for {}th seg {}'.format(q_seg_ids.shape[0], i, sid)
+                print(print_text)
+                log_text.append(print_text)
+
+                q_seg_descs = q_descs[q_seg_ids]
+                q_seg_kpts = q_kpts[q_seg_ids]
+                q_seg_scores = q_scores[q_seg_ids]
+                q_seg_sid_top1 = q_pred_segs_top1[q_seg_ids]
+                semantic_matching = True
+            else:
+                print_text = 'Not semantic matching! Query kpts {} for {}th seg {}, use all kpts'.format(
+                    q_kpts.shape[0], i, sid)
+                print(print_text)
+                log_text.append(print_text)
+
+                q_seg_descs = q_descs
+                q_seg_kpts = q_kpts
+                q_seg_scores = q_scores
+                q_seg_sid_top1 = q_pred_segs_top1
+                semantic_matching = False
+
+            query_data = {
+                'descriptors': q_seg_descs,
+                'scores': q_seg_scores,
+                'keypoints': q_seg_kpts,
+                'camera': q_frame.camera,
+            }
+
+            ret = pred_sub_map.localize_with_ref_frame(query_data=query_data,
+                                                       sid=pred_sid_in_sub_scene,
+                                                       semantic_matching=semantic_matching)
+            n_matches = ret['matched_kpts'].shape[0]
+            n_inliers = ret['num_inliers']
+            inliers = ret['inliers']
+            success = ret['success']
+            ref_frame_id = ret['ref_frame_id']
+            if not success:
+                print_text = 'Localization failed with {}/{} matches and {} inliers, order {}'.format(
+                    n_matches,
+                    q_seg_descs.shape[0],
+                    n_inliers, i)
+                print(print_text)
+                log_text.append(print_text)
+
+            if gt_qcw is not None:
+                q_err, t_err = compute_pose_error(pred_qcw=ret['qvec'],
+                                                  pred_tcw=ret['tvec'],
+                                                  gt_qcw=gt_qcw,
+                                                  gt_tcw=gt_tcw)
+            else:
+                q_err = 1e2
+                t_err = 1e2
+
+            if n_inliers < self.loc_config['min_inliers']:
+                print_text = 'qname: {:s} failed due to insufficient {:d} inliers, order {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
+                    q_name,
+                    ret['num_inliers'],
+                    i, q_err, t_err)
+                print(print_text)
+                log_text.append(print_text)
+
+                update_best_result = False
+                if best_result is None:
+                    update_best_result = True
+                elif best_result['num_inliers'] < n_inliers:
+                    update_best_result = True
+
+                if update_best_result:
+                    best_result['num_inliers'] = ret['num_inliers']
+                    best_result['qvec'] = ret['qvec']
+                    best_result['tvec'] = ret['tvec']
+                    best_result['order'] = i
+                    best_result['scene_name'] = pred_scene_name
+                    best_result['seg_id'] = sid
+
+                continue
+            else:
+                loc_success = True
+                print_text = 'Find {}/{} 2D-3D inliers'.format(n_inliers, len(inliers))
+                print(print_text)
+                log_text.append(print_text)
+
+                if gt_qcw is not None:
+                    q_err, t_err = compute_pose_error(pred_qcw=ret['qvec'],
+                                                      pred_tcw=ret['tvec'],
+                                                      gt_qcw=gt_qcw,
+                                                      gt_tcw=gt_tcw)
+                    print_text = 'qname: {:s} r_err: {:.2f}, t_err: {:.2f}'.format(q_name, q_err, t_err)
+                    print(print_text)
+                    log_text.append(print_text)
+                else:
+                    q_err = 1e2
+                    t_err = 1e2
+
+                if self.do_refinement:
+                    t_start = time.time()
+                    query_data = {
+                        'camera': q_frame.camera,
+                        'descriptors': q_descs,
+                        'scores': q_scores,
+                        'keypoints': q_kpts,
+                        'qvec': ret['qvec'],
+                        'tvec': ret['tvec'],
+                        'n_inliers': n_inliers,
+                        'loc_success': loc_success,
+                        'matched_kpts': ret['matched_kpts'],
+                        'matched_xyzs': ret['matched_xyzs'],
+                    },
+                    ref_ret = pred_sub_map.refine_pose(query_data=query_data, ref_frame_id=ret['ref_frame_id'],
+                                                       refinement_method=self.refinement_method)
+                    t_ref = time.time() - t_start
+                    if ref_ret['success']:
+                        if gt_qcw is not None:
+                            q_err, t_err = compute_pose_error(pred_qcw=ref_ret['qvec'],
+                                                              pred_tcw=ref_ret['tvec'],
+                                                              gt_qcw=gt_qcw,
+                                                              gt_tcw=gt_tcw)
+                        else:
+                            q_err, t_err = 1e2, 1e2
+
+                        best_ref_full_name = pred_scene_name + '/' + pred_sub_map.ref_frames[ref_frame_id].name
+                        print_text = 'Localization of {:s} success with inliers {:d}/{:d} with ref_name: {:s}, order: {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
+                            q_full_name, ref_ret['num_inliers'], len(ref_ret['inliers']), best_ref_full_name, i, q_err,
+                            t_err)
+                        print(print_text)
+                        log_text.append(print_text)
+                        out = {
+                            'qvec': ref_ret['qvec'],
+                            'tvec': ref_ret['tvec'],
+                            'mp2ds': ret['mp2ds'],
+                            'mp3ds': ret['mp3ds'],
+                            'success': True,
+                            'log': log_text,
+                            'q_err': q_err,
+                            't_err': t_err,
+                            'time_loc': t_loc,
+                            'time_ref': t_ref,
+                        }
+
+                        return out
+                    else:
+                        continue
+                else:
+                    out = {
+                        'gt_qvec': gt_qcw,
+                        'gt_tvec': gt_tcw,
+                        'qvec': ret['qvec'],
+                        'tvec': ret['tvec'],
+                        # 'mp2ds': all_mp2ds,
+                        # 'mp3ds': all_mp3ds,
+                        'inliers': np.array(ret['inliers']),
+                        'log': log_text,
+                        'n_inliers': len(inliers),
+                        'success': True,
+                        'q_err': q_err,
+                        't_err': t_err,
+                        'time_ref': t_ref,
+                        'time_loc': t_loc,
+                        # 'img_loc': img_vis,
+                        'query_img': q_img,
+                        'img_matching': img_loc_matching,
+
+                        'pred_sid': sid,
+                        # 'reference_db_ids': [ref_img_id],
+                        # 'vrf_image_id': ref_img_id,
+                        'start_seg_id': start_seg_id,
+                    }
+
+        # failed to find a good reference frame
+        if best_result['num_inliers'] >= 4:
+            best_pred_scene = best_result['scene_name']
+            best_sub_map = self.sub_maps[best_pred_scene]
+            print('Try to do localization from best results inliers {},ref_name {}, order {}'.format(
+                best_result['num_inliers'],
+                best_result['ref_img_name'],
+                best_result['order']))
+            if self.do_refinement:
+                t_start = time.time()
+                ref_ret = best_sub_map.refine_pose(
+                    query_data={
+                        'camera': q_frame.camera,
+                        'descriptors': q_descs,
+                        'scores': q_scores,
+                        'keypoints': q_kpts,
+                        'qvec': None,
+                        'tvec': None,
+                        'n_inliers': best_result['num_inliers'],
+                        'loc_success': False,
+                    },
+                    ref_frame_id=best_result['ref_img_id'],
+                )
+
+                t_ref = time.time() - t_start
+
+                if ref_ret['success']:
+                    q_err, t_err = compute_pose_error(pred_qcw=ref_ret['qvec'],
+                                                      pred_tcw=ref_ret['tvec'],
+                                                      gt_qcw=gt_sub_map.gt_poses[q_name]['qvec'],
+                                                      gt_tcw=gt_sub_map.gt_poses[q_name]['tvec'])
+                else:
+                    q_err, t_err = 1e2, 1e2
+
+                best_ref_full_name = osp.join(best_pred_scene, best_result['ref_img_name'])
+                print_text = 'Localization of {:s} success with inliers {:d}/{:d} ref_name: {:s}, order: {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
+                    q_full_name,
+                    ref_ret['num_inliers'], len(ref_ret['inliers']),
+                    best_ref_full_name, best_result['order'], q_err, t_err)
+            print(print_text)
+            log_text.append(print_text)
+            out = {
+                'qvec': ref_ret['qvec'],
+                'tvec': ref_ret['tvec'],
+                'success': False,
+                'log': log_text,
+                'q_err': q_err,
+                't_err': t_err,
+                'time_loc': t_loc,
+                'time_ref': t_ref,
+            }
+            return out
+
+        print_text = 'qname: {:s} find the best among all candidates'.format(q_name)
+        log_text.append(print_text)
+
+        if gt_sub_map.gt_poses is not None and q_name in gt_sub_map.gt_poses.keys():
+            q_err, t_err = compute_pose_error(pred_qcw=best_result['qvec'],
+                                              pred_tcw=best_result['tvec'],
+                                              gt_qcw=gt_sub_map.gt_poses[q_name]['qvec'],
+                                              gt_tcw=gt_sub_map.gt_poses[q_name]['tvec'])
+        else:
+            q_err, t_err = 1e2, 1e2
+
+        out = {
+            'gt_qvec': gt_qcw,
+            'gt_tvec': gt_tcw,
+            'qvec': best_result['qvec'],
+            'tvec': best_result['tvec'],
+            'success': False,
+            'log': log_text,
+            'q_err': q_err,
+            't_err': t_err,
+
+            'time_loc': t_loc,
+            'time_ref': t_ref,
+        }
+        return out
 
     def localize_from_sid(self, order, sid: int, q_kpts, q_scores, q_descs, q_pred_segs_top1, q_seg_ids):
         pred_scene_name = self.sid_scene_name[sid]
@@ -173,12 +435,6 @@ class MultiMap3D:
             seg_wise_matching = False
 
         ref_frame = pred_sub_map.ref_frames[pred_sub_map.seg_vrf[pred_sid_in_sub_scene][0]]
-
-    def match_between_query_and_reference(self, query_data: dict,
-                                          pred_sub_map: SingleMap3D,
-                                          ref_frame: RefFrame, pred_sid_in_scene: int,
-                                          semantic_matching=False):
-        pass
 
     def process_segmentations(self, segs, topk=10):
         pred_values, pred_ids = torch.topk(segs, k=segs.shape[-1], largest=True, dim=-1)  # [N, C]
