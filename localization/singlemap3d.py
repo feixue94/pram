@@ -13,7 +13,7 @@ import pycolmap
 import logging
 from localization.refframe import RefFrame
 from localization.point3d import Point3D
-from colmap_utils.read_write_model import qvec2rotmat, read_model, read_compressed_model, intrinsics_from_camera
+from colmap_utils.read_write_model import qvec2rotmat, read_model, read_compressed_model
 
 
 class SingleMap3D:
@@ -63,12 +63,22 @@ class SingleMap3D:
         self.initialize_point3Ds(p3ds=p3ds, p3d_descs=p3d_descs, p3d_seg=p3d_seg)
         self.initialize_ref_frames(cameras=cameras, images=images)
         self.seg_vrf = seg_vrf  # [seg_id, ref_id]
+        vrf_ids = []
+        for sid in self.seg_vrf.keys():
+            vrf_ids.extend([seg_vrf[sid][v]['image_id'] for v in seg_vrf[sid].keys()])
+
+        vrf_ids = np.unique(vrf_ids)
+        vrf_ids = [v for v in vrf_ids if v in self.ref_frames.keys()]
+        self.build_covisibility_graph(frame_ids=vrf_ids, n_frame=config['localization'][
+            'covisibility_frame'])  # build covisible frames for vrf frames only
 
         logging.info(f'Construct {len(self.ref_frames.keys())} ref frames and {len(self.point3ds.keys())} 3d points')
 
     def initialize_point3Ds(self, p3ds, p3d_descs, p3d_seg):
         self.point3ds = {}
         for id in p3ds.keys():
+            if id not in p3d_seg.keys():
+                continue
             self.point3ds[id] = Point3D(id=id, xyz=p3ds[id].xyz, error=p3ds[id].error, refframe_id=-1,
                                         descriptor=p3d_descs[id], seg_id=p3d_seg[id], frame_ids=p3ds[id].image_ids)
 
@@ -77,20 +87,10 @@ class SingleMap3D:
         for id in images.keys():
             im = images[id]
             cam = cameras[im.camera_id]
-            cfg = {
-                'width': cam.width,
-                'height': cam.height,
-                'params': cam.params,
-                'camera_model': cam.camera_model,
-            }
-
-            self.ref_frames[id] = RefFrame(cfg=cfg, id=id, qvec=im.qvec, tvec=im.tvec,
-                                           points3d_ids=im.point3D_ids,
+            self.ref_frames[id] = RefFrame(camera=cam, id=id, qvec=im.qvec, tvec=im.tvec,
+                                           point3D_ids=im.point3D_ids,
                                            keypoints=im.xys,
                                            name=im.name)
-            # Add reference_frame to each 3d point
-            for p3d_id in im.points3d_ids:
-                self.point3ds[p3d_id].refframe_id = id
 
     def build_covisibility_graph(self, frame_ids: list = None, n_frame: int = 20):
         def find_covisible_frames(frame_id):
