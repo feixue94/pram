@@ -18,7 +18,6 @@ from recognition.vis_seg import vis_seg_point, generate_color_dic, vis_inlier, p
 from localization.base_model import dynamic_load
 import localization.matchers as matchers
 from localization.match_features import confs as matcher_confs
-from localization.simglelocmap import SingleLocMap
 from nets.gm import GM
 from tools.common import resize_img
 from localization.singlemap3d import SingleMap3D
@@ -36,6 +35,14 @@ class MultiMap3D:
         self.save_dir = save_dir
         if self.save_dir is not None:
             os.makedirs(self.save_dir, exist_ok=True)
+
+        self.matching_method = config['localization']['matching_method']
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        Model = dynamic_load(matchers, self.matching_method)
+        self.matcher = Model(matcher_confs[self.matching_method]['model']).eval().to(device)
+
+        self.initialize_map(config=config)
+        self.loc_config = config['localization']
 
         self.viewer = viewer
 
@@ -73,13 +80,17 @@ class MultiMap3D:
                 new_config['cluster_method'] = scene_config[scene]['cluster_method']
                 new_config['gt_pose_path'] = scene_config[scene]['gt_pose_path']
                 new_config['image_path_prefix'] = scene_config[scene]['image_path_prefix']
-                sub_map = SingleMap3D(config=new_config, with_compress=config['localization']['with_compress'])
+                sub_map = SingleMap3D(config=new_config,
+                                      matcher=self.matcher,
+                                      with_compress=config['localization']['with_compress'])
                 self.sub_maps[dataset_name + '/' + scene] = sub_map
 
                 n_scene_class = scene_config[scene]['n_cluster']
                 self.sid_scene_name = self.sid_scene_name + [dataset_name + '/' + scene for ni in range(n_scene_class)]
                 self.scene_name_start_sid[dataset_name + '/' + scene] = n_class
                 n_class = n_class + n_scene_class
+
+                break
         print('Load {} sub_maps from {} datasets'.format(len(self.sub_maps), len(datasets)))
 
     def run(self, q_frame: Frame, q_segs: torch.Tensor):
@@ -116,7 +127,7 @@ class MultiMap3D:
             print('pre filtering after: ', q_segs.shape)
 
         q_loc_segs = self.process_segmentations(segs=q_seg_scores, topk=self.loc_config['seg_k'])
-        q_pred_segs_top1 = torch.from_numpy(q_segs).cuda().max(dim=-1)[1]
+        q_pred_segs_top1 = q_segs.max(dim=-1)[1]
         q_pred_segs_top1 = q_pred_segs_top1.cpu().numpy()
 
         log_text = ['qname: {:s} with {:d} kpts'.format(q_name, q_kpts.shape[0])]
@@ -261,7 +272,7 @@ class MultiMap3D:
                         'loc_success': loc_success,
                         'matched_kpts': ret['matched_kpts'],
                         'matched_xyzs': ret['matched_xyzs'],
-                    },
+                    }
                     ref_ret = pred_sub_map.refine_pose(query_data=query_data, ref_frame_id=ret['ref_frame_id'],
                                                        refinement_method=self.refinement_method)
                     t_ref = time.time() - t_start
@@ -283,8 +294,8 @@ class MultiMap3D:
                         out = {
                             'qvec': ref_ret['qvec'],
                             'tvec': ref_ret['tvec'],
-                            'mp2ds': ret['mp2ds'],
-                            'mp3ds': ret['mp3ds'],
+                            'matched_kpts': ret['matched_kpts'],
+                            'matched_xyzs': ret['matched_xyzs'],
                             'success': True,
                             'log': log_text,
                             'q_err': q_err,
@@ -321,6 +332,8 @@ class MultiMap3D:
                         # 'vrf_image_id': ref_img_id,
                         'start_seg_id': start_seg_id,
                     }
+
+                    return out
 
         # failed to find a good reference frame
         if best_result['num_inliers'] >= 4:

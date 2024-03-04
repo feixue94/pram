@@ -6,7 +6,7 @@
 @Date   08/02/2024 15:26
 =================================================='''
 import torch
-from localization.multimap3d import MultiMap3D
+from localization.multilocmap import MultiLocMap
 from localization.frame import Frame
 from localization.tracker import Tracker
 import yaml, cv2, time
@@ -18,7 +18,6 @@ from recognition.vis_seg import vis_seg_point, generate_color_dic
 from tools.common import resize_img
 from visualization.visualizer import Visualizer
 from localization.utils import read_query_info
-from localization.camera import Camera
 
 
 def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
@@ -28,7 +27,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
     if show:
         cv2.namedWindow('img', cv2.WINDOW_NORMAL)
 
-    locMap = MultiMap3D(config=config, save_dir=None)
+    locMap = MultiLocMap(config=config, save_dir=None)
     if config['dataset'][0] in ['Aachen']:
         viewer_config = {'scene': 'outdoor',
                          'image_size_indoor': 4,
@@ -42,7 +41,16 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                          'image_size_indoor': 0.4,
                          'image_line_width_indoor': 2, }
 
+    # start viewer
+    Viewer = Visualizer(locMap=locMap, seg_color=seg_color, config=viewer_config)
+    Viewer.refinement = locMap.do_refinement
+    locMap.set_viewer(viewer=Viewer)
+    viewer_thread = threading.Thread(target=Viewer.run)
+    viewer_thread.start()
+
     # start tracker
+    mTracker = Tracker(locMap=locMap, matcher=locMap.matcher, config=config)
+
     dataset_name = config['dataset'][0]
     all_scene_query_info = {}
     with open(osp.join(config['config_path'], '{:s}.yaml'.format(dataset_name)), 'r') as f:
@@ -60,7 +68,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         query_info = read_query_info(query_fn=query_path)
         all_scene_query_info[dataset_name + '/' + scene] = query_info
         image_path = osp.join(dataset_path, dataset_name, scene)
-        for fn in sorted(query_info.keys()):
+        for fn in sorted(query_info.keys())[::5]:
             # for fn in sorted(query_info.keys())[880:][::5]:  # darwinRGB-loc-outdoor-aligned
             # for fn in sorted(query_info.keys())[3161:][::5]:  # darwinRGB-loc-indoor-aligned
 
@@ -114,12 +122,20 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                 }
 
                 camera_model, width, height, params = all_scene_query_info[dataset_name + '/' + scene][fn]
-                cameera = Camera(id=-1, model=camera_model, width=width, height=height, params=params)
-                curr_frame = Frame(image=img, camera=cameera, id=0, name=fn, scene_name=dataset_name + '/' + scene)
+                cfg = {
+                    'model': camera_model,
+                    'width': width,
+                    'height': height,
+                    'params': params,
+                }
+                curr_frame = Frame(cfg=cfg, id=0, name=fn, scene_name=dataset_name + '/' + scene)
                 curr_frame.update_features(
                     keypoints=np.hstack([pred['keypoints'][0].cpu().numpy(),
                                          pred['scores'][0].cpu().numpy().reshape(-1, 1)]),
                     descriptors=pred['descriptors'][0].cpu().numpy())
+
+                if Viewer.tracking and not mTracker.lost:
+                    mTracker.run(frame=curr_frame)
 
                 pred = {**pred, **rec_out}
                 pred_seg = torch.max(pred['prediction'], dim=2)[1]  # [B, N, C]
@@ -145,7 +161,65 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                     elif key == ord('c'):
                         show_time = 1
 
-                segmentations = pred['prediction'][0]  # .cpu().numpy()  # [N, C]
+                segmentations = pred['prediction'][0].cpu().numpy()  # [N, C]
+                query_data = {
+                    'name': fn,
+                    'descriptors': pred['descriptors'][0].cpu().numpy(),  # [N, C]
+                    'keypoints': pred['keypoints'][0].cpu().numpy(),  # [N, 2]
+                    'scores': pred['scores'][0].cpu().numpy(),  # [N, 1]
+                    'segmentations': segmentations,
+                    'image': img,
+                    'scene_name': dataset_name + '/' + scene,
+                    'info': all_scene_query_info[dataset_name + '/' + scene][fn]
+                }
 
-                loc_out = locMap.run(q_frame=curr_frame, q_segs=segmentations)
+                loc_out = locMap.run(query_data=query_data)
                 success = loc_out['success']
+
+                if success:
+                    # update tracker
+                    inliers = loc_out['inliers']
+                    mTracker.update_current_frame_from_reloc(frame=curr_frame,
+                                                             mp2ds=loc_out['mp2ds'][inliers],
+                                                             mp3ds=loc_out['mp3ds'][inliers],
+                                                             qvec=loc_out['qvec'],
+                                                             tvec=loc_out['tvec'],
+                                                             reference_frame=None)
+
+                    # send to visualizer
+                    img_rec = np.hstack([cv2.cvtColor(img_pred_seg, cv2.COLOR_BGR2RGB),
+                                         cv2.cvtColor(loc_out['img_loc'], cv2.COLOR_BGR2RGB)])
+                    img_loc = cv2.cvtColor(loc_out['img_matching'], cv2.COLOR_BGR2RGB)
+                    # if save:
+                    #     img_save_dir = '/scratches/flyer_2/fx221/exp/localizer/loc_figs/matching'
+                    #     save_fn = dataset_name.replace('/', '+') + '_' + scene.replace('/', '+') + fn.replace(
+                    #         '/',
+                    #         '+')
+                    #     cv2.imwrite(osp.join(img_save_dir, save_fn + '_loc.png'), loc_out['img_matching'])
+                    #     cv2.imwrite(osp.join(img_save_dir, save_fn + '_rec.png'),
+                    #                 np.hstack([img_pred_seg, loc_out['img_loc']]))
+
+                    Viewer.update_rec_image(img=[img_rec, img_loc])
+                    Viewer.update_feat_time(t=t_feat)
+                    Viewer.update_rec_time(t=t_rec)
+                    Viewer.update_loc_time(t=loc_out['time_loc'])
+                    Viewer.update_ref_time(t=loc_out['time_ref'])
+
+                    Viewer.update_current_image(qcw=loc_out['qvec'], tcw=loc_out['tvec'],
+                                                gt_qcw=loc_out['gt_qvec'], gt_tcw=loc_out['gt_tvec'])
+                    Viewer.update_loc_status(
+                        {
+                            'pred_sid': loc_out['pred_sid'],
+                            'reference_db_ids': loc_out['reference_db_ids'],
+                            'vrf_image_id': loc_out['vrf_image_id'],
+                            'start_seg_id': loc_out['start_seg_id'],
+                        }
+                    )
+
+                    time.sleep(100 / 1000)  # give time to visualization especially for large-scale scenes
+
+                # update settings of localizer
+                locMap.do_refinement = Viewer.refinement
+
+    Viewer.terminate()
+    viewer_thread.join()

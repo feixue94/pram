@@ -7,7 +7,6 @@
 =================================================='''
 import numpy as np
 from localization.camera import Camera
-from localization.singlemap3d import SingleMap3D
 
 
 class RefFrame:
@@ -71,4 +70,5 @@ class RefFrame:
             'descriptors': np.array(valid_descs),
             'scores': 1 / np.clip(np.array(valid_scores) * 5, a_min=1., a_max=20.),
             'xyzs': np.array(valid_xyzs),
+            'camera': self.camera,
         }

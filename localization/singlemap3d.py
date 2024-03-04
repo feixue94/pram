@@ -79,7 +79,7 @@ class SingleMap3D:
         self.build_covisibility_graph(frame_ids=vrf_ids, n_frame=config['localization'][
             'covisibility_frame'])  # build covisible frames for vrf frames only
 
-        logging.info(f'Construct {len(self.ref_frames.keys())} ref frames and {len(self.point3ds.keys())} 3d points')
+        logging.info(f'Construct {len(self.ref_frames.keys())} ref frames and {len(self.point3Ds.keys())} 3d points')
 
         self.gt_poses = {}
         if config['gt_pose_path'] is not None:
@@ -109,7 +109,7 @@ class SingleMap3D:
                                            name=im.name)
 
     def localize_with_ref_frame(self, query_data, sid, semantic_matching=False):
-        ref_frame_id = self.seg_ref_frame_ids[0]
+        ref_frame_id = self.seg_ref_frame_ids[sid][0]
         ref_frame = self.ref_frames[ref_frame_id]
         if semantic_matching and sid > 0:
             ref_data = ref_frame.get_keypoints_by_sid(sid=sid, point3Ds=self.point3Ds)
@@ -134,10 +134,18 @@ class SingleMap3D:
             }
             )['matches0'][0].cpu().numpy()
 
-        mkqs = indices0[indices0 >= 0]
+        mkqs = q_kpts[indices0 >= 0]
         mxyzs = xyzs[indices0[indices0 >= 0]]
 
-        ret = pycolmap.absolute_pose_estimation(mkqs + 0.5, mxyzs, query_data['camera'], 12)
+        print('mkqs: ', mkqs.shape, mxyzs.shape, np.sum(indices0 >= 0))
+
+        cfg = {
+            'model': query_data['camera'].model,
+            'width': query_data['camera'].width,
+            'height': query_data['camera'].height,
+            'params': query_data['camera'].params,
+        }
+        ret = pycolmap.absolute_pose_estimation(mkqs + 0.5, mxyzs, cfg, 12)
         ret['matched_kpts'] = mkqs
         ret['matched_xyzs'] = mxyzs
         ret['ref_frame_id'] = ref_frame_id
@@ -163,7 +171,7 @@ class SingleMap3D:
             }
             )['matches0'][0].cpu().numpy()
 
-        mkqs = indices0[indices0 >= 0]
+        mkqs = q_kpts[indices0 >= 0]
         mxyzs = xyzs[indices0[indices0 >= 0]]
 
         return {
@@ -214,10 +222,10 @@ class SingleMap3D:
     def refine_pose_by_matching(self, query_data, ref_frame_id):
         db_ids = self.covisible_graph[ref_frame_id]
         print('Find {} covisible frames'.format(len(db_ids)))
-        loc_success = query_data['query_data']['loc_success']
+        loc_success = query_data['loc_success']
         if loc_success and ref_frame_id in db_ids:
-            init_kpts = query_data['query_data']['matched_kpts']
-            init_xyzs = query_data['query_data']['matched_xyzs']
+            init_kpts = query_data['matched_kpts']
+            init_xyzs = query_data['matched_xyzs']
             db_ids.remove(ref_frame_id)
         else:
             init_kpts = None
@@ -232,8 +240,8 @@ class SingleMap3D:
                 matched_kpts.append(match_out['matched_kpts'])
                 matched_xyzs.append(match_out['matched_xyzs'])
 
-        matched_kpts = np.array(matched_kpts, float).reshape(-1, 2)
-        matched_xyzs = np.array(matched_xyzs, float).reshape(-1, 3)
+        matched_kpts = np.vstack(matched_kpts)
+        matched_xyzs = np.vstack(matched_xyzs).reshape(-1, 3)
         if init_kpts is not None:
             matched_kpts = np.vstack([matched_kpts, init_kpts])
             matched_xyzs = np.vstack([matched_xyzs, init_xyzs])
@@ -243,7 +251,13 @@ class SingleMap3D:
         print(print_text)
 
         t_start = time.time()
-        ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs, query_data['camera'],
+        cfg = {
+            'model': query_data['camera'].model,
+            'width': query_data['camera'].width,
+            'height': query_data['camera'].height,
+            'params': query_data['camera'].params,
+        }
+        ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs, cfg,
                                                 max_error_px=self.config['localization']['threshold'],
                                                 min_num_trials=1000, max_num_trials=10000, confidence=0.995)
         print('Time of RANSAC: {:.2f}s'.format(time.time() - t_start))
