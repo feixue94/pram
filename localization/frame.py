@@ -57,7 +57,7 @@ class Frame:
 
         if seg_ids is None:
             self.seg_ids = np.zeros(shape=(n,), dtype=int) - 1
-            
+
     def filter_keypoints(self, seg_scores: np.ndarray, filtering_threshold: float):
         scores_background = seg_scores[:, 0]
         non_bg_mask = (scores_background < filtering_threshold)

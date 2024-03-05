@@ -123,8 +123,9 @@ class MultiMap3D:
             q_loc_sids[v[0]] = (v[1], v[2])
         query_sids = list(q_loc_sids.keys())
 
-        t_start = time.time()
         for i, sid in enumerate(query_sids):
+            t_start = time.time()
+
             q_seg_ids = q_loc_sids[sid][0]
             print(q_scene_name, q_name, sid)
 
@@ -163,6 +164,8 @@ class MultiMap3D:
             ret = pred_sub_map.localize_with_ref_frame(query_data=query_data,
                                                        sid=pred_sid_in_sub_scene,
                                                        semantic_matching=semantic_matching)
+
+            q_frame.time_loc = q_frame.time_loc + time.time() - t_start  # accumulate tracking time
 
             if show:
                 reference_frame = pred_sub_map.ref_frames[ret['reference_frame_id']]
@@ -233,9 +236,6 @@ class MultiMap3D:
                 continue
             else:
                 break
-
-        q_frame.time_loc = time.time() - t_start
-
         if q_frame.tracking_status is None:
             print('Failed to find a proper reference frame.')
             return False

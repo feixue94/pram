@@ -116,10 +116,11 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                 camera_model, width, height, params = all_scene_query_info[dataset_name + '/' + scene][fn]
                 camera = Camera(id=-1, model=camera_model, width=width, height=height, params=params)
                 curr_frame = Frame(image=img, camera=camera, id=0, name=fn, scene_name=dataset_name + '/' + scene)
-                curr_frame.update_features(
-                    keypoints=np.hstack([pred['keypoints'][0].cpu().numpy(),
-                                         pred['scores'][0].cpu().numpy().reshape(-1, 1)]),
-                    descriptors=pred['descriptors'][0].cpu().numpy())
+                curr_frame.keypoints = np.hstack([pred['keypoints'][0].cpu().numpy(),
+                                                  pred['scores'][0].cpu().numpy().reshape(-1, 1)])
+                curr_frame.descriptors = pred['descriptors'][0].cpu().numpy()
+                curr_frame.time_feat = t_feat
+                curr_frame.time_rec = t_rec
 
                 pred = {**pred, **rec_out}
                 pred_seg = torch.max(pred['prediction'], dim=2)[1]  # [B, N, C]
