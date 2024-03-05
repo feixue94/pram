@@ -114,8 +114,8 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                 }
 
                 camera_model, width, height, params = all_scene_query_info[dataset_name + '/' + scene][fn]
-                cameera = Camera(id=-1, model=camera_model, width=width, height=height, params=params)
-                curr_frame = Frame(image=img, camera=cameera, id=0, name=fn, scene_name=dataset_name + '/' + scene)
+                camera = Camera(id=-1, model=camera_model, width=width, height=height, params=params)
+                curr_frame = Frame(image=img, camera=camera, id=0, name=fn, scene_name=dataset_name + '/' + scene)
                 curr_frame.update_features(
                     keypoints=np.hstack([pred['keypoints'][0].cpu().numpy(),
                                          pred['scores'][0].cpu().numpy().reshape(-1, 1)]),
@@ -147,5 +147,6 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
 
                 segmentations = pred['prediction'][0]  # .cpu().numpy()  # [N, C]
 
-                loc_out = locMap.run(q_frame=curr_frame, q_segs=segmentations)
-                success = loc_out['success']
+                success = locMap.run(q_frame=curr_frame, q_segs=segmentations)
+                if success:
+                    pass

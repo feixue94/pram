@@ -16,6 +16,7 @@ import time
 import torch
 
 from localization.refframe import RefFrame
+from localization.frame import Frame
 from localization.point3d import Point3D
 from colmap_utils.read_write_model import qvec2rotmat, read_model, read_compressed_model
 from localization.utils import read_gt_pose
@@ -121,6 +122,7 @@ class SingleMap3D:
         q_scores = query_data['scores']
         xyzs = ref_data['xyzs']
         points3D_ids = ref_data['points3D_ids']
+        q_sids = query_data['sids']
         with torch.no_grad():
             indices0 = self.matcer({
                 'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
@@ -139,22 +141,16 @@ class SingleMap3D:
         mkpts = q_kpts[valid]
         mxyzs = xyzs[indices0[valid]]
         mpoints3D_ids = points3D_ids[indices0[valid]]
+        matched_sids = q_sids[valid]
 
         print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
-
-        # cfg = {
-        #     'model': query_data['camera'].model,
-        #     'width': query_data['camera'].width,
-        #     'height': query_data['camera'].height,
-        #     'params': query_data['camera'].params,
-        # }
-
         cfg = query_data['camera']._asdict()
         ret = pycolmap.absolute_pose_estimation(mkpts + 0.5, mxyzs, cfg, 12)
         ret['matched_keypoints'] = mkpts
         ret['matched_xyzs'] = mxyzs
-        ret['ref_frame_id'] = ref_frame_id
+        ret['reference_frame_id'] = ref_frame_id
         ret['matched_points3D_ids'] = mpoints3D_ids
+        ret['matched_sids'] = matched_sids
 
         return ret
 
@@ -221,21 +217,22 @@ class SingleMap3D:
         for frame_id in frame_ids:
             self.covisible_graph[frame_id] = find_covisible_frames(frame_id=frame_id)
 
-    def refine_pose(self, query_data, ref_frame_id, refinement_method='matching'):
+    def refine_pose(self, q_frame: Frame, refinement_method='matching'):
         if refinement_method == 'matching':
-            return self.refine_pose_by_matching(query_data=query_data, ref_frame_id=ref_frame_id)
+            return self.refine_pose_by_matching(q_frame=q_frame)
         elif refinement_method == 'projection':
-            return self.refine_pose_by_projection(query_data=query_data, ref_frame_id=ref_frame_id)
+            return self.refine_pose_by_projection(q_frame=q_frame)
         else:
             raise NotImplementedError
 
-    def refine_pose_by_matching(self, query_data, ref_frame_id):
+    def refine_pose_by_matching(self, q_frame):
+        ref_frame_id = q_frame.reference_frame_id
         db_ids = self.covisible_graph[ref_frame_id]
         print('Find {} covisible frames'.format(len(db_ids)))
-        loc_success = query_data['loc_success']
+        loc_success = q_frame.tracking_status
         if loc_success and ref_frame_id in db_ids:
-            init_kpts = query_data['matched_keypoints']
-            init_xyzs = query_data['matched_xyzs']
+            init_kpts = q_frame.matched_keypoints
+            init_xyzs = np.array([self.point3Ds[v].xyz for v in q_frame.matched_points3D_ids]).reshape(-1, 3)
             db_ids.remove(ref_frame_id)
         else:
             init_kpts = None
@@ -245,7 +242,12 @@ class SingleMap3D:
         matched_kpts = []
         for idx, frame_id in enumerate(db_ids):
             ref_data = self.ref_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
-            match_out = self.match(query_data=query_data, ref_data=ref_data)
+            match_out = self.match(query_data={
+                'keypoints': q_frame.keypoints[:, :2],
+                'scores': q_frame.keypoints[:, 2],
+                'descriptors': q_frame.descriptors,
+                'camera': q_frame.camera, },
+                ref_data=ref_data)
             if match_out['matched_keypoints'].shape[0] > 0:
                 matched_kpts.append(match_out['matched_keypoints'])
                 matched_xyzs.append(match_out['matched_xyzs'])
@@ -261,12 +263,7 @@ class SingleMap3D:
         print(print_text)
 
         t_start = time.time()
-        cfg = {
-            'model': query_data['camera'].model,
-            'width': query_data['camera'].width,
-            'height': query_data['camera'].height,
-            'params': query_data['camera'].params,
-        }
+        cfg = q_frame.camera._asdict()
         ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs, cfg,
                                                 max_error_px=self.config['localization']['threshold'],
                                                 min_num_trials=1000, max_num_trials=10000, confidence=0.995)
@@ -278,5 +275,5 @@ class SingleMap3D:
 
         return ret
 
-    def refine_pose_by_projection(self, query_data, ref_frame_id):
+    def refine_pose_by_projection(self, q_frame):
         pass

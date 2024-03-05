@@ -32,12 +32,15 @@ class Frame:
         self.points3d = None
         self.segmentations = None
 
+        self.matched_scene_name = None
         self.matched_keypoints = None
-        self.matched_points3D = None
+        self.matched_xyzs = None
+        self.matched_points3D_ids = None
         self.matched_inliers = None
         self.matched_sids = None
         self.gt_qvec = None
         self.gt_tvec = None
+        self.tracking_status = None
 
     def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
         self.keypoints = keypoints
@@ -59,7 +62,7 @@ class Frame:
         print('pre filtering before: ', self.keypoints.shape)
         if np.sum(non_bg_mask) >= 0.4 * seg_scores.shape[0]:
             self.keypoints = self.keypoints[non_bg_mask]
-            self.descriptors = self.keypoints[non_bg_mask]
+            self.descriptors = self.descriptors[non_bg_mask]
             print('pre filtering after: ', self.keypoints.shape)
             return non_bg_mask
         else:
