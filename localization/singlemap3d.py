@@ -232,14 +232,17 @@ class SingleMap3D:
         loc_success = q_frame.tracking_status
         if loc_success and ref_frame_id in db_ids:
             init_kpts = q_frame.matched_keypoints
-            init_xyzs = np.array([self.point3Ds[v].xyz for v in q_frame.matched_points3D_ids]).reshape(-1, 3)
+            init_points3D_ids = q_frame.matched_points3D_ids
+            init_xyzs = np.array([self.point3Ds[v].xyz for v in init_points3D_ids]).reshape(-1, 3)
             db_ids.remove(ref_frame_id)
         else:
             init_kpts = None
             init_xyzs = None
+            init_points3D_ids = None
 
         matched_xyzs = []
         matched_kpts = []
+        matched_points3D_ids = []
         for idx, frame_id in enumerate(db_ids):
             ref_data = self.ref_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
             match_out = self.match(query_data={
@@ -251,12 +254,15 @@ class SingleMap3D:
             if match_out['matched_keypoints'].shape[0] > 0:
                 matched_kpts.append(match_out['matched_keypoints'])
                 matched_xyzs.append(match_out['matched_xyzs'])
+                matched_points3D_ids.append(match_out['matched_points3D_ids'])
 
         matched_kpts = np.vstack(matched_kpts)
         matched_xyzs = np.vstack(matched_xyzs).reshape(-1, 3)
+        matched_points3D_ids = np.hstack(matched_points3D_ids)
         if init_kpts is not None:
             matched_kpts = np.vstack([matched_kpts, init_kpts])
             matched_xyzs = np.vstack([matched_xyzs, init_xyzs])
+            matched_points3D_ids = np.hstack([matched_points3D_ids, init_points3D_ids])
 
         print_text = 'Refinement by matching. Get {:d} covisible frames with {:d} matches for optimization'.format(
             len(db_ids), matched_xyzs.shape[0])
@@ -269,8 +275,9 @@ class SingleMap3D:
                                                 min_num_trials=1000, max_num_trials=10000, confidence=0.995)
         print('Time of RANSAC: {:.2f}s'.format(time.time() - t_start))
 
-        ret['matched_kpts'] = matched_kpts
+        ret['matched_keypoints'] = matched_kpts
         ret['matched_xyzs'] = matched_xyzs
+        ret['matched_points3D_ids'] = matched_points3D_ids
         ret['reference_db_ids'] = db_ids
 
         return ret

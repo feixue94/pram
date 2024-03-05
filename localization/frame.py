@@ -42,6 +42,11 @@ class Frame:
         self.gt_tvec = None
         self.tracking_status = None
 
+        self.time_feat = 0
+        self.time_rec = 0
+        self.time_loc = 0
+        self.time_ref = 0
+
     def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
         self.keypoints = keypoints
         self.descriptors = descriptors
@@ -52,10 +57,7 @@ class Frame:
 
         if seg_ids is None:
             self.seg_ids = np.zeros(shape=(n,), dtype=int) - 1
-
-    def update_mp3ds(self, mp2ds, mp3ds):
-        pass
-
+            
     def filter_keypoints(self, seg_scores: np.ndarray, filtering_threshold: float):
         scores_background = seg_scores[:, 0]
         non_bg_mask = (scores_background < filtering_threshold)
