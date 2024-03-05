@@ -43,7 +43,7 @@ class RefFrame:
                     valid_descs.append(p3d.descriptor)
                     valid_scores.append(p3d.error)
         return {
-            'p3d_ids': np.array(valid_p3d_ids),
+            'points3D_ids': np.array(valid_p3d_ids),
             'keypoints': np.array(valid_kpts),
             'descriptors': np.array(valid_descs),
             'scores': np.array(valid_scores),
@@ -65,7 +65,7 @@ class RefFrame:
                 valid_descs.append(p3d.descriptor)
                 valid_scores.append(p3d.error)
         return {
-            'p3d_ids': np.array(valid_p3d_ids),
+            'points3D_ids': np.array(valid_p3d_ids),
             'keypoints': np.array(valid_kpts),
             'descriptors': np.array(valid_descs),
             'scores': 1 / np.clip(np.array(valid_scores) * 5, a_min=1., a_max=20.),

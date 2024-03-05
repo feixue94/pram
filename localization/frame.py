@@ -6,13 +6,16 @@
 @Date   01/03/2024 10:08
 =================================================='''
 import numpy as np
+import torch
+
 from localization.camera import Camera
+from localization.utils import compute_pose_error
 
 
 class Frame:
     def __init__(self, image: np.ndarray, camera: Camera, id: int, name: str = None, qvec=None, tvec=None,
                  scene_name=None,
-                 reference_frame=None):
+                 reference_frame_id=None):
         self.image = image
         self.camera = camera
         self.id = id
@@ -21,7 +24,7 @@ class Frame:
         self.qvec = qvec
         self.tvec = tvec
         self.scene_name = scene_name
-        self.reference_frame = reference_frame
+        self.reference_frame_id = reference_frame_id
 
         self.keypoints = None  # [N, 3]
         self.descriptors = None  # [N, D]
@@ -29,6 +32,9 @@ class Frame:
         self.points3d = None
         self.points3d_mask = None
         self.segmentations = None
+
+        self.matched_keypoints = None
+        self.matched_points3D = None
 
     def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
         self.keypoints = keypoints
@@ -43,3 +49,23 @@ class Frame:
 
     def update_mp3ds(self, mp2ds, mp3ds):
         pass
+
+    def filter_keypoints(self, seg_scores: np.ndarray, filtering_threshold: float):
+        scores_background = seg_scores[:, 0]
+        non_bg_mask = (scores_background < filtering_threshold)
+        print('pre filtering before: ', self.keypoints.shape)
+        if np.sum(non_bg_mask) >= 0.4 * seg_scores.shape[0]:
+            self.keypoints = self.keypoints[non_bg_mask]
+            self.descriptors = self.keypoints[non_bg_mask]
+            print('pre filtering after: ', self.keypoints.shape)
+            return non_bg_mask
+        else:
+            print('pre filtering after: ', self.keypoints.shape)
+            return None
+
+    def compute_pose_error(self, gt_qvec, gt_tvec):
+        if self.qvec is None or self.tvec is None or gt_qvec is None or gt_tvec is None:
+            return 100, 100
+        else:
+            err_q, err_t = compute_pose_error(pred_qcw=self.qvec, pred_tcw=self.tvec, gt_qcw=gt_qvec, gt_tcw=gt_tvec)
+            return err_q, err_t

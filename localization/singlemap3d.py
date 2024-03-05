@@ -120,6 +120,7 @@ class SingleMap3D:
         q_kpts = query_data['keypoints']
         q_scores = query_data['scores']
         xyzs = ref_data['xyzs']
+        points3D_ids = ref_data['points3D_ids']
         with torch.no_grad():
             indices0 = self.matcer({
                 'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
@@ -134,21 +135,26 @@ class SingleMap3D:
             }
             )['matches0'][0].cpu().numpy()
 
-        mkqs = q_kpts[indices0 >= 0]
-        mxyzs = xyzs[indices0[indices0 >= 0]]
+        valid = indices0 >= 0
+        mkpts = q_kpts[valid]
+        mxyzs = xyzs[indices0[valid]]
+        mpoints3D_ids = points3D_ids[indices0[valid]]
 
-        print('mkqs: ', mkqs.shape, mxyzs.shape, np.sum(indices0 >= 0))
+        print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
 
-        cfg = {
-            'model': query_data['camera'].model,
-            'width': query_data['camera'].width,
-            'height': query_data['camera'].height,
-            'params': query_data['camera'].params,
-        }
-        ret = pycolmap.absolute_pose_estimation(mkqs + 0.5, mxyzs, cfg, 12)
-        ret['matched_kpts'] = mkqs
+        # cfg = {
+        #     'model': query_data['camera'].model,
+        #     'width': query_data['camera'].width,
+        #     'height': query_data['camera'].height,
+        #     'params': query_data['camera'].params,
+        # }
+
+        cfg = query_data['camera']._asdict()
+        ret = pycolmap.absolute_pose_estimation(mkpts + 0.5, mxyzs, cfg, 12)
+        ret['matched_keypoints'] = mkpts
         ret['matched_xyzs'] = mxyzs
         ret['ref_frame_id'] = ref_frame_id
+        ret['matched_points3D_ids'] = mpoints3D_ids
 
         return ret
 
@@ -157,6 +163,7 @@ class SingleMap3D:
         q_kpts = query_data['keypoints']
         q_scores = query_data['scores']
         xyzs = ref_data['xyzs']
+        points3D_ids = ref_data['points3D_ids']
         with torch.no_grad():
             indices0 = self.matcer({
                 'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
@@ -171,12 +178,15 @@ class SingleMap3D:
             }
             )['matches0'][0].cpu().numpy()
 
-        mkqs = q_kpts[indices0 >= 0]
-        mxyzs = xyzs[indices0[indices0 >= 0]]
+        valid = indices0 >= 0
+        mkpts = q_kpts[valid]
+        mxyzs = xyzs[indices0[valid]]
+        mpoints3D_ids = points3D_ids[indices0[valid]]
 
         return {
-            'matched_kpts': mkqs,
+            'matched_keypoints': mkpts,
             'matched_xyzs': mxyzs,
+            'matched_points3D_ids': mpoints3D_ids,
         }
 
     def build_covisibility_graph(self, frame_ids: list = None, n_frame: int = 20):
@@ -224,7 +234,7 @@ class SingleMap3D:
         print('Find {} covisible frames'.format(len(db_ids)))
         loc_success = query_data['loc_success']
         if loc_success and ref_frame_id in db_ids:
-            init_kpts = query_data['matched_kpts']
+            init_kpts = query_data['matched_keypoints']
             init_xyzs = query_data['matched_xyzs']
             db_ids.remove(ref_frame_id)
         else:
@@ -236,8 +246,8 @@ class SingleMap3D:
         for idx, frame_id in enumerate(db_ids):
             ref_data = self.ref_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
             match_out = self.match(query_data=query_data, ref_data=ref_data)
-            if match_out['matched_kpts'].shape[0] > 0:
-                matched_kpts.append(match_out['matched_kpts'])
+            if match_out['matched_keypoints'].shape[0] > 0:
+                matched_kpts.append(match_out['matched_keypoints'])
                 matched_xyzs.append(match_out['matched_xyzs'])
 
         matched_kpts = np.vstack(matched_kpts)

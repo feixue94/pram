@@ -94,9 +94,21 @@ class MultiMap3D:
         print('Load {} sub_maps from {} datasets'.format(len(self.sub_maps), len(datasets)))
 
     def run(self, q_frame: Frame, q_segs: torch.Tensor):
+        q_seg_scores = torch.softmax(q_segs, dim=-1)  # [N, C]
+        if self.do_pre_filtering:
+            non_bg_mask = q_frame.filter_keypoints(seg_scores=q_seg_scores.cpu().numpy(),
+                                                   filtering_threshold=self.pre_filtering_th)
+            if non_bg_mask is not None:
+                q_seg_scores = q_seg_scores[torch.from_numpy(non_bg_mask).cuda()]
+                q_segs = q_segs[torch.from_numpy(non_bg_mask).cuda()]
+
+        q_loc_segs = self.process_segmentations(segs=q_seg_scores, topk=self.loc_config['seg_k'])
+        q_pred_segs_top1 = q_segs.max(dim=-1)[1]
+        q_pred_segs_top1 = q_pred_segs_top1.cpu().numpy()
+
+    def run1(self, q_frame: Frame, q_segs: torch.Tensor):
         t_loc = 0
         t_ref = 0
-        img_loc = None
         img_loc_matching = None
         seg_color = generate_color_dic(n_seg=2000)
         self.loc_text = []
@@ -139,11 +151,11 @@ class MultiMap3D:
         else:
             gt_qcw = None
             gt_tcw = None
-
         gt_sub_map = self.sub_maps[q_scene_name]
         q_loc_sids = {}
         for v in q_loc_segs:
             q_loc_sids[v[0]] = (v[1], v[2])
+
         query_sids = list(q_loc_sids.keys())
         q_full_name = osp.join(q_scene_name, q_name)
 
@@ -196,7 +208,7 @@ class MultiMap3D:
             ret = pred_sub_map.localize_with_ref_frame(query_data=query_data,
                                                        sid=pred_sid_in_sub_scene,
                                                        semantic_matching=semantic_matching)
-            n_matches = ret['matched_kpts'].shape[0]
+            n_matches = ret['matched_keypoints'].shape[0]
             n_inliers = ret['num_inliers']
             inliers = ret['inliers']
             success = ret['success']
@@ -270,7 +282,7 @@ class MultiMap3D:
                         'tvec': ret['tvec'],
                         'n_inliers': n_inliers,
                         'loc_success': loc_success,
-                        'matched_kpts': ret['matched_kpts'],
+                        'matched_keypoints': ret['matched_keypoints'],
                         'matched_xyzs': ret['matched_xyzs'],
                     }
                     ref_ret = pred_sub_map.refine_pose(query_data=query_data, ref_frame_id=ret['ref_frame_id'],
@@ -294,7 +306,7 @@ class MultiMap3D:
                         out = {
                             'qvec': ref_ret['qvec'],
                             'tvec': ref_ret['tvec'],
-                            'matched_kpts': ret['matched_kpts'],
+                            'matched_keypoints': ret['matched_keypoints'],
                             'matched_xyzs': ret['matched_xyzs'],
                             'success': True,
                             'log': log_text,
@@ -313,8 +325,6 @@ class MultiMap3D:
                         'gt_tvec': gt_tcw,
                         'qvec': ret['qvec'],
                         'tvec': ret['tvec'],
-                        # 'mp2ds': all_mp2ds,
-                        # 'mp3ds': all_mp3ds,
                         'inliers': np.array(ret['inliers']),
                         'log': log_text,
                         'n_inliers': len(inliers),
