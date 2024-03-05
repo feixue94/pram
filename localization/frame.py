@@ -30,11 +30,12 @@ class Frame:
         self.descriptors = None  # [N, D]
         self.seg_ids = None  # [N, 1]
         self.points3d = None
-        self.points3d_mask = None
         self.segmentations = None
 
         self.matched_keypoints = None
         self.matched_points3D = None
+        self.matched_inliers = None
+        self.matched_sids = None
         self.gt_qvec = None
         self.gt_tvec = None
 

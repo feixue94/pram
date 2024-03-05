@@ -107,11 +107,90 @@ class MultiMap3D:
 
         q_scene_name = q_frame.scene_name
         q_name = q_frame.name
+        q_full_name = osp.join(q_scene_name, q_name)
         gt_sub_map = self.sub_maps[q_frame.scene_name]
         if gt_sub_map.gt_poses is not None and q_name in gt_sub_map.gt_poses.keys():
             q_frame.gt_qvec = gt_sub_map.gt_poses[q_name]['qvec']
             q_frame.gt_tvec = gt_sub_map.gt_poses[q_name]['tvec']
+        q_loc_sids = {}
+        for v in q_loc_segs:
+            q_loc_sids[v[0]] = (v[1], v[2])
+        query_sids = list(q_loc_sids.keys())
 
+        for i, sid in enumerate(query_sids):
+            q_seg_ids = q_loc_sids[sid][0]
+            print(q_scene_name, q_name, sid)
+
+            pred_scene_name = self.sid_scene_name[sid]
+            start_seg_id = self.scene_name_start_sid[pred_scene_name]
+            pred_sid_in_sub_scene = sid - self.scene_name_start_sid[pred_scene_name]
+            pred_sub_map = self.sub_maps[pred_scene_name]
+            pred_image_path_prefix = pred_sub_map.image_path_prefix
+
+            print('pred/gt scene: {:s}, {:s}, sid: {:d}'.format(pred_scene_name, q_scene_name, pred_sid_in_sub_scene))
+            print('{:s}/{:s}, pred: {:s}, sid: {:d}, order: {:d}'.format(q_scene_name, q_name, pred_scene_name, sid,
+                                                                         i))
+            if q_seg_ids.shape[0] >= self.loc_config['min_kpts'] and self.semantic_matching:
+                q_descs = q_frame.descriptors[q_seg_ids]
+                q_kpts = q_frame.keypoints[q_seg_ids, :2]
+                q_scores = q_frame.keypoints[q_seg_ids, 2]
+                q_sid_top1 = q_pred_segs_top1[q_seg_ids]
+                semantic_matching = True
+            else:
+                q_descs = q_frame.descriptors
+                q_kpts = q_frame.keypoints[:, :2]
+                q_scores = q_frame.keypoints[:, 2]
+                q_sid_top1 = q_pred_segs_top1
+                semantic_matching = False
+            print_text = f'Semantic matching - {semantic_matching}! Query kpts {q_kpts.shape[0]} for {i}th seg {sid}, use all kpts'
+            print(print_text)
+
+            query_data = {
+                'descriptors': q_descs,
+                'scores': q_scores,
+                'keypoints': q_kpts,
+                'camera': q_frame.camera,
+                'sids': q_sid_top1,
+            }
+
+            ret = pred_sub_map.localize_with_ref_frame(query_data=query_data,
+                                                       sid=pred_sid_in_sub_scene,
+                                                       semantic_matching=semantic_matching)
+            if not ret['success']:
+                num_matches = ret['num_matches']
+                num_inliers = ret['num_inliers']
+                print_text = f'Localization failed with {num_matches}/{q_kpts.shape[0]} matches and {num_inliers} inliers, order {i}'
+                print(print_text)
+                continue
+            success = self.verify_and_update(q_frame=q_frame, ret=ret)
+            if
+
+    def verify_and_update(self, q_frame: Frame, ret: dict):
+        num_matches = ret['num_matches']
+        num_inliers = ret['num_inliers']
+
+        if q_frame.keypoints is None or np.sum(q_frame.matched_inliers) < num_inliers:
+            q_frame.reference_frame_id = ret['reference_frame_id']
+            q_frame.matched_keypoints = ret['matched_keypoints']
+            q_frame.matched_points3D = ret['matched_points3D']
+            q_frame.matched_sids = ret['matched_sids']
+            q_frame.matched_inliers = ret['inliers']
+            q_frame.qvec = ret['qvec']
+            q_frame.tve = ret['tvec']
+
+        q_err, t_err = q_frame.compute_pose_error()
+
+        if num_inliers < self.loc_config['min_inliers']:
+            print_text = 'Failed due to insufficient {:d} inliers, order {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
+                ret['num_inliers'],
+                ret['order'], q_err, t_err)
+            print(print_text)
+            return False
+        else:
+            print_text = 'Succeed! Find {}/{} 2D-3D inliers, order {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
+                num_inliers, num_matches, ret['order'], q_err, t_err)
+            print(print_text)
+            return True
 
     def run1(self, q_frame: Frame, q_segs: torch.Tensor):
         t_loc = 0
@@ -160,6 +239,7 @@ class MultiMap3D:
             gt_tcw = None
         gt_sub_map = self.sub_maps[q_scene_name]
         q_loc_sids = {}
+
         for v in q_loc_segs:
             q_loc_sids[v[0]] = (v[1], v[2])
 
@@ -170,7 +250,6 @@ class MultiMap3D:
 
         for i, sid in enumerate(query_sids):
             q_seg_ids = q_loc_sids[sid][0]
-
             print(q_scene_name, q_name, sid)
 
             pred_scene_name = self.sid_scene_name[sid]
