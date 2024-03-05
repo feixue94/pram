@@ -23,7 +23,6 @@ from tools.common import resize_img
 from localization.singlemap3d import SingleMap3D
 from localization.frame import Frame
 from localization.refframe import RefFrame
-from localization.utils import compute_pose_error
 
 
 class MultiMap3D:
@@ -94,6 +93,12 @@ class MultiMap3D:
         print('Load {} sub_maps from {} datasets'.format(len(self.sub_maps), len(datasets)))
 
     def run(self, q_frame: Frame, q_segs: torch.Tensor):
+        show = self.loc_config['show']
+        seg_color = generate_color_dic(n_seg=2000)
+        if show:
+            cv2.namedWindow('loc', cv2.WINDOW_NORMAL)
+            q_img_vis = resize_img(q_frame.image, nh=512)
+
         q_seg_scores = torch.softmax(q_segs, dim=-1)  # [N, C]
         if self.do_pre_filtering:
             non_bg_mask = q_frame.filter_keypoints(seg_scores=q_seg_scores.cpu().numpy(),
@@ -158,6 +163,29 @@ class MultiMap3D:
             ret = pred_sub_map.localize_with_ref_frame(query_data=query_data,
                                                        sid=pred_sid_in_sub_scene,
                                                        semantic_matching=semantic_matching)
+
+            if show:
+                reference_frame = pred_sub_map.ref_frames[ret['reference_frame_id']]
+                ref_img = cv2.imread(osp.join(self.config['dataset_path'], pred_scene_name, pred_image_path_prefix,
+                                              reference_frame.name))
+                q_img_seg = vis_seg_point(img=q_frame.image, kpts=q_kpts, segs=q_sid_top1, seg_color=seg_color)
+                matched_points3D_ids = ret['matched_points3D_ids']
+                ref_sids = np.array([pred_sub_map.point3Ds[v].seg_id for v in matched_points3D_ids]) + \
+                           self.scene_name_start_sid[pred_scene_name] + 1  # start from 1 as bg is 0
+                ref_img_seg = vis_seg_point(img=ref_img, kpts=ret['matched_ref_keypoints'], segs=ref_sids,
+                                            seg_color=seg_color)
+                q_matched_kpts = ret['matched_keypoints']
+                ref_matched_kpts = ret['matched_ref_keypoints']
+                img_loc_matching = plot_matches(img1=q_img_seg, img2=ref_img_seg,
+                                                pts1=q_matched_kpts, pts2=ref_matched_kpts,
+                                                inliers=np.array([True for i in range(q_matched_kpts.shape[0])]),
+                                                radius=9, line_thickness=3
+                                                )
+                q_img_seg = resize_img(q_img_seg, nh=512)
+                ref_img_seg = resize_img(ref_img_seg, nh=512)
+                img_loc_matching = resize_img(img_loc_matching, nh=512)
+                q_ref_img_matching = np.hstack([q_img_seg, ref_img_seg, img_loc_matching])
+
             ret['order'] = i
             ret['matched_scene_name'] = pred_scene_name
             if not ret['success']:
@@ -165,9 +193,42 @@ class MultiMap3D:
                 num_inliers = ret['num_inliers']
                 print_text = f'Localization failed with {num_matches}/{q_kpts.shape[0]} matches and {num_inliers} inliers, order {i}'
                 print(print_text)
+
+                if show:
+                    show_text = 'FAIL! order: {:d}/{:d}-{:d}/{:d}'.format(i, len(q_loc_segs),
+                                                                          num_matches,
+                                                                          q_kpts.shape[0])
+                    q_img_inlier = vis_inlier(img=q_img_seg, kpts=ret['matched_keypoints'], inliers=ret['inliers'],
+                                              radius=9 + 2, thickness=2)
+                    q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 30),
+                                               fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
+                                               thickness=2, lineType=cv2.LINE_AA)
+                    q_img_loc = np.hstack([q_ref_img_matching, q_img_inlier])
+                    cv2.imshow('loc', q_img_loc)
+                    key = cv2.waitKey(self.loc_config['show_time'])
+                    if key == ord('q'):
+                        cv2.destroyAllWindows()
+                        exit(0)
                 continue
 
             success = self.verify_and_update(q_frame=q_frame, ret=ret)
+            if show:
+                num_matches = ret['matched_keypoints'].shape[0]
+                num_inliers = ret['num_inliers']
+                show_text = 'order: {:d}/{:d}, k/m/i: {:d}/{:d}/{:d}'.format(
+                    i, len(q_loc_segs), q_kpts.shape[0], num_matches, num_inliers)
+                q_img_inlier = vis_inlier(img=q_img_seg, kpts=ret['matched_keypoints'], inliers=ret['inliers'],
+                                          radius=9 + 2, thickness=2)
+                q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 30),
+                                           fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
+                                           thickness=2, lineType=cv2.LINE_AA)
+                q_img_loc = np.hstack([q_ref_img_matching, q_img_inlier])
+                cv2.imshow('loc', q_img_loc)
+                key = cv2.waitKey(self.loc_config['show_time'])
+                if key == ord('q'):
+                    cv2.destroyAllWindows()
+                    exit(0)
+
             if not success:
                 continue
             else:
@@ -178,6 +239,7 @@ class MultiMap3D:
         if q_frame.tracking_status is None:
             print('Failed to find a proper reference frame.')
             return False
+
         # do refinement
         if self.do_refinement:
             t_start = time.time()

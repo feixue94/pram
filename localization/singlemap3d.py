@@ -142,6 +142,7 @@ class SingleMap3D:
         mxyzs = xyzs[indices0[valid]]
         mpoints3D_ids = points3D_ids[indices0[valid]]
         matched_sids = q_sids[valid]
+        matched_ref_keypoints = ref_data['keypoints'][indices0[valid]]
 
         print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
         cfg = query_data['camera']._asdict()
@@ -151,6 +152,7 @@ class SingleMap3D:
         ret['reference_frame_id'] = ref_frame_id
         ret['matched_points3D_ids'] = mpoints3D_ids
         ret['matched_sids'] = matched_sids
+        ret['matched_ref_keypoints'] = matched_ref_keypoints
 
         return ret
 
