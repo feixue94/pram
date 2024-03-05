@@ -103,8 +103,15 @@ class MultiMap3D:
                 q_segs = q_segs[torch.from_numpy(non_bg_mask).cuda()]
 
         q_loc_segs = self.process_segmentations(segs=q_seg_scores, topk=self.loc_config['seg_k'])
-        q_pred_segs_top1 = q_segs.max(dim=-1)[1]
-        q_pred_segs_top1 = q_pred_segs_top1.cpu().numpy()
+        q_pred_segs_top1 = q_segs.max(dim=-1)[1].cpu().numpy()
+
+        q_scene_name = q_frame.scene_name
+        q_name = q_frame.name
+        gt_sub_map = self.sub_maps[q_frame.scene_name]
+        if gt_sub_map.gt_poses is not None and q_name in gt_sub_map.gt_poses.keys():
+            q_frame.gt_qvec = gt_sub_map.gt_poses[q_name]['qvec']
+            q_frame.gt_tvec = gt_sub_map.gt_poses[q_name]['tvec']
+
 
     def run1(self, q_frame: Frame, q_segs: torch.Tensor):
         t_loc = 0

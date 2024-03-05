@@ -35,6 +35,8 @@ class Frame:
 
         self.matched_keypoints = None
         self.matched_points3D = None
+        self.gt_qvec = None
+        self.gt_tvec = None
 
     def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
         self.keypoints = keypoints
@@ -63,9 +65,10 @@ class Frame:
             print('pre filtering after: ', self.keypoints.shape)
             return None
 
-    def compute_pose_error(self, gt_qvec, gt_tvec):
-        if self.qvec is None or self.tvec is None or gt_qvec is None or gt_tvec is None:
+    def compute_pose_error(self):
+        if self.qvec is None or self.tvec is None or self.gt_qvec is None or self.gt_tvec is None:
             return 100, 100
         else:
-            err_q, err_t = compute_pose_error(pred_qcw=self.qvec, pred_tcw=self.tvec, gt_qcw=gt_qvec, gt_tcw=gt_tvec)
+            err_q, err_t = compute_pose_error(pred_qcw=self.qvec, pred_tcw=self.tvec,
+                                              gt_qcw=self.gt_qvec, gt_tcw=self.gt_tvec)
             return err_q, err_t
