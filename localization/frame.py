@@ -42,6 +42,9 @@ class Frame:
         self.gt_tvec = None
         self.tracking_status = None
         self.refinement_reference_frame_ids = None
+        self.image_rec = None
+        self.image_matching = None
+        self.image_inlier = None
 
         self.time_feat = 0
         self.time_rec = 0

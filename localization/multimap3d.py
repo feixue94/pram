@@ -10,7 +10,6 @@ import os
 import os.path as osp
 import time
 import cv2
-import pycolmap
 import torch
 import yaml
 from copy import deepcopy
@@ -22,7 +21,6 @@ from nets.gm import GM
 from tools.common import resize_img
 from localization.singlemap3d import SingleMap3D
 from localization.frame import Frame
-from localization.refframe import RefFrame
 
 
 class MultiMap3D:
@@ -184,9 +182,9 @@ class MultiMap3D:
                                                 inliers=np.array([True for i in range(q_matched_kpts.shape[0])]),
                                                 radius=9, line_thickness=3
                                                 )
-                q_img_seg = resize_img(q_img_seg, nh=512)
-                ref_img_seg = resize_img(ref_img_seg, nh=512)
-                img_loc_matching = resize_img(img_loc_matching, nh=512)
+
+                q_frame.image_matching = img_loc_matching
+
                 q_ref_img_matching = np.hstack([q_img_seg, ref_img_seg, img_loc_matching])
 
             ret['order'] = i
@@ -216,6 +214,7 @@ class MultiMap3D:
 
             success = self.verify_and_update(q_frame=q_frame, ret=ret)
             if show:
+                q_err, t_err = q_frame.compute_pose_error()
                 num_matches = ret['matched_keypoints'].shape[0]
                 num_inliers = ret['num_inliers']
                 show_text = 'order: {:d}/{:d}, k/m/i: {:d}/{:d}/{:d}'.format(
@@ -225,7 +224,14 @@ class MultiMap3D:
                 q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 30),
                                            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
                                            thickness=2, lineType=cv2.LINE_AA)
+                show_text = 'r_err:{:.2f}, t_err:{:.2f}'.format(q_err, t_err)
+                img_loc = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 80),
+                                      fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
+                                      thickness=2, lineType=cv2.LINE_AA)
+                q_frame.image_inlier = q_img_inlier
+
                 q_img_loc = np.hstack([q_ref_img_matching, q_img_inlier])
+
                 cv2.imshow('loc', q_img_loc)
                 key = cv2.waitKey(self.loc_config['show_time'])
                 if key == ord('q'):
@@ -241,7 +247,9 @@ class MultiMap3D:
             return False
 
         # do refinement
-        if self.do_refinement:
+        if not self.do_refinement:
+            return True
+        else:
             t_start = time.time()
             pred_sub_map = self.sub_maps[q_frame.matched_scene_name]
             ret = pred_sub_map.refine_pose(q_frame=q_frame)
@@ -260,8 +268,6 @@ class MultiMap3D:
             print_text = 'Localization of {:s} success with inliers {:d}/{:d} with ref_name: {:s}, order: {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
                 q_full_name, ret['num_inliers'], len(ret['inliers']), ref_full_name, i, q_err, t_err)
             print(print_text)
-            return True
-        else:
             return True
 
     def verify_and_update(self, q_frame: Frame, ret: dict):

@@ -5,6 +5,7 @@
 @Author fx221@cam.ac.uk
 @Date   05/03/2024 16:50
 =================================================='''
+import cv2
 import numpy as np
 import pypangolin as pangolin
 from OpenGL.GL import *
@@ -85,6 +86,9 @@ class Viewer:
         self.time_rec = np.NAN
         self.time_loc = np.NAN
         self.time_ref = np.NAN
+
+        # image
+        self.image_rec = None
 
     def draw_3d_points_white(self):
         if self.point_clouds is None:
@@ -346,8 +350,8 @@ class Viewer:
         self.point_clouds = point_clouds
 
     def update(self, curr_frame: Frame):
-        # lock = threading.Lock()
-        # lock.acquire()
+        lock = threading.Lock()
+        lock.acquire()
 
         # self.frame = curr_frame
         self.current_vrf_id = curr_frame.reference_frame_id
@@ -388,7 +392,16 @@ class Viewer:
         self.time_loc = curr_frame.time_loc
         self.time_ref = curr_frame.time_ref
 
-        # lock.release()
+        # update image
+        image_rec_inlier = np.hstack([curr_frame.image_rec, curr_frame.image_inlier])
+        image_rec_inlier = resize_image_with_padding(image=image_rec_inlier, nw=self.img_width * 2, nh=self.img_height)
+        image_matching = resize_image_with_padding(image=curr_frame.image_matching, nw=self.img_width * 2,
+                                                   nh=self.img_height)
+        image_rec_matching_inliers = resize_image_with_padding(image=np.vstack([image_rec_inlier, image_matching]),
+                                                               nw=self.img_width * 2, nh=self.img_height * 2)
+
+        self.image_rec = cv2.cvtColor(image_rec_matching_inliers, cv2.COLOR_BGR2RGB)
+        lock.release()
 
     def run(self):
         pangolin.CreateWindowAndBind("Map reviewer", 640, 480)
@@ -505,12 +518,12 @@ class Viewer:
             if self.gt_Tcw is not None:  # draw gt pose with color (0, 0, 1.0)
                 self.draw_current_frame(Tcw=self.gt_Tcw, color=(0., 0., 1.0))
 
-            # d_img_rec.Activate()
-            # glColor4f(1, 1, 1, 1)
+            d_img_rec.Activate()
+            glColor4f(1, 1, 1, 1)
 
-            # if self.image_rec is not None:
-            #     d_img_rec_texture.Upload(self.image_rec, GL_RGB, GL_UNSIGNED_BYTE)
-            #     d_img_rec_texture.RenderToViewportFlipY()
+            if self.image_rec is not None:
+                d_img_rec_texture.Upload(self.image_rec, GL_RGB, GL_UNSIGNED_BYTE)
+                d_img_rec_texture.RenderToViewportFlipY()
 
             time_total = 0
             if self.time_feat != np.NAN:
