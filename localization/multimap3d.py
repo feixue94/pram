@@ -87,7 +87,7 @@ class MultiMap3D:
                 self.scene_name_start_sid[dataset_name + '/' + scene] = n_class
                 n_class = n_class + n_scene_class
 
-                break
+                # break
         print('Load {} sub_maps from {} datasets'.format(len(self.sub_maps), len(datasets)))
 
     def run(self, q_frame: Frame, q_segs: torch.Tensor):
@@ -95,7 +95,6 @@ class MultiMap3D:
         seg_color = generate_color_dic(n_seg=2000)
         if show:
             cv2.namedWindow('loc', cv2.WINDOW_NORMAL)
-            q_img_vis = resize_img(q_frame.image, nh=512)
 
         q_seg_scores = torch.softmax(q_segs, dim=-1)  # [N, C]
         if self.do_pre_filtering:
@@ -225,9 +224,9 @@ class MultiMap3D:
                                            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
                                            thickness=2, lineType=cv2.LINE_AA)
                 show_text = 'r_err:{:.2f}, t_err:{:.2f}'.format(q_err, t_err)
-                img_loc = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 80),
-                                      fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
-                                      thickness=2, lineType=cv2.LINE_AA)
+                q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 80),
+                                           fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
+                                           thickness=2, lineType=cv2.LINE_AA)
                 q_frame.image_inlier = q_img_inlier
 
                 q_img_loc = np.hstack([q_ref_img_matching, q_img_inlier])

@@ -80,7 +80,8 @@ class SingleMap3D:
         self.build_covisibility_graph(frame_ids=vrf_ids, n_frame=config['localization'][
             'covisibility_frame'])  # build covisible frames for vrf frames only
 
-        logging.info(f'Construct {len(self.reference_frames.keys())} ref frames and {len(self.point3Ds.keys())} 3d points')
+        logging.info(
+            f'Construct {len(self.reference_frames.keys())} ref frames and {len(self.point3Ds.keys())} 3d points')
 
         self.gt_poses = {}
         if config['gt_pose_path'] is not None:
@@ -155,6 +156,10 @@ class SingleMap3D:
         ret['matched_points3D_ids'] = mpoints3D_ids
         ret['matched_sids'] = matched_sids
         ret['matched_ref_keypoints'] = matched_ref_keypoints
+
+        if not ret['success']:
+            ret['num_inliers'] = 0
+            ret['inliers'] = np.zeros(shape=(mkpts.shape[0],), dtype=bool)
 
         return ret
 
