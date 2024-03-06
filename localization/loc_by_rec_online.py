@@ -16,7 +16,7 @@ import os.path as osp
 import threading
 from recognition.vis_seg import vis_seg_point, generate_color_dic
 from tools.common import resize_img
-from visualization.visualizer import Visualizer
+from localization.viewer import Viewer
 from localization.utils import read_query_info
 from localization.camera import Camera
 
@@ -41,6 +41,13 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         viewer_config = {'scene': 'outdoor',
                          'image_size_indoor': 0.4,
                          'image_line_width_indoor': 2, }
+
+    # start viewer
+    mViewer = Viewer(locMap=locMap, seg_color=seg_color, config=viewer_config)
+    mViewer.refinement = locMap.do_refinement
+    # locMap.viewer = mViewer
+    viewer_thread = threading.Thread(target=mViewer.run)
+    viewer_thread.start()
 
     # start tracker
     dataset_name = config['dataset'][0]
@@ -150,4 +157,9 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
 
                 success = locMap.run(q_frame=curr_frame, q_segs=segmentations)
                 if success:
-                    pass
+                    mViewer.update(curr_frame=curr_frame)
+
+                locMap.do_refinement = mViewer.refinement
+
+    mViewer.terminate()
+    viewer_thread.join()

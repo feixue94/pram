@@ -76,11 +76,11 @@ class SingleMap3D:
             vrf_ids.extend([seg_vrf[sid][v]['image_id'] for v in seg_vrf[sid].keys()])
 
         vrf_ids = np.unique(vrf_ids)
-        vrf_ids = [v for v in vrf_ids if v in self.ref_frames.keys()]
+        vrf_ids = [v for v in vrf_ids if v in self.reference_frames.keys()]
         self.build_covisibility_graph(frame_ids=vrf_ids, n_frame=config['localization'][
             'covisibility_frame'])  # build covisible frames for vrf frames only
 
-        logging.info(f'Construct {len(self.ref_frames.keys())} ref frames and {len(self.point3Ds.keys())} 3d points')
+        logging.info(f'Construct {len(self.reference_frames.keys())} ref frames and {len(self.point3Ds.keys())} 3d points')
 
         self.gt_poses = {}
         if config['gt_pose_path'] is not None:
@@ -102,18 +102,18 @@ class SingleMap3D:
                                         frame_ids=p3ds[id].image_ids)
 
     def initialize_ref_frames(self, cameras, images):
-        self.ref_frames = {}
+        self.reference_frames = {}
         for id in images.keys():
             im = images[id]
             cam = cameras[im.camera_id]
-            self.ref_frames[id] = RefFrame(camera=cam, id=id, qvec=im.qvec, tvec=im.tvec,
-                                           point3D_ids=im.point3D_ids,
-                                           keypoints=im.xys,
-                                           name=im.name)
+            self.reference_frames[id] = RefFrame(camera=cam, id=id, qvec=im.qvec, tvec=im.tvec,
+                                                 point3D_ids=im.point3D_ids,
+                                                 keypoints=im.xys,
+                                                 name=im.name)
 
     def localize_with_ref_frame(self, query_data, sid, semantic_matching=False):
         ref_frame_id = self.seg_ref_frame_ids[sid][0]
-        ref_frame = self.ref_frames[ref_frame_id]
+        ref_frame = self.reference_frames[ref_frame_id]
         if semantic_matching and sid > 0:
             ref_data = ref_frame.get_keypoints_by_sid(sid=sid, point3Ds=self.point3Ds)
         else:
@@ -191,7 +191,7 @@ class SingleMap3D:
 
     def build_covisibility_graph(self, frame_ids: list = None, n_frame: int = 20):
         def find_covisible_frames(frame_id):
-            observed = self.ref_frames[frame_id].point3D_ids
+            observed = self.reference_frames[frame_id].point3D_ids
             covis = defaultdict(int)
             for pid in observed:
                 if pid == -1:
@@ -215,7 +215,7 @@ class SingleMap3D:
             return sel_covis_ids
 
         if frame_ids is None:
-            frame_ids = list(self.ref_frames.keys())
+            frame_ids = list(self.referece_frames.keys())
 
         self.covisible_graph = defaultdict()
         for frame_id in frame_ids:
@@ -248,7 +248,7 @@ class SingleMap3D:
         matched_kpts = []
         matched_points3D_ids = []
         for idx, frame_id in enumerate(db_ids):
-            ref_data = self.ref_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
+            ref_data = self.reference_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
             match_out = self.match(query_data={
                 'keypoints': q_frame.keypoints[:, :2],
                 'scores': q_frame.keypoints[:, 2],
@@ -282,7 +282,7 @@ class SingleMap3D:
         ret['matched_keypoints'] = matched_kpts
         ret['matched_xyzs'] = matched_xyzs
         ret['matched_points3D_ids'] = matched_points3D_ids
-        ret['reference_db_ids'] = db_ids
+        ret['refinement_reference_frame_ids'] = db_ids
 
         return ret
 

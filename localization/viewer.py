@@ -96,10 +96,10 @@ class Viewer:
         pangolin.glDrawPoints(self.point_clouds)
 
     def draw_seg_3d_points(self):
-        if self.seg_xyzs is None:
+        if self.seg_point_clouds is None:
             return
-        for sid in self.seg_xyzs.keys():
-            xyzs = self.seg_xyzs[sid]
+        for sid in self.seg_point_clouds.keys():
+            xyzs = self.seg_point_clouds[sid]
             point_size = self.point_size * 0.5
             bgr = self.seg_colors(sid + self.start_seg_id + 1)
             glColor3f(bgr[2] / 255, bgr[1] / 255, bgr[0] / 255)
@@ -111,7 +111,7 @@ class Viewer:
             return
         ref_points3D_ids = []
         for fid in self.reference_frame_ids:
-            pids = self.subMap.reference_frames[fid].points3D_ids()
+            pids = self.subMap.reference_frames[fid].point3D_ids
             ref_points3D_ids.extend(list(pids))
         ref_points3D_ids = np.unique(ref_points3D_ids).tolist()
 
@@ -348,7 +348,12 @@ class Viewer:
 
         self.frame = curr_frame
         self.current_vrf_id = curr_frame.reference_frame_id
-        self.subMap = self.locMap[curr_frame.matched_scene_name]
+        self.reference_frame_ids = curr_frame.refinement_reference_frame_ids
+        self.subMap = self.locMap.sub_maps[curr_frame.matched_scene_name]
+
+        print('vrf_id: ', self.current_vrf_id)
+        print(self.subMap)
+
         if self.scene is None or self.scene != curr_frame.matched_scene_name:
             self.scene = curr_frame.matched_scene_name
             self.update_point_clouds()
@@ -497,8 +502,8 @@ class Viewer:
             if self.gt_Tcw is not None:  # draw gt pose with color (0, 0, 1.0)
                 self.draw_current_frame(Tcw=self.gt_Tcw, color=(0., 0., 1.0))
 
-            d_img_rec.Activate()
-            glColor4f(1, 1, 1, 1)
+            # d_img_rec.Activate()
+            # glColor4f(1, 1, 1, 1)
 
             # if self.image_rec is not None:
             #     d_img_rec_texture.Upload(self.image_rec, GL_RGB, GL_UNSIGNED_BYTE)

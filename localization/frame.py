@@ -41,6 +41,7 @@ class Frame:
         self.gt_qvec = None
         self.gt_tvec = None
         self.tracking_status = None
+        self.refinement_reference_frame_ids = None
 
         self.time_feat = 0
         self.time_rec = 0

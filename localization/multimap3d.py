@@ -168,7 +168,7 @@ class MultiMap3D:
             q_frame.time_loc = q_frame.time_loc + time.time() - t_start  # accumulate tracking time
 
             if show:
-                reference_frame = pred_sub_map.ref_frames[ret['reference_frame_id']]
+                reference_frame = pred_sub_map.reference_frames[ret['reference_frame_id']]
                 ref_img = cv2.imread(osp.join(self.config['dataset_path'], pred_scene_name, pred_image_path_prefix,
                                               reference_frame.name))
                 q_img_seg = vis_seg_point(img=q_frame.image, kpts=q_kpts, segs=q_sid_top1, seg_color=seg_color)
@@ -252,9 +252,11 @@ class MultiMap3D:
             q_frame.matched_keypoints = ret['matched_keypoints']
             q_frame.matched_points3D_ids = ret['matched_points3D_ids']
             q_frame.matched_inliers = ret['inliers']
+            q_frame.refinement_reference_frame_ids = ret['refinement_reference_frame_ids']
 
             q_err, t_err = q_frame.compute_pose_error()
-            ref_full_name = q_frame.matched_scene_name + '/' + pred_sub_map.ref_frames[q_frame.reference_frame_id].name
+            ref_full_name = q_frame.matched_scene_name + '/' + pred_sub_map.reference_frames[
+                q_frame.reference_frame_id].name
             print_text = 'Localization of {:s} success with inliers {:d}/{:d} with ref_name: {:s}, order: {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
                 q_full_name, ret['num_inliers'], len(ret['inliers']), ref_full_name, i, q_err, t_err)
             print(print_text)
