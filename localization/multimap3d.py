@@ -184,7 +184,9 @@ class MultiMap3D:
 
                 q_frame.image_matching = img_loc_matching
 
-                q_ref_img_matching = np.hstack([q_img_seg, ref_img_seg, img_loc_matching])
+                q_ref_img_matching = np.hstack([resize_img(q_img_seg, nh=512),
+                                                resize_img(ref_img_seg, nh=512),
+                                                resize_img(img_loc_matching, nh=512)])
 
             ret['order'] = i
             ret['matched_scene_name'] = pred_scene_name
@@ -203,7 +205,7 @@ class MultiMap3D:
                     q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 30),
                                                fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
                                                thickness=2, lineType=cv2.LINE_AA)
-                    q_img_loc = np.hstack([q_ref_img_matching, q_img_inlier])
+                    q_img_loc = np.hstack([resize_img(q_ref_img_matching, nh=512), resize_img(q_img_inlier, nh=512)])
                     cv2.imshow('loc', q_img_loc)
                     key = cv2.waitKey(self.loc_config['show_time'])
                     if key == ord('q'):
@@ -229,7 +231,7 @@ class MultiMap3D:
                                            thickness=2, lineType=cv2.LINE_AA)
                 q_frame.image_inlier = q_img_inlier
 
-                q_img_loc = np.hstack([q_ref_img_matching, q_img_inlier])
+                q_img_loc = np.hstack([resize_img(q_ref_img_matching, nh=512), resize_img(q_img_inlier, nh=512)])
 
                 cv2.imshow('loc', q_img_loc)
                 key = cv2.waitKey(self.loc_config['show_time'])

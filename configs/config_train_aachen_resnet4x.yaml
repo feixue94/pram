@@ -67,7 +67,7 @@ cluster_method: 'birch'
 
 weight_path_: null
 weight_path_1: '20230719_221442_segnet_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adamw_cew_md_A_birch/segnet.899.pth'
-weight_path: '20240211_142623_segnetvit_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_A_birch/segnetvit.780.pth'
+weight_path: '20240211_142623_segnetvit_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_A_birch/segnetvit.799.pth'
 resume_path: null
 
 eval: true
@@ -102,6 +102,7 @@ localization:
   semantic_matching: true
   refinement_method: 'matching'
   refinement_method_: 'projection'
+  pre_filtering_th: 0.95
   do_refinement: false
   covisibility_frame: 50
   refinement_radius: 30
