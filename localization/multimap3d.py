@@ -87,7 +87,7 @@ class MultiMap3D:
                 self.scene_name_start_sid[dataset_name + '/' + scene] = n_class
                 n_class = n_class + n_scene_class
 
-                break
+                # break
         print('Load {} sub_maps from {} datasets'.format(len(self.sub_maps), len(datasets)))
 
     def run(self, q_frame: Frame, q_segs: torch.Tensor):
@@ -241,6 +241,7 @@ class MultiMap3D:
                 continue
             else:
                 break
+
         if q_frame.tracking_status is None:
             print('Failed to find a proper reference frame.')
             return False
@@ -267,6 +268,18 @@ class MultiMap3D:
             print_text = 'Localization of {:s} success with inliers {:d}/{:d} with ref_name: {:s}, order: {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
                 q_full_name, ret['num_inliers'], len(ret['inliers']), ref_full_name, i, q_err, t_err)
             print(print_text)
+
+            if show:
+                q_err, t_err = q_frame.compute_pose_error()
+                num_matches = ret['matched_keypoints'].shape[0]
+                num_inliers = ret['num_inliers']
+                show_text = 'Ref:{:d}/{:d},r_err:{:.2f}/t_err:{:.2f}'.format(num_matches, num_inliers, q_err,
+                                                                             t_err)
+                q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 130),
+                                           fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
+                                           thickness=2, lineType=cv2.LINE_AA)
+                q_frame.image_inlier = q_img_inlier
+
             return True
 
     def verify_and_update(self, q_frame: Frame, ret: dict):

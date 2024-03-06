@@ -256,7 +256,7 @@ class SingleMap3D:
             init_kpts = q_frame.matched_keypoints
             init_points3D_ids = q_frame.matched_points3D_ids
             init_xyzs = np.array([self.point3Ds[v].xyz for v in init_points3D_ids]).reshape(-1, 3)
-            db_ids.remove(ref_frame_id)
+            list(db_ids).remove(ref_frame_id)
         else:
             init_kpts = None
             init_xyzs = None
