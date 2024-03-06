@@ -96,8 +96,10 @@ class SingleMap3D:
         for id in p3ds.keys():
             if id not in p3d_seg.keys():
                 continue
-            self.point3Ds[id] = Point3D(id=id, xyz=p3ds[id].xyz, error=p3ds[id].error, refframe_id=-1,
-                                        descriptor=p3d_descs[id], seg_id=p3d_seg[id], frame_ids=p3ds[id].image_ids)
+            self.point3Ds[id] = Point3D(id=id, xyz=p3ds[id].xyz, error=p3ds[id].error,
+                                        refframe_id=-1, rgb=p3ds[id].rgb,
+                                        descriptor=p3d_descs[id], seg_id=p3d_seg[id],
+                                        frame_ids=p3ds[id].image_ids)
 
     def initialize_ref_frames(self, cameras, images):
         self.ref_frames = {}
