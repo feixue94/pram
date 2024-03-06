@@ -101,7 +101,7 @@ class Viewer:
         for sid in self.seg_point_clouds.keys():
             xyzs = self.seg_point_clouds[sid]
             point_size = self.point_size * 0.5
-            bgr = self.seg_colors(sid + self.start_seg_id + 1)
+            bgr = self.seg_colors[sid + self.start_seg_id + 1]
             glColor3f(bgr[2] / 255, bgr[1] / 255, bgr[0] / 255)
             glPointSize(point_size)
             pangolin.glDrawPoints(xyzs)
@@ -109,22 +109,25 @@ class Viewer:
     def draw_ref_3d_points(self, use_seg_color=False):
         if self.reference_frame_ids is None:
             return
-        ref_points3D_ids = []
+
+        ref_point3D_ids = []
         for fid in self.reference_frame_ids:
             pids = self.subMap.reference_frames[fid].point3D_ids
-            ref_points3D_ids.extend(list(pids))
-        ref_points3D_ids = np.unique(ref_points3D_ids).tolist()
+            ref_point3D_ids.extend(list(pids))
+        ref_point3D_ids = np.unique(ref_point3D_ids).tolist()
 
         point_size = self.point_size * 5
         glPointSize(point_size)
         glBegin(GL_POINTS)
 
-        for pid in ref_points3D_ids:
-            xyz = self.subMap.points3Ds[pid].xyz
-            rgb = self.subMap.points3Ds[pid].rgb
-            sid = self.subMap.points3Ds[pid].sid
+        for pid in ref_point3D_ids:
+            if pid not in self.subMap.point3Ds.keys():
+                continue
+            xyz = self.subMap.point3Ds[pid].xyz
+            rgb = self.subMap.point3Ds[pid].rgb
+            sid = self.subMap.point3Ds[pid].seg_id
             if use_seg_color:
-                bgr = self.seg_colors(sid + self.start_seg_id + 1)
+                bgr = self.seg_colors[sid + self.start_seg_id + 1]
                 glColor3f(bgr[2] / 255, bgr[1] / 255, bgr[0] / 255)
             else:
                 glColor3f(rgb[0] / 255, rgb[1] / 255, rgb[2] / 255)
@@ -140,10 +143,10 @@ class Viewer:
         image_line_width = self.image_line_width * 1.0
         h = w * 0.75
         z = w * 0.6
-        for sid in self.subMap.seg_vrfs.keys():
-            frame_id = self.subMap.seg_vrfs[sid]
+        for sid in self.subMap.seg_ref_frame_ids.keys():
+            frame_id = self.subMap.seg_ref_frame_ids[sid][0]
             qvec = self.subMap.reference_frames[frame_id].qvec
-            tcw = self.subMap.reference_frames[frame_id].qvec
+            tcw = self.subMap.reference_frames[frame_id].tvec
 
             Rcw = qvec2rotmat(qvec)
 
@@ -329,9 +332,9 @@ class Viewer:
         # for fast drawing
         seg_point_clouds = {}
         point_clouds = []
-        for pid in self.subMap.points3Ds.keys():
-            sid = self.subMap.points3Ds[pid].sid
-            xyz = self.subMap.points3Ds[pid].xyz
+        for pid in self.subMap.point3Ds.keys():
+            sid = self.subMap.point3Ds[pid].seg_id
+            xyz = self.subMap.point3Ds[pid].xyz
             if sid in seg_point_clouds.keys():
                 seg_point_clouds[sid].append(xyz.reshape(3, 1))
             else:
@@ -343,16 +346,16 @@ class Viewer:
         self.point_clouds = point_clouds
 
     def update(self, curr_frame: Frame):
-        lock = threading.Lock()
-        lock.acquire()
+        # lock = threading.Lock()
+        # lock.acquire()
 
-        self.frame = curr_frame
+        # self.frame = curr_frame
         self.current_vrf_id = curr_frame.reference_frame_id
         self.reference_frame_ids = curr_frame.refinement_reference_frame_ids
+        if self.reference_frame_ids is None:
+            self.reference_frame_ids = [self.current_vrf_id]
         self.subMap = self.locMap.sub_maps[curr_frame.matched_scene_name]
-
-        print('vrf_id: ', self.current_vrf_id)
-        print(self.subMap)
+        self.start_seg_id = self.locMap.scene_name_start_sid[curr_frame.matched_scene_name]
 
         if self.scene is None or self.scene != curr_frame.matched_scene_name:
             self.scene = curr_frame.matched_scene_name
@@ -385,7 +388,7 @@ class Viewer:
         self.time_loc = curr_frame.time_loc
         self.time_ref = curr_frame.time_ref
 
-        lock.release()
+        # lock.release()
 
     def run(self):
         pangolin.CreateWindowAndBind("Map reviewer", 640, 480)

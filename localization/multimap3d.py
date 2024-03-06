@@ -261,6 +261,8 @@ class MultiMap3D:
                 q_full_name, ret['num_inliers'], len(ret['inliers']), ref_full_name, i, q_err, t_err)
             print(print_text)
             return True
+        else:
+            return True
 
     def verify_and_update(self, q_frame: Frame, ret: dict):
         num_matches = ret['matched_keypoints'].shape[0]

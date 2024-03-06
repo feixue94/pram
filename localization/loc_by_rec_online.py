@@ -156,9 +156,9 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                 segmentations = pred['prediction'][0]  # .cpu().numpy()  # [N, C]
 
                 success = locMap.run(q_frame=curr_frame, q_segs=segmentations)
-                if success:
-                    mViewer.update(curr_frame=curr_frame)
+                mViewer.update(curr_frame=curr_frame)
 
+                time.sleep(50 / 1000)
                 locMap.do_refinement = mViewer.refinement
 
     mViewer.terminate()
