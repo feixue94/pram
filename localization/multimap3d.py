@@ -87,7 +87,7 @@ class MultiMap3D:
                 self.scene_name_start_sid[dataset_name + '/' + scene] = n_class
                 n_class = n_class + n_scene_class
 
-                # break
+                break
         print('Load {} sub_maps from {} datasets'.format(len(self.sub_maps), len(datasets)))
 
     def run(self, q_frame: Frame, q_segs: torch.Tensor):

@@ -102,8 +102,8 @@ localization:
   max_vrf: 1
   with_original: true
   with_extra: false
-  with_compress: false
-  semantic_matching: True
+  with_compress: true
+  semantic_matching: true
   do_refinement: false
   refinement_method: 'matching'
   refinement_method_: 'projection'

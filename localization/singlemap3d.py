@@ -69,15 +69,28 @@ class SingleMap3D:
         # construct 3D map
         self.initialize_point3Ds(p3ds=p3ds, p3d_descs=p3d_descs, p3d_seg=p3d_seg)
         self.initialize_ref_frames(cameras=cameras, images=images)
-        vrf_ids = []
+        all_vrf_frame_ids = []
         self.seg_ref_frame_ids = {}
         for sid in seg_vrf.keys():
-            self.seg_ref_frame_ids[sid] = [seg_vrf[sid][v]['image_id'] for v in seg_vrf[sid].keys()]
-            vrf_ids.extend([seg_vrf[sid][v]['image_id'] for v in seg_vrf[sid].keys()])
+            self.seg_ref_frame_ids[sid] = []
+            for vi in seg_vrf[sid].keys():
+                vrf_frame_id = seg_vrf[sid][vi]['image_id']
+                self.seg_ref_frame_ids[sid].append(vrf_frame_id)
+                if with_compress and vrf_frame_id in self.reference_frames.keys():
+                    self.reference_frames[vrf_frame_id].point3D_ids = seg_vrf[sid][vi]['original_points3d']
 
-        vrf_ids = np.unique(vrf_ids)
-        vrf_ids = [v for v in vrf_ids if v in self.reference_frames.keys()]
-        self.build_covisibility_graph(frame_ids=vrf_ids, n_frame=config['localization'][
+            all_vrf_frame_ids.extend(self.seg_ref_frame_ids[sid])
+
+        if with_compress:
+            all_ref_ids = list(self.reference_frames.keys())
+            for fid in all_ref_ids:
+                valid = self.reference_frames[fid].associate_keypoints_with_point3Ds(point3Ds=self.point3Ds)
+                if not valid:
+                    del self.reference_frames[fid]
+
+        all_vrf_frame_ids = np.unique(all_vrf_frame_ids)
+        all_vrf_frame_ids = [v for v in all_vrf_frame_ids if v in self.reference_frames.keys()]
+        self.build_covisibility_graph(frame_ids=all_vrf_frame_ids, n_frame=config['localization'][
             'covisibility_frame'])  # build covisible frames for vrf frames only
 
         logging.info(
@@ -107,10 +120,10 @@ class SingleMap3D:
         for id in images.keys():
             im = images[id]
             cam = cameras[im.camera_id]
+            # print('image: ', id, im.xys.shape, im.point3D_ids.shape)
             self.reference_frames[id] = RefFrame(camera=cam, id=id, qvec=im.qvec, tvec=im.tvec,
                                                  point3D_ids=im.point3D_ids,
-                                                 keypoints=im.xys,
-                                                 name=im.name)
+                                                 keypoints=im.xys, name=im.name)
 
     def localize_with_ref_frame(self, query_data, sid, semantic_matching=False):
         ref_frame_id = self.seg_ref_frame_ids[sid][0]
