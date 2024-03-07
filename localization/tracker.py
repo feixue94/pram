@@ -8,13 +8,12 @@
 import numpy as np
 import torch
 import pycolmap
-from kornia.geometry import keypoints
-
 from localization.frame import Frame
+from localization.simglelocmap import SingleLocMap
 
 
 class Tracker:
-    def __init__(self, locMap, matcher, config):
+    def __init__(self, locMap: SingleLocMap, matcher, config):
         self.locMap = locMap
         self.matcher = matcher
         self.config = config
