@@ -10,10 +10,13 @@ import torch
 import pycolmap
 from localization.frame import Frame
 from localization.simglelocmap import SingleLocMap
+from localization.base_model import dynamic_load
+import localization.matchers as matchers
+from localization.match_features import confs as matcher_confs
 
 
 class Tracker:
-    def __init__(self, locMap: SingleLocMap, matcher, config):
+    def __init__(self, locMap, matcher, config):
         self.locMap = locMap
         self.matcher = matcher
         self.config = config
@@ -22,6 +25,10 @@ class Tracker:
 
         self.curr_frame = None
         self.last_frame = None
+
+        device = 'cuda' if torch.cuda.is_available() else 'cpu'
+        Model = dynamic_load(matchers, 'NNM')
+        self.nn_matcher = Model(matcher_confs['NNM']['model']).eval().to(device)
 
     def run(self, frame: Frame):
         print('Start tracking...')
@@ -80,6 +87,47 @@ class Tracker:
 
         if do_refinement:
             pass
+
+    def track_last_frame(self, curr_frame: Frame, last_frame: Frame):
+        curr_kpts = curr_frame.keypoints
+        curr_descs = curr_frame.descriptors
+        last_mask = last_frame.point3D_ids >= 0
+
+        last_kpts = last_frame.keypoints[last_mask]
+        last_descs = last_frame.descriptors[last_mask]
+        last_xyzs = last_frame.xyzs[last_mask]
+        last_point3D_ids = last_frame.point3D_ids[last_mask]
+
+        indices = self.nn_matcher({
+            'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
+            'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
+        })[0].cpu().numpy()
+
+        valid = indices >= 0
+
+        matched_kpts = curr_kpts[valid]
+        matched_xyzs = last_xyzs[indices[valid]]
+        matched_point3D_ids = last_point3D_ids[valid]
+
+        ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs,
+                                                curr_frame.camera._asdict(),
+                                                max_error_px=self.config['localization']['threshold'])
+
+        success = ret['success']
+        inliers = np.array(ret['inliers'])
+        if success:
+            num_inliers = ret['num_inliers']
+            if num_inliers > self.config['localization']['tracking_inliers']:
+                self.lost = False
+
+                curr_frame.matched_keypoints = matched_kpts[inliers]
+                curr_frame.matched_xyzs = matched_xyzs[inliers]
+                curr_frame.reference_frame_id = last_frame.reference_frame_id
+                curr_frame.matched_points3D_ids = matched_point3D_ids[inliers]
+                return True
+
+        self.lost = True
+        return False
 
     def update_current_frame(self, mids, mp3ds, qvec, tvec, reference_frame):
         self.curr_frame.points3d[mids] = mp3ds

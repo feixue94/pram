@@ -29,7 +29,8 @@ class Frame:
         self.keypoints = None  # [N, 3]
         self.descriptors = None  # [N, D]
         self.seg_ids = None  # [N, 1]
-        self.points3d = None
+        self.point3D_ids = None  # [N, 1]
+        self.xyzs = None
         self.segmentations = None
 
         self.matched_scene_name = None
@@ -50,6 +51,20 @@ class Frame:
         self.time_rec = 0
         self.time_loc = 0
         self.time_ref = 0
+
+    def update_point3ds(self):
+        pt = torch.from_numpy(self.keypoints[:, :2]).unsqueeze(-1)  # [M 2 1]
+        mpt = torch.from_numpy(self.matched_keypoints[:, :2].transpose()).unsqueeze(0)  # [1 2 N]
+        dist = torch.sqrt(torch.sum((pt - mpt) ** 2, dim=1))
+        values, ids = torch.topk(dist, dim=1, k=1, largest=False)
+        values = values.numpy()
+        ids = ids[:, 0].numpy()
+        mask = (values < 1)  # 1 pixel error
+        self.point3D_ids = np.zeros(shape=(self.keypoints.shape[0],), dtype=int) - 1
+        self.point3D_ids[mask] = self.matched_points3D_ids[ids[mask]]
+
+        self.xyzs = np.zeros(shape=(self.keypoints.shape[0], 3), dtype=float)
+        self.xyzs[mask] = self.matched_xyzs[ids[mask]]
 
     def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
         self.keypoints = keypoints
