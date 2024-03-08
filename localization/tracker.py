@@ -5,14 +5,17 @@
 @Author fx221@cam.ac.uk
 @Date   29/02/2024 16:58
 =================================================='''
+import time
+import cv2
 import numpy as np
 import torch
 import pycolmap
 from localization.frame import Frame
-from localization.simglelocmap import SingleLocMap
 from localization.base_model import dynamic_load
 import localization.matchers as matchers
 from localization.match_features import confs as matcher_confs
+from recognition.vis_seg import vis_seg_point, generate_color_dic, vis_inlier, plot_matches
+from tools.common import resize_img
 
 
 class Tracker:
@@ -20,6 +23,7 @@ class Tracker:
         self.locMap = locMap
         self.matcher = matcher
         self.config = config
+        self.loc_config = config['localization']
 
         self.lost = True
 
@@ -27,134 +31,146 @@ class Tracker:
         self.last_frame = None
 
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
-        Model = dynamic_load(matchers, 'NNM')
+        Model = dynamic_load(matchers, 'nearest_neighbor')
         self.nn_matcher = Model(matcher_confs['NNM']['model']).eval().to(device)
+        print(self.nn_matcher)
 
     def run(self, frame: Frame):
         print('Start tracking...')
-        self.last_frame = self.curr_frame
+        show = self.config['localization']['show']
         self.curr_frame = frame
+        print('last_frame: ', self.last_frame)
+        print('curr_frame: ', self.curr_frame)
+        ref_img = self.last_frame.image
+        curr_img = self.curr_frame.image
+        q_kpts = frame.keypoints
 
-        reference_frame = self.last_frame.reference_frame
+        t_start = time.time()
+        ret = self.track_last_frame(curr_frame=self.curr_frame, last_frame=self.last_frame)
+        self.curr_frame.time_loc = self.curr_frame.time_loc + time.time() - t_start
 
-        mids1, last_mids = self.match_frame(frame=self.curr_frame, reference_frame=self.last_frame)
+        if show:
+            curr_matched_kpts = ret['matched_keypoints']
+            ref_matched_kpts = ret['matched_ref_keypoints']
+            img_loc_matching = plot_matches(img1=curr_img, img2=ref_img,
+                                            pts1=curr_matched_kpts,
+                                            pts2=ref_matched_kpts,
+                                            inliers=np.array([True for i in range(curr_matched_kpts.shape[0])]),
+                                            radius=9, line_thickness=3)
+            self.curr_frame.image_matching = img_loc_matching
 
-        matched_kpts_last = frame.keypoints[mids1, :2]  # [N 2]
-        matched_p3ds_last = self.last_frame.points3d[last_mids]  # [N 3]
-        print('Tracking: ', matched_kpts_last.shape, matched_p3ds_last.shape)
+            q_ref_img_matching = resize_img(img_loc_matching, nh=512)
 
-        ret = pycolmap.absolute_pose_estimation(matched_kpts_last, matched_p3ds_last, frame.cfg,
-                                                max_error_px=self.config['localization']['threshold'])
+        if not ret['success']:
+            show_text = 'Tracking FAILED!'
+            img_inlier = vis_inlier(img=curr_img, kpts=curr_matched_kpts, inliers=ret['inliers'], radius=9 + 2,
+                                    thickness=2)
+            q_img_inlier = cv2.putText(img=img_inlier, text=show_text, org=(30, 30),
+                                       fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
+                                       thickness=2, lineType=cv2.LINE_AA)
 
-        track_reference = True
-        success = ret['success']
-        if success:
-            inliers = np.array(ret['inliers'])
+            q_img_loc = np.hstack([resize_img(q_ref_img_matching, nh=512), resize_img(q_img_inlier, nh=512)])
+
+            cv2.imshow('loc', q_img_loc)
+            key = cv2.waitKey(self.loc_config['show_time'])
+            if key == ord('q'):
+                cv2.destroyAllWindows()
+                exit(0)
+            return False
+
+        success = self.verify_and_update(q_frame=self.curr_frame, ret=ret)
+        if show:
+            q_err, t_err = self.curr_frame.compute_pose_error()
+            num_matches = ret['matched_keypoints'].shape[0]
             num_inliers = ret['num_inliers']
-            print('Tracking with last frame with {:d}/{:d} inliers'.format(num_inliers, matched_p3ds_last.shape[0]))
-            if num_inliers > self.config['localization']['tracking_inliers']:
-                track_reference = False
-                self.lost = False
+            show_text = 'Tracking, k/m/i: {:d}/{:d}/{:d}'.format(q_kpts.shape[0], num_matches, num_inliers)
+            q_img_inlier = vis_inlier(img=curr_img, kpts=ret['matched_keypoints'], inliers=ret['inliers'],
+                                      radius=9 + 2, thickness=2)
+            q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 30),
+                                       fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
+                                       thickness=2, lineType=cv2.LINE_AA)
+            show_text = 'r_err:{:.2f}, t_err:{:.2f}'.format(q_err, t_err)
+            q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 80),
+                                       fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
+                                       thickness=2, lineType=cv2.LINE_AA)
+            self.curr_frame.image_inlier = q_img_inlier
 
-        if not track_reference:
-            self.update_current_frame(mids=mids1[inliers],
-                                      mp3ds=matched_p3ds_last[inliers],
-                                      qvec=ret['qvec'], tvec=ret['tvec'],
-                                      reference_frame=reference_frame)
-            return
-            # tracking reference frame with graph-matcher
-        mids2, ref_mids = self.match_frame(frame=self.curr_frame, reference_frame=reference_frame)
-        matched_kpts_ref = frame.keypoints[mids1, :2]  # [N 2]
-        matched_p3ds_ref = reference_frame.points3d[last_mids]  # [N 3]
+            q_img_loc = np.hstack([resize_img(q_ref_img_matching, nh=512), resize_img(q_img_inlier, nh=512)])
 
-        mids = np.vstack([mids1[inliers], mids2])
-        matched_kpts = np.vstack([matched_kpts_last[inliers], matched_kpts_ref])
-        matched_p3ds = np.vstack([[matched_p3ds_last[inliers], matched_p3ds_ref]])
+            cv2.imshow('loc', q_img_loc)
+            key = cv2.waitKey(self.loc_config['show_time'])
+            if key == ord('q'):
+                cv2.destroyAllWindows()
+                exit(0)
 
-        ret = pycolmap.absolute_pose_estimation(matched_kpts, matched_p3ds, self.curr_frame.cfg,
-                                                max_error_px=self.config['localization']['threshold'])
+        self.lost = success
+        return success
 
-        do_refinement = True
-        success = ret['success']
+    def verify_and_update(self, q_frame: Frame, ret: dict):
+        num_matches = ret['matched_keypoints'].shape[0]
+        num_inliers = ret['num_inliers']
+
+        q_err, t_err = q_frame.compute_pose_error()
+
+        if num_inliers < self.loc_config['min_inliers']:
+            print_text = 'Failed due to insufficient {:d} inliers,  q_err: {:.2f}, t_err: {:.2f}'.format(
+                ret['num_inliers'], q_err, t_err)
+            print(print_text)
+            q_frame.tracking_status = False
+            return False
+        else:
+            print_text = 'Succeed! Find {}/{} 2D-3D inliers,q_err: {:.2f}, t_err: {:.2f}'.format(
+                num_inliers, num_matches, q_err, t_err)
+            print(print_text)
+            q_frame.tracking_status = True
+
+            self.update_currenr_frame(curr_frame=q_frame, ret=ret)
+            return True
+
+    def update_currenr_frame(self, curr_frame: Frame, ret: dict):
+        curr_frame.matched_scene_name = ret['matched_scene_name']
+        curr_frame.reference_frame_id = ret['reference_frame_id']
         inliers = np.array(ret['inliers'])
-        if success:
-            num_inliers = ret['num_inliers']
-            if num_inliers > self.config['localization']['tracking_inliers']:
-                do_refinement = False
-                self.lost = False
-                self.update_current_frame(mids=mids[inliers], mp3ds=matched_p3ds[inliers], qvec=ret['qvec'],
-                                          tvec=ret['tvec'], reference_frame=reference_frame)
-
-        if do_refinement:
-            pass
+        curr_frame.matched_keypoints = ret['matched_keypoints'][inliers]
+        curr_frame.matched_xyzs = ret['matched_xyzs'][inliers]
+        curr_frame.matched_points3D_ids = ret['matched_points3D_ids'][inliers]
 
     def track_last_frame(self, curr_frame: Frame, last_frame: Frame):
-        curr_kpts = curr_frame.keypoints
+        curr_kpts = curr_frame.keypoints[:, :2]
         curr_descs = curr_frame.descriptors
         last_mask = last_frame.point3D_ids >= 0
 
-        last_kpts = last_frame.keypoints[last_mask]
+        last_kpts = last_frame.keypoints[last_mask, :2]
         last_descs = last_frame.descriptors[last_mask]
         last_xyzs = last_frame.xyzs[last_mask]
         last_point3D_ids = last_frame.point3D_ids[last_mask]
 
+        print('kpts: ', curr_kpts.shape, last_kpts.shape, curr_descs.shape, last_descs.shape)
+
         indices = self.nn_matcher({
             'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
             'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
-        })[0].cpu().numpy()
+        })['matches0'][0].cpu().numpy()
 
         valid = indices >= 0
 
         matched_kpts = curr_kpts[valid]
         matched_xyzs = last_xyzs[indices[valid]]
-        matched_point3D_ids = last_point3D_ids[valid]
+        matched_point3D_ids = last_point3D_ids[indices[valid]]
+        matched_last_kpts = last_kpts[indices[valid]]
 
+        print('tracking: ', matched_kpts.shape, matched_xyzs.shape)
         ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs,
                                                 curr_frame.camera._asdict(),
                                                 max_error_px=self.config['localization']['threshold'])
 
-        success = ret['success']
-        inliers = np.array(ret['inliers'])
-        if success:
-            num_inliers = ret['num_inliers']
-            if num_inliers > self.config['localization']['tracking_inliers']:
-                self.lost = False
-
-                curr_frame.matched_keypoints = matched_kpts[inliers]
-                curr_frame.matched_xyzs = matched_xyzs[inliers]
-                curr_frame.reference_frame_id = last_frame.reference_frame_id
-                curr_frame.matched_points3D_ids = matched_point3D_ids[inliers]
-                return True
-
-        self.lost = True
-        return False
-
-    def update_current_frame(self, mids, mp3ds, qvec, tvec, reference_frame):
-        self.curr_frame.points3d[mids] = mp3ds
-        self.curr_frame.points3d_mask[mids] = True
-        self.curr_frame.qvec = qvec
-        self.curr_frame.tvec = tvec
-        self.curr_frame.reference_frame = reference_frame
-        self.lost = False
-
-    def update_current_frame_from_reloc(self, frame, mp2ds, mp3ds, qvec, tvec, reference_frame):
-        frame.qvec = qvec
-        frame.tvec = tvec
-        frame.reference_frame = reference_frame
-
-        kpts = frame.keypoints[:, :2]
-        dist = torch.from_numpy(mp2ds)[..., None] - torch.from_numpy(kpts).transpose(0, 1)[None]
-        dist = torch.sum(dist ** 2, dim=1)  # [M, N]
-        l2dists, ids = torch.topk(dist, k=1, largest=False, dim=1)
-        ids = ids.cpu().numpy().reshape(-1, )
-        mask = np.zeros(shape=(frame.keypoints.shape[0],), dtype=bool)
-        mask[ids] = True
-        frame.points3d_mask = mask
-        frame.points3d[ids] = mp3ds
-
-        self.curr_frame = frame
-
-        self.lost = False
+        ret['matched_keypoints'] = matched_kpts
+        ret['matched_ref_keypoints'] = matched_last_kpts
+        ret['matched_xyzs'] = matched_xyzs
+        ret['matched_point3D_ids'] = matched_point3D_ids
+        ret['matched_reference_frame_id'] = last_frame.reference_frame_id
+        ret['matched_scene_name'] = last_frame.matched_scene_name
+        return ret
 
     @torch.no_grad()
     def match_frame(self, frame: Frame, reference_frame: Frame):

@@ -110,10 +110,6 @@ class MultiMap3D:
         q_scene_name = q_frame.scene_name
         q_name = q_frame.name
         q_full_name = osp.join(q_scene_name, q_name)
-        gt_sub_map = self.sub_maps[q_frame.scene_name]
-        if gt_sub_map.gt_poses is not None and q_name in gt_sub_map.gt_poses.keys():
-            q_frame.gt_qvec = gt_sub_map.gt_poses[q_name]['qvec']
-            q_frame.gt_tvec = gt_sub_map.gt_poses[q_name]['tvec']
 
         q_loc_sids = {}
         for v in q_loc_segs:

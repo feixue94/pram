@@ -8,15 +8,16 @@
 import torch
 from localization.multimap3d import MultiMap3D
 from localization.frame import Frame
-from localization.tracker import Tracker
 import yaml, cv2, time
 import numpy as np
+from copy import deepcopy
 import os
 import os.path as osp
 import threading
 from recognition.vis_seg import vis_seg_point, generate_color_dic
 from tools.common import resize_img
 from localization.viewer import Viewer
+from localization.tracker import Tracker
 from localization.utils import read_query_info
 from localization.camera import Camera
 
@@ -41,7 +42,6 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         viewer_config = {'scene': 'outdoor',
                          'image_size_indoor': 0.4,
                          'image_line_width_indoor': 2, }
-
     # start viewer
     mViewer = Viewer(locMap=locMap, seg_color=seg_color, config=viewer_config)
     mViewer.refinement = locMap.do_refinement
@@ -50,6 +50,8 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
     viewer_thread.start()
 
     # start tracker
+    mTracker = Tracker(locMap=locMap, matcher=locMap.matcher, config=config)
+
     dataset_name = config['dataset'][0]
     all_scene_query_info = {}
     with open(osp.join(config['config_path'], '{:s}.yaml'.format(dataset_name)), 'r') as f:
@@ -79,6 +81,14 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
             # for fn in sorted(query_info.keys())[4850:]:
             img = cv2.imread(osp.join(image_path, fn))  # BGR
 
+            camera_model, width, height, params = all_scene_query_info[dataset_name + '/' + scene][fn]
+            camera = Camera(id=-1, model=camera_model, width=width, height=height, params=params)
+            curr_frame = Frame(image=img, camera=camera, id=0, name=fn, scene_name=dataset_name + '/' + scene)
+            gt_sub_map = locMap.sub_maps[curr_frame.scene_name]
+            if gt_sub_map.gt_poses is not None and curr_frame.name in gt_sub_map.gt_poses.keys():
+                curr_frame.gt_qvec = gt_sub_map.gt_poses[curr_frame.name]['qvec']
+                curr_frame.gt_tvec = gt_sub_map.gt_poses[curr_frame.name]['tvec']
+
             with torch.no_grad():
                 if config['image_dim'] == 1:
                     img_gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
@@ -97,11 +107,17 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                                                                       }
                                                               )
                 t_feat = time.time() - t_start
-                t_start = time.time()
                 # global_descriptors_cuda = encoder_out['global_descriptors']
                 scores_cuda = encoder_out['scores'][0][None]
                 kpts_cuda = encoder_out['keypoints'][0][None]
                 descriptors_cuda = encoder_out['descriptors'][0][None].permute(0, 2, 1)
+
+                curr_frame.keypoints = np.hstack([kpts_cuda[0].cpu().numpy(),
+                                                  scores_cuda[0].cpu().numpy().reshape(-1, 1)])
+                curr_frame.descriptors = descriptors_cuda[0].cpu().numpy()
+                curr_frame.time_feat = t_feat
+
+                t_start = time.time()
                 _, seg_descriptors = local_feat.sample(score_map=encoder_out['score_map'],
                                                        semi_descs=encoder_out['mid_features'],
                                                        kpts=kpts_cuda[0],
@@ -111,6 +127,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                                      'keypoints': kpts_cuda,
                                      'image': img_cuda})
                 t_rec = time.time() - t_start
+                curr_frame.time_rec = t_rec
 
                 pred = {
                     'scores': scores_cuda,
@@ -119,15 +136,6 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                     # 'global_descriptors': global_descriptors_cuda,
                     'image_size': np.array([img.shape[1], img.shape[0]])[None],
                 }
-
-                camera_model, width, height, params = all_scene_query_info[dataset_name + '/' + scene][fn]
-                camera = Camera(id=-1, model=camera_model, width=width, height=height, params=params)
-                curr_frame = Frame(image=img, camera=camera, id=0, name=fn, scene_name=dataset_name + '/' + scene)
-                curr_frame.keypoints = np.hstack([pred['keypoints'][0].cpu().numpy(),
-                                                  pred['scores'][0].cpu().numpy().reshape(-1, 1)])
-                curr_frame.descriptors = pred['descriptors'][0].cpu().numpy()
-                curr_frame.time_feat = t_feat
-                curr_frame.time_rec = t_rec
 
                 pred = {**pred, **rec_out}
                 pred_seg = torch.max(pred['prediction'], dim=2)[1]  # [B, N, C]
@@ -156,9 +164,24 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
 
                 segmentations = pred['prediction'][0]  # .cpu().numpy()  # [N, C]
 
-                success = locMap.run(q_frame=curr_frame, q_segs=segmentations)
+                # Step1: do tracker first
+                success = not mTracker.lost and mViewer.tracking
                 if success:
-                    mViewer.update(curr_frame=curr_frame)
+                    success = mTracker.run(frame=curr_frame)
+                    if success:
+                        mViewer.update(curr_frame=curr_frame)
+
+                if not success:
+                    success = locMap.run(q_frame=curr_frame, q_segs=segmentations)
+                    if success:
+                        mViewer.update(curr_frame=curr_frame)
+
+                if success:
+                    curr_frame.update_point3ds()
+                    if mViewer.tracking:
+                        mTracker.lost = False
+                        mTracker.last_frame = deepcopy(curr_frame)
+                        print('update last frame...', mTracker.last_frame)
 
                 time.sleep(50 / 1000)
                 locMap.do_refinement = mViewer.refinement

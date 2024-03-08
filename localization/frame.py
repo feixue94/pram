@@ -57,9 +57,10 @@ class Frame:
         mpt = torch.from_numpy(self.matched_keypoints[:, :2].transpose()).unsqueeze(0)  # [1 2 N]
         dist = torch.sqrt(torch.sum((pt - mpt) ** 2, dim=1))
         values, ids = torch.topk(dist, dim=1, k=1, largest=False)
-        values = values.numpy()
+        values = values[:, 0].numpy()
         ids = ids[:, 0].numpy()
         mask = (values < 1)  # 1 pixel error
+        print('ids: ', ids.shape, mask.shape)
         self.point3D_ids = np.zeros(shape=(self.keypoints.shape[0],), dtype=int) - 1
         self.point3D_ids[mask] = self.matched_points3D_ids[ids[mask]]
 
