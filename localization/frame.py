@@ -36,7 +36,7 @@ class Frame:
         self.matched_scene_name = None
         self.matched_keypoints = None
         self.matched_xyzs = None
-        self.matched_points3D_ids = None
+        self.matched_point3D_ids = None
         self.matched_inliers = None
         self.matched_sids = None
         self.gt_qvec = None
@@ -62,7 +62,7 @@ class Frame:
         mask = (values < 1)  # 1 pixel error
         print('ids: ', ids.shape, mask.shape)
         self.point3D_ids = np.zeros(shape=(self.keypoints.shape[0],), dtype=int) - 1
-        self.point3D_ids[mask] = self.matched_points3D_ids[ids[mask]]
+        self.point3D_ids[mask] = self.matched_point3D_ids[ids[mask]]
 
         self.xyzs = np.zeros(shape=(self.keypoints.shape[0], 3), dtype=float)
         self.xyzs[mask] = self.matched_xyzs[ids[mask]]

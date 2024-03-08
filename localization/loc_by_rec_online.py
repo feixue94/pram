@@ -180,8 +180,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                     curr_frame.update_point3ds()
                     if mViewer.tracking:
                         mTracker.lost = False
-                        mTracker.last_frame = deepcopy(curr_frame)
-                        print('update last frame...', mTracker.last_frame)
+                        mTracker.last_frame = curr_frame
 
                 time.sleep(50 / 1000)
                 locMap.do_refinement = mViewer.refinement

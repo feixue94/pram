@@ -33,14 +33,11 @@ class Tracker:
         device = 'cuda' if torch.cuda.is_available() else 'cpu'
         Model = dynamic_load(matchers, 'nearest_neighbor')
         self.nn_matcher = Model(matcher_confs['NNM']['model']).eval().to(device)
-        print(self.nn_matcher)
 
     def run(self, frame: Frame):
         print('Start tracking...')
         show = self.config['localization']['show']
         self.curr_frame = frame
-        print('last_frame: ', self.last_frame)
-        print('curr_frame: ', self.curr_frame)
         ref_img = self.last_frame.image
         curr_img = self.curr_frame.image
         q_kpts = frame.keypoints
@@ -63,7 +60,8 @@ class Tracker:
 
         if not ret['success']:
             show_text = 'Tracking FAILED!'
-            img_inlier = vis_inlier(img=curr_img, kpts=curr_matched_kpts, inliers=ret['inliers'], radius=9 + 2,
+            img_inlier = vis_inlier(img=curr_img, kpts=curr_matched_kpts,
+                                    inliers=[False for i in range(curr_matched_kpts.shape[0])], radius=9 + 2,
                                     thickness=2)
             q_img_inlier = cv2.putText(img=img_inlier, text=show_text, org=(30, 30),
                                        fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
@@ -128,28 +126,42 @@ class Tracker:
             return True
 
     def update_currenr_frame(self, curr_frame: Frame, ret: dict):
+        curr_frame.qvec = ret['qvec']
+        curr_frame.tvec = ret['tvec']
         curr_frame.matched_scene_name = ret['matched_scene_name']
         curr_frame.reference_frame_id = ret['reference_frame_id']
         inliers = np.array(ret['inliers'])
         curr_frame.matched_keypoints = ret['matched_keypoints'][inliers]
         curr_frame.matched_xyzs = ret['matched_xyzs'][inliers]
-        curr_frame.matched_points3D_ids = ret['matched_points3D_ids'][inliers]
+        curr_frame.matched_point3D_ids = ret['matched_point3D_ids'][inliers]
 
     def track_last_frame(self, curr_frame: Frame, last_frame: Frame):
         curr_kpts = curr_frame.keypoints[:, :2]
+        curr_scores = curr_frame.keypoints[:, 2]
         curr_descs = curr_frame.descriptors
         last_mask = last_frame.point3D_ids >= 0
 
         last_kpts = last_frame.keypoints[last_mask, :2]
+        last_scores = last_frame.keypoints[last_mask, 2]
         last_descs = last_frame.descriptors[last_mask]
         last_xyzs = last_frame.xyzs[last_mask]
         last_point3D_ids = last_frame.point3D_ids[last_mask]
 
         print('kpts: ', curr_kpts.shape, last_kpts.shape, curr_descs.shape, last_descs.shape)
 
-        indices = self.nn_matcher({
-            'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
-            'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
+        indices = self.matcher({
+            'descriptors0': torch.from_numpy(curr_descs)[None].cuda().float(),
+            'keypoints0': torch.from_numpy(curr_kpts)[None].cuda().float(),
+            'scores0': torch.from_numpy(curr_scores)[None].cuda().float(),
+            'image_shape0': (1, 3, curr_frame.camera.width, curr_frame.camera.height),
+
+            'descriptors1': torch.from_numpy(last_descs)[None].cuda().float(),
+            'keypoints1': torch.from_numpy(last_kpts)[None].cuda().float(),
+            'scores1': torch.from_numpy(last_scores)[None].cuda().float(),
+            'image_shape1': (1, 3, last_frame.camera.width, last_frame.camera.height),
+
+            # 'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
+            # 'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
         })['matches0'][0].cpu().numpy()
 
         valid = indices >= 0
@@ -159,7 +171,7 @@ class Tracker:
         matched_point3D_ids = last_point3D_ids[indices[valid]]
         matched_last_kpts = last_kpts[indices[valid]]
 
-        print('tracking: ', matched_kpts.shape, matched_xyzs.shape)
+        # print('tracking: ', matched_kpts.shape, matched_xyzs.shape)
         ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs,
                                                 curr_frame.camera._asdict(),
                                                 max_error_px=self.config['localization']['threshold'])
@@ -168,7 +180,7 @@ class Tracker:
         ret['matched_ref_keypoints'] = matched_last_kpts
         ret['matched_xyzs'] = matched_xyzs
         ret['matched_point3D_ids'] = matched_point3D_ids
-        ret['matched_reference_frame_id'] = last_frame.reference_frame_id
+        ret['reference_frame_id'] = last_frame.reference_frame_id
         ret['matched_scene_name'] = last_frame.matched_scene_name
         return ret
 

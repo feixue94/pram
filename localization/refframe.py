@@ -34,7 +34,7 @@ class RefFrame:
     def get_keypoints_by_sid(self, sid: int, point3Ds: dict):
         mask = (self.keypoint_segs == sid)
         return {
-            'points3D_ids': self.point3D_ids[mask],
+            'point3D_ids': self.point3D_ids[mask],
             'keypoints': self.keypoints[mask][:, :2],
             'descriptors': self.descriptors[mask],
             'scores': self.keypoints[mask][:, 2],
@@ -57,7 +57,7 @@ class RefFrame:
                     valid_descs.append(p3d.descriptor)
                     valid_scores.append(p3d.error)
         return {
-            'points3D_ids': np.array(valid_p3d_ids),
+            'point3D_ids': np.array(valid_p3d_ids),
             'keypoints': np.array(valid_kpts),
             'descriptors': np.array(valid_descs),
             'scores': np.array(valid_scores),
@@ -66,7 +66,7 @@ class RefFrame:
 
     def get_keypoints(self, point3Ds: dict):
         return {
-            'points3D_ids': self.point3D_ids,
+            'point3D_ids': self.point3D_ids,
             'keypoints': self.keypoints[:, :2],
             'descriptors': self.descriptors,
             'scores': self.keypoints[:, 2],

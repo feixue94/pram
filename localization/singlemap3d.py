@@ -137,7 +137,7 @@ class SingleMap3D:
         q_kpts = query_data['keypoints']
         q_scores = query_data['scores']
         xyzs = ref_data['xyzs']
-        points3D_ids = ref_data['points3D_ids']
+        points3D_ids = ref_data['point3D_ids']
         q_sids = query_data['sids']
         with torch.no_grad():
             indices0 = self.matcer({
@@ -166,7 +166,7 @@ class SingleMap3D:
         ret['matched_keypoints'] = mkpts
         ret['matched_xyzs'] = mxyzs
         ret['reference_frame_id'] = ref_frame_id
-        ret['matched_points3D_ids'] = mpoints3D_ids
+        ret['matched_point3D_ids'] = mpoints3D_ids
         ret['matched_sids'] = matched_sids
         ret['matched_ref_keypoints'] = matched_ref_keypoints
 
@@ -204,7 +204,7 @@ class SingleMap3D:
         return {
             'matched_keypoints': mkpts,
             'matched_xyzs': mxyzs,
-            'matched_points3D_ids': mpoints3D_ids,
+            'matched_point3D_ids': mpoints3D_ids,
         }
 
     def build_covisibility_graph(self, frame_ids: list = None, n_frame: int = 20):
@@ -299,7 +299,7 @@ class SingleMap3D:
 
         ret['matched_keypoints'] = matched_kpts
         ret['matched_xyzs'] = matched_xyzs
-        ret['matched_points3D_ids'] = matched_points3D_ids
+        ret['matched_point3D_ids'] = matched_points3D_ids
         ret['refinement_reference_frame_ids'] = db_ids
 
         return ret

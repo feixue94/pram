@@ -165,7 +165,7 @@ class MultiMap3D:
                 ref_img = cv2.imread(osp.join(self.config['dataset_path'], pred_scene_name, pred_image_path_prefix,
                                               reference_frame.name))
                 q_img_seg = vis_seg_point(img=q_frame.image, kpts=q_kpts, segs=q_sid_top1, seg_color=seg_color)
-                matched_points3D_ids = ret['matched_points3D_ids']
+                matched_points3D_ids = ret['matched_point3D_ids']
                 ref_sids = np.array([pred_sub_map.point3Ds[v].seg_id for v in matched_points3D_ids]) + \
                            self.scene_name_start_sid[pred_scene_name] + 1  # start from 1 as bg is 0
                 ref_img_seg = vis_seg_point(img=ref_img, kpts=ret['matched_ref_keypoints'], segs=ref_sids,
@@ -308,7 +308,7 @@ class MultiMap3D:
         q_frame.reference_frame_id = ret['reference_frame_id']
         q_frame.matched_keypoints = ret['matched_keypoints']
         q_frame.matched_xyzs = ret['matched_xyzs']
-        q_frame.matched_points3D_ids = ret['matched_points3D_ids']
+        q_frame.matched_point3D_ids = ret['matched_point3D_ids']
         q_frame.matched_inliers = ret['inliers']
         q_frame.qvec = ret['qvec']
         q_frame.tvec = ret['tvec']
