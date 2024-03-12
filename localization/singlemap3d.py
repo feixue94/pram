@@ -378,7 +378,7 @@ class SingleMap3D:
         dists, ids = torch.topk(desc_dist, k=2, largest=False, dim=1)
         # apply ratio
         ratios = dists[:, 0] / dists[:, 1]  # smaller, better
-        ratio_mask = (ratios <= 0.995) * (dists[:, 0] < 100)
+        ratio_mask = (ratios <= 0.95) * (dists[:, 0] < 100)
         ratio_mask = ratio_mask.cpu().numpy()
         ids = ids.cpu().numpy()[ratio_mask, 0]
 

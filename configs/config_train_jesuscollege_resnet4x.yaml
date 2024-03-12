@@ -77,7 +77,7 @@ loc: true
 online: true
 n_class: 257
 
-eval_max_keypoints: 4096
+eval_max_keypoints: 1024
 
 localization:
   loc_scene_name: [ ]
