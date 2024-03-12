@@ -379,8 +379,6 @@ class SingleMap3D:
         # apply ratio
         ratios = dists[:, 0] / dists[:, 1]  # smaller, better
         ratio_mask = (ratios <= 0.995) * (dists[:, 0] < 100)
-        # print('dists: ', dists.shape, dists)
-        # ratio_mask = (dists[:, 0] < 100)
         ratio_mask = ratio_mask.cpu().numpy()
         ids = ids.cpu().numpy()[ratio_mask, 0]
 
