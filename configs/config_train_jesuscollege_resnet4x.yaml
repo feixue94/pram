@@ -82,11 +82,11 @@ eval_max_keypoints: 4096
 localization:
   loc_scene_name: [ ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  seg_k: 20
+  seg_k: 30
   threshold: 12
   min_kpts: 256
-  min_matches: 16
-  min_inliers: 32
+  min_matches: 32
+  min_inliers: 64
   matching_method_: "mnn"
   matching_method_1: "spg"
   matching_method_2: "gm"

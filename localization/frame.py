@@ -33,19 +33,22 @@ class Frame:
         self.xyzs = None
         self.segmentations = None
 
+        self.gt_qvec = None
+        self.gt_tvec = None
+
         self.matched_scene_name = None
         self.matched_keypoints = None
         self.matched_xyzs = None
         self.matched_point3D_ids = None
         self.matched_inliers = None
         self.matched_sids = None
-        self.gt_qvec = None
-        self.gt_tvec = None
-        self.tracking_status = None
+
         self.refinement_reference_frame_ids = None
         self.image_rec = None
         self.image_matching = None
         self.image_inlier = None
+
+        self.tracking_status = None
 
         self.time_feat = 0
         self.time_rec = 0
@@ -122,3 +125,13 @@ class Frame:
         K[0, 2] = cx
         K[1, 2] = cy
         return K
+
+    def clear_localization_track(self):
+        self.matched_scene_name = None
+        self.matched_keypoints = None
+        self.matched_xyzs = None
+        self.matched_point3D_ids = None
+        self.matched_inliers = None
+        self.matched_sids = None
+
+        self.refinement_reference_frame_ids = None

@@ -78,11 +78,18 @@ class Tracker:
 
         success = self.verify_and_update(q_frame=self.curr_frame, ret=ret)
 
+        if not success:
+            return False
+
         # refinement is necessary for tracking last frame
-        if success:
-            self.locMap.sub_maps[self.last_frame.scene_name].refine_pose(self.curr_frame,
-                                                                         refinement_method=self.loc_config[
-                                                                             'refinement_method'])
+        t_start = time.time()
+        ret = self.locMap.sub_maps[self.last_frame.matched_scene_name].refine_pose(self.curr_frame,
+                                                                                   refinement_method=self.loc_config[
+                                                                                       'refinement_method'])
+        self.curr_frame.time_ref = self.curr_frame.time_ref + time.time() - t_start
+
+        ret['matched_scene_name'] = self.last_frame.scene_name
+        success = self.verify_and_update(q_frame=self.curr_frame, ret=ret)
 
         if show:
             q_err, t_err = self.curr_frame.compute_pose_error()
@@ -115,6 +122,9 @@ class Tracker:
         num_matches = ret['matched_keypoints'].shape[0]
         num_inliers = ret['num_inliers']
 
+        q_frame.qvec = ret['qvec']
+        q_frame.tvec = ret['tvec']
+
         q_err, t_err = q_frame.compute_pose_error()
 
         if num_inliers < self.loc_config['min_inliers']:
@@ -122,6 +132,7 @@ class Tracker:
                 ret['num_inliers'], q_err, t_err)
             print(print_text)
             q_frame.tracking_status = False
+            q_frame.clear_localization_track()
             return False
         else:
             print_text = 'Succeed! Find {}/{} 2D-3D inliers,q_err: {:.2f}, t_err: {:.2f}'.format(
@@ -146,15 +157,12 @@ class Tracker:
         curr_kpts = curr_frame.keypoints[:, :2]
         curr_scores = curr_frame.keypoints[:, 2]
         curr_descs = curr_frame.descriptors
-        last_mask = last_frame.point3D_ids >= 0
 
-        last_kpts = last_frame.keypoints[last_mask, :2]
-        last_scores = last_frame.keypoints[last_mask, 2]
-        last_descs = last_frame.descriptors[last_mask]
-        last_xyzs = last_frame.xyzs[last_mask]
-        last_point3D_ids = last_frame.point3D_ids[last_mask]
-
-        print('kpts: ', curr_kpts.shape, last_kpts.shape, curr_descs.shape, last_descs.shape)
+        last_kpts = last_frame.keypoints[:, :2]
+        last_scores = last_frame.keypoints[2]
+        last_descs = last_frame.descriptors
+        last_xyzs = last_frame.xyzs
+        last_point3D_ids = last_frame.point3D_ids
 
         # '''
         indices = self.matcher({
@@ -175,12 +183,18 @@ class Tracker:
         #     'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
         # })['matches0'][0].cpu().numpy()
 
-        valid = indices >= 0
+        valid = (indices >= 0)
 
-        matched_kpts = curr_kpts[valid]
-        matched_xyzs = last_xyzs[indices[valid]]
         matched_point3D_ids = last_point3D_ids[indices[valid]]
-        matched_last_kpts = last_kpts[indices[valid]]
+        point3D_mask = (matched_point3D_ids >= 0)
+        matched_point3D_ids = matched_point3D_ids[point3D_mask]
+
+        matched_kpts = curr_kpts[valid][point3D_mask]
+        matched_xyzs = last_xyzs[indices[valid]][point3D_mask]
+        matched_last_kpts = last_kpts[indices[valid]][point3D_mask]
+
+        print('Tracking: {:d} matches from {:d}-{:d} kpts'.format(matched_kpts.shape[0], curr_kpts.shape[0],
+                                                                  last_kpts.shape[0]))
 
         # print('tracking: ', matched_kpts.shape, matched_xyzs.shape)
         ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs,

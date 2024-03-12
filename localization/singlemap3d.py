@@ -352,11 +352,13 @@ class SingleMap3D:
         K_cuda = torch.from_numpy(K).cuda()
         proj_uvs = K_cuda @ (torch.from_numpy(q_Tcw).cuda() @ all_xyzs_cuda_homo.t())[:3, :]  # [3, N]
         proj_uvs[0] /= proj_uvs[2]
-        proj_uvs[1] /= proj_uvs[1]
+        proj_uvs[1] /= proj_uvs[2]
         mask = (proj_uvs[2] > 0) * (proj_uvs[2] < 100) * (proj_uvs[0] >= 0) * (proj_uvs[0] < imw) * (
                 proj_uvs[1] >= 0) * (proj_uvs[1] < imh)
 
         proj_uvs = proj_uvs[:, mask]
+
+        print('Projection: out of range {:d}/{:d}'.format(all_xyzs_cuda.shape[0], proj_uvs.shape[1]))
 
         mxyzs = all_xyzs[mask.cpu().numpy()]
         mpoint3D_ids = all_point3D_ids[mask.cpu().numpy()]
@@ -365,26 +367,37 @@ class SingleMap3D:
         q_kpts_cuda = torch.from_numpy(q_frame.keypoints[:, :2]).cuda()
         proj_error = q_kpts_cuda[..., None] - proj_uvs[:2][None]
         proj_error = torch.sqrt(torch.sum(proj_error ** 2, dim=1))  # [M N]
-        out_of_range_mask = proj_error >= 20
+        out_of_range_mask = (proj_error >= 1.5 * self.config['localization']['threshold'])
 
         q_descs_cuda = torch.from_numpy(q_frame.descriptors).cuda().float()  # [M D]
         all_descs_cuda = torch.from_numpy(all_descs).cuda().float()[mask]  # [N D]
         desc_dist = torch.sqrt(2 - 2 * q_descs_cuda @ all_descs_cuda.t() + 1e-6)
-        desc_dist[out_of_range_mask] *= 100
+        desc_dist[out_of_range_mask] = desc_dist[out_of_range_mask] + 100
         dists, ids = torch.topk(desc_dist, k=2, largest=False, dim=1)
         # apply ratio
         ratios = dists[:, 0] / dists[:, 1]  # smaller, better
-        ratio_mask = (ratios <= 0.9995) * (dists[:, 0] < 100)
+        ratio_mask = (ratios <= 0.995) * (dists[:, 0] < 100)
+        # print('dists: ', dists.shape, dists)
+        # ratio_mask = (dists[:, 0] < 100)
         ratio_mask = ratio_mask.cpu().numpy()
         ids = ids.cpu().numpy()[ratio_mask, 0]
+
+        print('Projection: after ratio {:d}/{:d}'.format(q_kpts_cuda.shape[0], np.sum(ratio_mask)))
 
         mkpts = q_frame.keypoints[ratio_mask]
         mxyzs = mxyzs[ids]
         mpoint3D_ids = mpoint3D_ids[ids]
         msids = msids[ids]
-        print('Find {:d}-{:d} matches from projection'.format(mkpts.shape[0], q_frame.keypoints.shape[0]))
+        # print('Find {:d}-{:d} matches from projection'.format(mkpts.shape[0], q_frame.keypoints.shape[0]))
         cfg = q_frame.camera._asdict()
-        ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg, 12)
+        ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg,
+                                                max_error_px=self.config['localization']['threshold'],
+                                                min_num_trials=1000, max_num_trials=10000, confidence=0.995)
+
+        print_text = 'Refinement by mprojection. Get {:d} inliers of {:d} matches for optimization'.format(
+            ret['num_inliers'], mxyzs.shape[0])
+        print(print_text)
+
         ret['matched_keypoints'] = mkpts
         ret['matched_xyzs'] = mxyzs
         ret['matched_point3D_ids'] = mpoint3D_ids
