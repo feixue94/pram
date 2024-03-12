@@ -60,7 +60,8 @@ class Frame:
         values = values[:, 0].numpy()
         ids = ids[:, 0].numpy()
         mask = (values < 1)  # 1 pixel error
-        print('ids: ', ids.shape, mask.shape)
+        print('ids: ', ids.shape, mask.shape, self.matched_keypoints.shape, self.matched_point3D_ids.shape,
+              self.matched_xyzs.shape)
         self.point3D_ids = np.zeros(shape=(self.keypoints.shape[0],), dtype=int) - 1
         self.point3D_ids[mask] = self.matched_point3D_ids[ids[mask]]
 

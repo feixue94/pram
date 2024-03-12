@@ -256,7 +256,8 @@ class MultiMap3D:
             q_frame.qvec = ret['qvec']
             q_frame.tvec = ret['tvec']
             q_frame.matched_keypoints = ret['matched_keypoints']
-            q_frame.matched_points3D_ids = ret['matched_points3D_ids']
+            q_frame.matched_xyzs = ret['matched_xyzs']
+            q_frame.matched_point3D_ids = ret['matched_point3D_ids']
             q_frame.matched_inliers = ret['inliers']
             q_frame.refinement_reference_frame_ids = ret['refinement_reference_frame_ids']
 

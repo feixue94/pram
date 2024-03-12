@@ -179,7 +179,7 @@ class SingleMap3D:
         q_kpts = query_data['keypoints']
         q_scores = query_data['scores']
         xyzs = ref_data['xyzs']
-        points3D_ids = ref_data['points3D_ids']
+        points3D_ids = ref_data['point3D_ids']
         with torch.no_grad():
             indices0 = self.matcer({
                 'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
@@ -238,6 +238,8 @@ class SingleMap3D:
             self.covisible_graph[frame_id] = find_covisible_frames(frame_id=frame_id)
 
     def refine_pose(self, q_frame: Frame, refinement_method='matching'):
+        # return self.refine_pose_by_projection(q_frame=q_frame)
+
         if refinement_method == 'matching':
             return self.refine_pose_by_matching(q_frame=q_frame)
         elif refinement_method == 'projection':
@@ -252,17 +254,17 @@ class SingleMap3D:
         loc_success = q_frame.tracking_status
         if loc_success and ref_frame_id in db_ids:
             init_kpts = q_frame.matched_keypoints
-            init_points3D_ids = q_frame.matched_points3D_ids
-            init_xyzs = np.array([self.point3Ds[v].xyz for v in init_points3D_ids]).reshape(-1, 3)
+            init_point3D_ids = q_frame.matched_point3D_ids
+            init_xyzs = np.array([self.point3Ds[v].xyz for v in init_point3D_ids]).reshape(-1, 3)
             list(db_ids).remove(ref_frame_id)
         else:
             init_kpts = None
             init_xyzs = None
-            init_points3D_ids = None
+            init_point3D_ids = None
 
         matched_xyzs = []
         matched_kpts = []
-        matched_points3D_ids = []
+        matched_point3D_ids = []
         for idx, frame_id in enumerate(db_ids):
             ref_data = self.reference_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
             match_out = self.match(query_data={
@@ -274,15 +276,15 @@ class SingleMap3D:
             if match_out['matched_keypoints'].shape[0] > 0:
                 matched_kpts.append(match_out['matched_keypoints'])
                 matched_xyzs.append(match_out['matched_xyzs'])
-                matched_points3D_ids.append(match_out['matched_points3D_ids'])
+                matched_point3D_ids.append(match_out['matched_point3D_ids'])
 
         matched_kpts = np.vstack(matched_kpts)
         matched_xyzs = np.vstack(matched_xyzs).reshape(-1, 3)
-        matched_points3D_ids = np.hstack(matched_points3D_ids)
+        matched_point3D_ids = np.hstack(matched_point3D_ids)
         if init_kpts is not None:
             matched_kpts = np.vstack([matched_kpts, init_kpts])
             matched_xyzs = np.vstack([matched_xyzs, init_xyzs])
-            matched_points3D_ids = np.hstack([matched_points3D_ids, init_points3D_ids])
+            matched_point3D_ids = np.hstack([matched_point3D_ids, init_point3D_ids])
 
         print_text = 'Refinement by matching. Get {:d} covisible frames with {:d} matches for optimization'.format(
             len(db_ids), matched_xyzs.shape[0])
@@ -297,7 +299,7 @@ class SingleMap3D:
 
         ret['matched_keypoints'] = matched_kpts
         ret['matched_xyzs'] = matched_xyzs
-        ret['matched_point3D_ids'] = matched_points3D_ids
+        ret['matched_point3D_ids'] = matched_point3D_ids
         ret['refinement_reference_frame_ids'] = db_ids
 
         return ret
@@ -307,13 +309,11 @@ class SingleMap3D:
         q_tcw = q_frame.tvec
         q_Tcw = np.eye(4, dtype=float)  # [4 4]
         q_Tcw[:3, :3] = q_Rcw
-        q_Tcw[:3, 3:] = q_tcw
+        q_Tcw[:3, 3] = q_tcw
         cam = q_frame.camera
         imw = cam.width
         imh = cam.height
         K = q_frame.get_intrinsics()  # [3, 3]
-
-        q_point3D_ids = q_frame.matched_point3D_ids
         reference_frame_id = q_frame.reference_frame_id
         covis_frame_ids = self.covisible_graph[reference_frame_id]
         if reference_frame_id not in covis_frame_ids:
@@ -325,18 +325,22 @@ class SingleMap3D:
         all_point3D_ids = np.unique(all_point3D_ids)
         all_xyzs = []
         all_descs = []
+        all_sids = []
         for pid in all_point3D_ids:
             all_xyzs.append(self.point3Ds[pid].xyz)
             all_descs.append(self.point3Ds[pid].descriptor)
+            all_sids.append(self.point3Ds[pid].seg_id)
 
         all_xyzs = np.array(all_xyzs)  # [N 3]
         all_descs = np.array(all_descs)  # [N 3]
+        all_point3D_ids = np.array(all_point3D_ids)
+        all_sids = np.array(all_sids)
 
         # move to gpu
         all_xyzs_cuda = torch.from_numpy(all_xyzs).cuda()
         ones = torch.ones(size=(all_xyzs_cuda.shape[0], 1), dtype=all_xyzs_cuda.dtype).cuda()
         all_xyzs_cuda_homo = torch.cat([all_xyzs_cuda, ones], dim=1)  # [N 4]
-        K_cuda = torch.from_numpy(K)
+        K_cuda = torch.from_numpy(K).cuda()
         proj_uvs = K_cuda @ (torch.from_numpy(q_Tcw).cuda() @ all_xyzs_cuda_homo.t())[:3, :]  # [3, N]
         proj_uvs[0] /= proj_uvs[2]
         proj_uvs[1] /= proj_uvs[1]
@@ -345,7 +349,43 @@ class SingleMap3D:
 
         proj_uvs = proj_uvs[:, mask]
 
-        q_kpts_cuda = torch.from_numpy(q_frame.keypoints[:, :2]).cuda()
+        mxyzs = all_xyzs[mask.cpu().numpy()]
+        mpoint3D_ids = all_point3D_ids[mask.cpu().numpy()]
+        msids = all_sids[mask.cpu().numpy()]
 
+        q_kpts_cuda = torch.from_numpy(q_frame.keypoints[:, :2]).cuda()
         proj_error = q_kpts_cuda[..., None] - proj_uvs[:2][None]
         proj_error = torch.sqrt(torch.sum(proj_error ** 2, dim=1))  # [M N]
+        out_of_range_mask = proj_error >= 20
+
+        q_descs_cuda = torch.from_numpy(q_frame.descriptors).cuda().float()  # [M D]
+        all_descs_cuda = torch.from_numpy(all_descs).cuda().float()[mask]  # [N D]
+        desc_dist = torch.sqrt(2 - 2 * q_descs_cuda @ all_descs_cuda.t() + 1e-6)
+        desc_dist[out_of_range_mask] *= 100
+        dists, ids = torch.topk(desc_dist, k=2, largest=False, dim=1)
+        # apply ratio
+        ratios = dists[:, 0] / dists[:, 1]  # smaller, better
+        ratio_mask = (ratios <= 0.9995) * (dists[:, 0] < 100)
+        ratio_mask = ratio_mask.cpu().numpy()
+        ids = ids.cpu().numpy()[ratio_mask, 0]
+
+        mkpts = q_frame.keypoints[ratio_mask]
+        mxyzs = mxyzs[ids]
+        mpoint3D_ids = mpoint3D_ids[ids]
+        msids = msids[ids]
+        print('Find {:d}-{:d} matches from projection'.format(mkpts.shape[0], q_frame.keypoints.shape[0]))
+        cfg = q_frame.camera._asdict()
+        ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg, 12)
+        ret['matched_keypoints'] = mkpts
+        ret['matched_xyzs'] = mxyzs
+        # ret['reference_frame_id'] = ref_frame_id
+        ret['matched_point3D_ids'] = mpoint3D_ids
+        ret['matched_sids'] = msids
+        # ret['matched_ref_keypoints'] = matched_ref_keypoints
+        ret['refinement_reference_frame_ids'] = [q_frame.reference_frame_id]
+
+        if not ret['success']:
+            ret['num_inliers'] = 0
+            ret['inliers'] = np.zeros(shape=(mkpts.shape[0],), dtype=bool)
+
+        return ret
