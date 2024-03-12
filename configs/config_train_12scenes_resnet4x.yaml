@@ -105,8 +105,8 @@ localization:
   with_compress: true
   semantic_matching: true
   do_refinement: false
-  refinement_method: 'matching'
-  refinement_method_: 'projection'
+  refinement_method_: 'matching'
+  refinement_method: 'projection'
   pre_filtering_th: 0.95
   covisibility_frame: 20
   refinement_radius: 20

@@ -250,7 +250,7 @@ class MultiMap3D:
         else:
             t_start = time.time()
             pred_sub_map = self.sub_maps[q_frame.matched_scene_name]
-            ret = pred_sub_map.refine_pose(q_frame=q_frame)
+            ret = pred_sub_map.refine_pose(q_frame=q_frame, refinement_method=self.loc_config['refinement_method'])
             q_frame.time_ref = time.time() - t_start
 
             q_frame.qvec = ret['qvec']
@@ -260,6 +260,7 @@ class MultiMap3D:
             q_frame.matched_point3D_ids = ret['matched_point3D_ids']
             q_frame.matched_inliers = ret['inliers']
             q_frame.refinement_reference_frame_ids = ret['refinement_reference_frame_ids']
+            q_frame.reference_frame_id = ret['reference_frame_id']
 
             q_err, t_err = q_frame.compute_pose_error()
             ref_full_name = q_frame.matched_scene_name + '/' + pred_sub_map.reference_frames[

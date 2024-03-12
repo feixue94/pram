@@ -238,8 +238,6 @@ class SingleMap3D:
             self.covisible_graph[frame_id] = find_covisible_frames(frame_id=frame_id)
 
     def refine_pose(self, q_frame: Frame, refinement_method='matching'):
-        # return self.refine_pose_by_projection(q_frame=q_frame)
-
         if refinement_method == 'matching':
             return self.refine_pose_by_matching(q_frame=q_frame)
         elif refinement_method == 'projection':
@@ -302,8 +300,19 @@ class SingleMap3D:
         ret['matched_point3D_ids'] = matched_point3D_ids
         ret['refinement_reference_frame_ids'] = db_ids
 
+        if ret['success']:
+            inlier_mask = np.array(ret['inliers'])
+            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=matched_point3D_ids[inlier_mask])
+        else:
+            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=matched_point3D_ids)
+
+        ret['refinement_reference_frame_ids'] = best_reference_frame_ids[:self.config['localization'][
+            'covisibility_frame']]
+        ret['reference_frame_id'] = best_reference_frame_ids[0]
+
         return ret
 
+    @torch.no_grad()
     def refine_pose_by_projection(self, q_frame):
         q_Rcw = qvec2rotmat(q_frame.qvec)
         q_tcw = q_frame.tvec
@@ -378,14 +387,33 @@ class SingleMap3D:
         ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg, 12)
         ret['matched_keypoints'] = mkpts
         ret['matched_xyzs'] = mxyzs
-        # ret['reference_frame_id'] = ref_frame_id
         ret['matched_point3D_ids'] = mpoint3D_ids
         ret['matched_sids'] = msids
-        # ret['matched_ref_keypoints'] = matched_ref_keypoints
-        ret['refinement_reference_frame_ids'] = [q_frame.reference_frame_id]
+
+        if ret['success']:
+            inlier_mask = np.array(ret['inliers'])
+            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=mpoint3D_ids[inlier_mask])
+        else:
+            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=mpoint3D_ids)
+
+        ret['refinement_reference_frame_ids'] = best_reference_frame_ids[:self.config['localization'][
+            'covisibility_frame']]
+        ret['reference_frame_id'] = best_reference_frame_ids[0]
 
         if not ret['success']:
             ret['num_inliers'] = 0
             ret['inliers'] = np.zeros(shape=(mkpts.shape[0],), dtype=bool)
 
         return ret
+
+    def find_reference_frames(self, matched_point3D_ids):
+        covis_frames = defaultdict(int)
+        for pid in matched_point3D_ids:
+            for im_id in self.point3Ds[pid].frame_ids:
+                covis_frames[im_id] += 1
+
+        covis_ids = np.array(list(covis_frames.keys()))
+        covis_num = np.array([covis_frames[i] for i in covis_ids])
+        sorted_idxes = np.argsort(covis_num)[::-1]  # larger to small
+        sorted_frame_ids = covis_ids[sorted_idxes]
+        return sorted_frame_ids

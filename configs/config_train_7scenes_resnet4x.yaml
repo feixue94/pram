@@ -75,11 +75,11 @@ loc: true
 online: true
 n_class: 113
 
-eval_max_keypoints: 4096
+eval_max_keypoints: 2048
 
 localization:
-  loc_scene_name_1: [ 'stairs' ]
-  loc_scene_name: [ 'heads' ]
+  loc_scene_name: [ 'stairs' ]
+  loc_scene_name_: [ 'heads' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
 
   seg_k: 20
@@ -102,8 +102,8 @@ localization:
   semantic_matching: true
   do_refinement: false
   pre_filtering_th: 0.95
-  refinement_method: 'matching'
-  refinement_method_: 'projection'
+  refinement_method_: 'matching'
+  refinement_method: 'projection'
   covisibility_frame: 20
   refinement_radius: 20
   refinement_nn_ratio: 0.9

@@ -77,6 +77,13 @@ class Tracker:
             return False
 
         success = self.verify_and_update(q_frame=self.curr_frame, ret=ret)
+
+        # refinement is necessary for tracking last frame
+        if success:
+            self.locMap.sub_maps[self.last_frame.scene_name].refine_pose(self.curr_frame,
+                                                                         refinement_method=self.loc_config[
+                                                                             'refinement_method'])
+
         if show:
             q_err, t_err = self.curr_frame.compute_pose_error()
             num_matches = ret['matched_keypoints'].shape[0]
@@ -149,6 +156,7 @@ class Tracker:
 
         print('kpts: ', curr_kpts.shape, last_kpts.shape, curr_descs.shape, last_descs.shape)
 
+        # '''
         indices = self.matcher({
             'descriptors0': torch.from_numpy(curr_descs)[None].cuda().float(),
             'keypoints0': torch.from_numpy(curr_kpts)[None].cuda().float(),
@@ -159,10 +167,13 @@ class Tracker:
             'keypoints1': torch.from_numpy(last_kpts)[None].cuda().float(),
             'scores1': torch.from_numpy(last_scores)[None].cuda().float(),
             'image_shape1': (1, 3, last_frame.camera.width, last_frame.camera.height),
-
-            # 'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
-            # 'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
         })['matches0'][0].cpu().numpy()
+        # '''
+
+        # indices = self.nn_matcher({
+        #     'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
+        #     'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
+        # })['matches0'][0].cpu().numpy()
 
         valid = indices >= 0
 

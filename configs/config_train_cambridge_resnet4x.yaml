@@ -105,8 +105,8 @@ localization:
   semantic_matching_: false
   do_refinement: false
   pre_filtering_th: 0.95
-  refinement_method: 'matching'
-  refinement_method_: 'projection'
+  refinement_method_: 'matching'
+  refinement_method: 'projection'
   covisibility_frame: 20
   refinement_radius: 20
   refinement_nn_ratio: 0.9
