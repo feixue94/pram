@@ -77,7 +77,7 @@ eval_max_keypoints: 2048
 localization:
   loc_scene_name: [ ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  seg_k: 20
+  seg_k: 30
   threshold: 12
   min_kpts: 256
   min_matches: 16
@@ -94,10 +94,11 @@ localization:
   with_original: true
   with_extra: false
   with_compress: true
+  pre_filtering_th: 0.95
   semantic_matching: true
   do_refinement: false
-  refinement_method: 'matching'
-  refinement_method_: 'projection'
+  refinement_method_: 'matching'
+  refinement_method: 'projection'
   covisibility_frame: 10
   refinement_radius: 20
   refinement_nn_ratio: 0.9

@@ -176,12 +176,13 @@ class Tracker:
             'scores1': torch.from_numpy(last_scores)[None].cuda().float(),
             'image_shape1': (1, 3, last_frame.camera.width, last_frame.camera.height),
         })['matches0'][0].cpu().numpy()
-        # '''
+        '''
 
-        # indices = self.nn_matcher({
-        #     'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
-        #     'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
-        # })['matches0'][0].cpu().numpy()
+        indices = self.nn_matcher({
+            'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
+            'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
+        })['matches0'][0].cpu().numpy()
+        '''
 
         valid = (indices >= 0)
 
@@ -229,8 +230,6 @@ class Tracker:
             'image_shape1': (1, 3, reference_frame.image_size[0], reference_frame.image_size[1]),
 
         })['matches0'][0].cpu().numpy()
-
-        print('valid: ', np.sum(matches >= 0))
 
         ids1 = np.arange(matches.shape[0])
         ids2 = matches

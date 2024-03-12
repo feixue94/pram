@@ -76,7 +76,7 @@ loc: true
 online: true
 n_class: 161
 
-eval_max_keypoints: 4096
+eval_max_keypoints: 2048
 
 localization:
   loc_scene_name_: [ 'GreatCourt' ]

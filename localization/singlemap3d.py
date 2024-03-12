@@ -302,9 +302,11 @@ class SingleMap3D:
 
         if ret['success']:
             inlier_mask = np.array(ret['inliers'])
-            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=matched_point3D_ids[inlier_mask])
+            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=matched_point3D_ids[inlier_mask],
+                                                                  candidate_frame_ids=self.covisible_graph.keys())
         else:
-            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=matched_point3D_ids)
+            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=matched_point3D_ids,
+                                                                  candidate_frame_ids=self.covisible_graph.keys())
 
         ret['refinement_reference_frame_ids'] = best_reference_frame_ids[:self.config['localization'][
             'covisibility_frame']]
@@ -405,9 +407,11 @@ class SingleMap3D:
 
         if ret['success']:
             inlier_mask = np.array(ret['inliers'])
-            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=mpoint3D_ids[inlier_mask])
+            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=mpoint3D_ids[inlier_mask],
+                                                                  candidate_frame_ids=self.covisible_graph.keys())
         else:
-            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=mpoint3D_ids)
+            best_reference_frame_ids = self.find_reference_frames(matched_point3D_ids=mpoint3D_ids,
+                                                                  candidate_frame_ids=self.covisible_graph.keys())
 
         ret['refinement_reference_frame_ids'] = best_reference_frame_ids[:self.config['localization'][
             'covisibility_frame']]
@@ -419,11 +423,12 @@ class SingleMap3D:
 
         return ret
 
-    def find_reference_frames(self, matched_point3D_ids):
+    def find_reference_frames(self, matched_point3D_ids, candidate_frame_ids=None):
         covis_frames = defaultdict(int)
         for pid in matched_point3D_ids:
             for im_id in self.point3Ds[pid].frame_ids:
-                covis_frames[im_id] += 1
+                if candidate_frame_ids is not None and im_id in candidate_frame_ids:
+                    covis_frames[im_id] += 1
 
         covis_ids = np.array(list(covis_frames.keys()))
         covis_num = np.array([covis_frames[i] for i in covis_ids])
