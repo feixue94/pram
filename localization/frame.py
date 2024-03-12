@@ -98,3 +98,26 @@ class Frame:
             err_q, err_t = compute_pose_error(pred_qcw=self.qvec, pred_tcw=self.tvec,
                                               gt_qcw=self.gt_qvec, gt_tcw=self.gt_tvec)
             return err_q, err_t
+
+    def get_intrinsics(self) -> np.ndarray:
+        camera_model = self.camera.model
+        params = self.camera.params
+        if camera_model in ("SIMPLE_PINHOLE", "SIMPLE_RADIAL", "RADIAL"):
+            fx = fy = params[0]
+            cx = params[1]
+            cy = params[2]
+        elif camera_model in ("PINHOLE", "OPENCV", "OPENCV_FISHEYE", "FULL_OPENCV"):
+            fx = params[0]
+            fy = params[1]
+            cx = params[2]
+            cy = params[3]
+        else:
+            raise Exception("Camera model not supported")
+
+        # intrinsics
+        K = np.identity(3)
+        K[0, 0] = fx
+        K[1, 1] = fy
+        K[0, 2] = cx
+        K[1, 2] = cy
+        return K

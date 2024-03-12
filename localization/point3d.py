@@ -10,7 +10,7 @@ import numpy as np
 
 class Point3D:
     def __init__(self, id: int, xyz: np.ndarray, error: float, refframe_id: int, seg_id: int = None,
-                 descriptor: np.ndarray = None, rgb: np.ndarray = None, frame_ids: list = None):
+                 descriptor: np.ndarray = None, rgb: np.ndarray = None, frame_ids: np.ndarray = None):
         self.id = id
         self.xyz = xyz
         self.rgb = rgb

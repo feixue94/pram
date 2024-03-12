@@ -7,7 +7,6 @@
 =================================================='''
 import numpy as np
 from collections import defaultdict
-import os
 import os.path as osp
 import pycolmap
 import logging
@@ -29,8 +28,7 @@ class SingleMap3D:
         self.image_path_prefix = self.config['image_path_prefix']
         if not with_compress:
             cameras, images, p3ds = read_model(
-                path=osp.join(config['segment_path'], 'model'), ext='.bin'
-            )
+                path=osp.join(config['segment_path'], 'model'), ext='.bin')
             p3d_descs = np.load(osp.join(config['segment_path'], 'point3D_desc.npy'),
                                 allow_pickle=True)[()]
         else:
@@ -69,6 +67,7 @@ class SingleMap3D:
         # construct 3D map
         self.initialize_point3Ds(p3ds=p3ds, p3d_descs=p3d_descs, p3d_seg=p3d_seg)
         self.initialize_ref_frames(cameras=cameras, images=images)
+
         all_vrf_frame_ids = []
         self.seg_ref_frame_ids = {}
         for sid in seg_vrf.keys():
@@ -120,7 +119,6 @@ class SingleMap3D:
         for id in images.keys():
             im = images[id]
             cam = cameras[im.camera_id]
-            # print('image: ', id, im.xys.shape, im.point3D_ids.shape)
             self.reference_frames[id] = RefFrame(camera=cam, id=id, qvec=im.qvec, tvec=im.tvec,
                                                  point3D_ids=im.point3D_ids,
                                                  keypoints=im.xys, name=im.name)
@@ -305,4 +303,49 @@ class SingleMap3D:
         return ret
 
     def refine_pose_by_projection(self, q_frame):
-        pass
+        q_Rcw = qvec2rotmat(q_frame.qvec)
+        q_tcw = q_frame.tvec
+        q_Tcw = np.eye(4, dtype=float)  # [4 4]
+        q_Tcw[:3, :3] = q_Rcw
+        q_Tcw[:3, 3:] = q_tcw
+        cam = q_frame.camera
+        imw = cam.width
+        imh = cam.height
+        K = q_frame.get_intrinsics()  # [3, 3]
+
+        q_point3D_ids = q_frame.matched_point3D_ids
+        reference_frame_id = q_frame.reference_frame_id
+        covis_frame_ids = self.covisible_graph[reference_frame_id]
+        if reference_frame_id not in covis_frame_ids:
+            covis_frame_ids.append(reference_frame_id)
+        all_point3D_ids = []
+        for frame_id in covis_frame_ids:
+            all_point3D_ids.extend(list(self.reference_frames[frame_id].point3D_ids))
+
+        all_point3D_ids = np.unique(all_point3D_ids)
+        all_xyzs = []
+        all_descs = []
+        for pid in all_point3D_ids:
+            all_xyzs.append(self.point3Ds[pid].xyz)
+            all_descs.append(self.point3Ds[pid].descriptor)
+
+        all_xyzs = np.array(all_xyzs)  # [N 3]
+        all_descs = np.array(all_descs)  # [N 3]
+
+        # move to gpu
+        all_xyzs_cuda = torch.from_numpy(all_xyzs).cuda()
+        ones = torch.ones(size=(all_xyzs_cuda.shape[0], 1), dtype=all_xyzs_cuda.dtype).cuda()
+        all_xyzs_cuda_homo = torch.cat([all_xyzs_cuda, ones], dim=1)  # [N 4]
+        K_cuda = torch.from_numpy(K)
+        proj_uvs = K_cuda @ (torch.from_numpy(q_Tcw).cuda() @ all_xyzs_cuda_homo.t())[:3, :]  # [3, N]
+        proj_uvs[0] /= proj_uvs[2]
+        proj_uvs[1] /= proj_uvs[1]
+        mask = (proj_uvs[2] > 0) * (proj_uvs[2] < 100) * (proj_uvs[0] >= 0) * (proj_uvs[0] < imw) * (
+                proj_uvs[1] >= 0) * (proj_uvs[1] < imh)
+
+        proj_uvs = proj_uvs[:, mask]
+
+        q_kpts_cuda = torch.from_numpy(q_frame.keypoints[:, :2]).cuda()
+
+        proj_error = q_kpts_cuda[..., None] - proj_uvs[:2][None]
+        proj_error = torch.sqrt(torch.sum(proj_error ** 2, dim=1))  # [M N]
