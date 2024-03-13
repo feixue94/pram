@@ -112,10 +112,6 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                 kpts_cuda = encoder_out['keypoints'][0][None]
                 descriptors_cuda = encoder_out['descriptors'][0][None].permute(0, 2, 1)
 
-                # curr_frame.keypoints = np.hstack([kpts_cuda[0].cpu().numpy(),
-                #                                   scores_cuda[0].cpu().numpy().reshape(-1, 1)])
-                # curr_frame.descriptors = descriptors_cuda[0].cpu().numpy()
-
                 curr_frame.add_keypoints(keypoints=np.hstack([kpts_cuda[0].cpu().numpy(),
                                                               scores_cuda[0].cpu().numpy().reshape(-1, 1)]),
                                          descriptors=descriptors_cuda[0].cpu().numpy())
@@ -177,7 +173,8 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                         mViewer.update(curr_frame=curr_frame)
 
                 if not success:
-                    success = locMap.run(q_frame=curr_frame, q_segs=segmentations)
+                    # success = locMap.run(q_frame=curr_frame, q_segs=segmentations)
+                    success = locMap.run(q_frame=curr_frame)
                     if success:
                         mViewer.update(curr_frame=curr_frame)
 

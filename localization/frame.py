@@ -39,6 +39,7 @@ class Frame:
 
         self.matched_scene_name = None
         self.matched_keypoints = None
+        self.matched_keypoint_ids = None
         self.matched_xyzs = None
         self.matched_point3D_ids = None
         self.matched_inliers = None

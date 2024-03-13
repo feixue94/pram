@@ -134,6 +134,7 @@ class SingleMap3D:
         q_descs = query_data['descriptors']
         q_kpts = query_data['keypoints']
         q_scores = query_data['scores']
+        q_kpt_ids = query_data['keypoint_ids']
         xyzs = ref_data['xyzs']
         points3D_ids = ref_data['point3D_ids']
         q_sids = query_data['sids']
@@ -153,15 +154,17 @@ class SingleMap3D:
 
         valid = indices0 >= 0
         mkpts = q_kpts[valid]
+        mkpt_ids = q_kpt_ids[valid]
         mxyzs = xyzs[indices0[valid]]
         mpoints3D_ids = points3D_ids[indices0[valid]]
         matched_sids = q_sids[valid]
         matched_ref_keypoints = ref_data['keypoints'][indices0[valid]]
 
-        print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
+        # print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
         cfg = query_data['camera']._asdict()
         ret = pycolmap.absolute_pose_estimation(mkpts + 0.5, mxyzs, cfg, 12)
         ret['matched_keypoints'] = mkpts
+        ret['matched_keypoint_ids'] = mkpt_ids
         ret['matched_xyzs'] = mxyzs
         ret['reference_frame_id'] = ref_frame_id
         ret['matched_point3D_ids'] = mpoints3D_ids
@@ -196,6 +199,7 @@ class SingleMap3D:
 
         valid = indices0 >= 0
         mkpts = q_kpts[valid]
+        mkpt_ids = np.where(valid)[0]
         mxyzs = xyzs[indices0[valid]]
         mpoints3D_ids = points3D_ids[indices0[valid]]
 
@@ -203,6 +207,7 @@ class SingleMap3D:
             'matched_keypoints': mkpts,
             'matched_xyzs': mxyzs,
             'matched_point3D_ids': mpoints3D_ids,
+            'matched_keypoint_ids': mkpt_ids,
         }
 
     def build_covisibility_graph(self, frame_ids: list = None, n_frame: int = 20):
@@ -252,6 +257,7 @@ class SingleMap3D:
         loc_success = q_frame.tracking_status
         if loc_success and ref_frame_id in db_ids:
             init_kpts = q_frame.matched_keypoints
+            init_kpt_ids = q_frame.matched_keypoint_ids
             init_point3D_ids = q_frame.matched_point3D_ids
             init_xyzs = np.array([self.point3Ds[v].xyz for v in init_point3D_ids]).reshape(-1, 3)
             list(db_ids).remove(ref_frame_id)
@@ -263,6 +269,8 @@ class SingleMap3D:
         matched_xyzs = []
         matched_kpts = []
         matched_point3D_ids = []
+        matched_kpt_ids = []
+        matched_sids = []
         for idx, frame_id in enumerate(db_ids):
             ref_data = self.reference_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
             match_out = self.match(query_data={
@@ -275,14 +283,17 @@ class SingleMap3D:
                 matched_kpts.append(match_out['matched_keypoints'])
                 matched_xyzs.append(match_out['matched_xyzs'])
                 matched_point3D_ids.append(match_out['matched_point3D_ids'])
+                matched_kpt_ids.append(match_out['matched_keypoint_ids'])
 
         matched_kpts = np.vstack(matched_kpts)
         matched_xyzs = np.vstack(matched_xyzs).reshape(-1, 3)
         matched_point3D_ids = np.hstack(matched_point3D_ids)
+        matched_kpt_ids = np.hstack(matched_kpt_ids)
         if init_kpts is not None:
             matched_kpts = np.vstack([matched_kpts, init_kpts])
             matched_xyzs = np.vstack([matched_xyzs, init_xyzs])
             matched_point3D_ids = np.hstack([matched_point3D_ids, init_point3D_ids])
+            matched_kpt_ids = np.hstack([matched_kpt_ids, init_kpt_ids])
 
         print_text = 'Refinement by matching. Get {:d} covisible frames with {:d} matches for optimization'.format(
             len(db_ids), matched_xyzs.shape[0])
@@ -296,6 +307,7 @@ class SingleMap3D:
         print('Time of RANSAC: {:.2f}s'.format(time.time() - t_start))
 
         ret['matched_keypoints'] = matched_kpts
+        ret['matched_keypoint_ids'] = matched_kpt_ids
         ret['matched_xyzs'] = matched_xyzs
         ret['matched_point3D_ids'] = matched_point3D_ids
         ret['refinement_reference_frame_ids'] = db_ids
@@ -386,6 +398,7 @@ class SingleMap3D:
         print('Projection: after ratio {:d}/{:d}'.format(q_kpts_cuda.shape[0], np.sum(ratio_mask)))
 
         mkpts = q_frame.keypoints[ratio_mask]
+        mkpt_ids = np.where(ratio_mask)[0]
         mxyzs = mxyzs[ids]
         mpoint3D_ids = mpoint3D_ids[ids]
         msids = msids[ids]
@@ -395,7 +408,7 @@ class SingleMap3D:
         # ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg,
         #                                         max_error_px=self.config['localization']['threshold'],
         #                                         min_num_trials=1000, max_num_trials=10000, confidence=0.995)
-        inlier_mask = [True for i in range(mkpts.shape[0])]
+        inlier_mask = np.ones(shape=(mkpts.shape[0],), dtype=bool).tolist()
         ret = pycolmap.pose_refinement(q_frame.tvec, q_frame.qvec, mkpts[:, :2] + 0.5, mxyzs, inlier_mask, cfg)
         ret['num_inliers'] = np.sum(inlier_mask).astype(int)
         ret['inliers'] = np.array(inlier_mask)
@@ -409,6 +422,7 @@ class SingleMap3D:
         ret['matched_xyzs'] = mxyzs
         ret['matched_point3D_ids'] = mpoint3D_ids
         ret['matched_sids'] = msids
+        ret['matched_keypoint_ids'] = mkpt_ids
 
         if ret['success']:
             inlier_mask = np.array(ret['inliers'])
