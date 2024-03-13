@@ -28,10 +28,11 @@ class Frame:
 
         self.keypoints = None  # [N, 3]
         self.descriptors = None  # [N, D]
+        self.segmentations = None  # [N C]
+        self.seg_scores = None  # [N C]
         self.seg_ids = None  # [N, 1]
         self.point3D_ids = None  # [N, 1]
         self.xyzs = None
-        self.segmentations = None
 
         self.gt_qvec = None
         self.gt_tvec = None
@@ -69,10 +70,37 @@ class Frame:
         self.xyzs = np.zeros(shape=(self.keypoints.shape[0], 3), dtype=float)
         self.xyzs[mask] = self.matched_xyzs[ids[mask]]
 
-    def update_features(self, keypoints, descriptors):
+    def add_keypoints(self, keypoints: np.ndarray, descriptors: np.ndarray):
         self.keypoints = keypoints
         self.descriptors = descriptors
         self.initialize_localization_variables()
+
+    def add_segmentations(self, segmentations: torch.Tensor, filtering_threshold: float):
+        '''
+        :param segmentations: [number_points number_labels]
+        :return:
+        '''
+        seg_scores = torch.softmax(segmentations, dim=-1)
+        if filtering_threshold > 0:
+            scores_background = seg_scores[:, 0]
+            non_bg_mask = (scores_background < filtering_threshold)
+            print('pre filtering before: ', self.keypoints.shape)
+            if torch.sum(non_bg_mask) >= 0.4 * seg_scores.shape[0]:
+                self.keypoints = self.keypoints[non_bg_mask.cpu().numpy()]
+                self.descriptors = self.descriptors[non_bg_mask.cpu().numpy()]
+                print('pre filtering after: ', self.keypoints.shape)
+
+                # update localization variables
+                self.initialize_localization_variables()
+
+                segmentations = segmentations[non_bg_mask]
+                seg_scores = seg_scores[non_bg_mask]
+            print('pre filtering before: ', self.keypoints.shape)
+
+        # extract initial segmentation info
+        self.segmentations = segmentations.cpu().numpy()
+        self.seg_scores = seg_scores.cpu().numpy()
+        self.seg_ids = segmentations.max(dim=-1)[1].cpu().numpy()
 
     def filter_keypoints(self, seg_scores: np.ndarray, filtering_threshold: float):
         scores_background = seg_scores[:, 0]
