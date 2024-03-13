@@ -118,6 +118,7 @@ class Viewer:
         for fid in self.reference_frame_ids:
             pids = self.subMap.reference_frames[fid].point3D_ids
             ref_point3D_ids.extend(list(pids))
+
         ref_point3D_ids = np.unique(ref_point3D_ids).tolist()
 
         point_size = self.point_size * 5
@@ -355,9 +356,11 @@ class Viewer:
 
         # self.frame = curr_frame
         self.current_vrf_id = curr_frame.reference_frame_id
-        self.reference_frame_ids = curr_frame.refinement_reference_frame_ids
-        if self.reference_frame_ids is None:
-            self.reference_frame_ids = [self.current_vrf_id]
+        self.reference_frame_ids = [self.current_vrf_id]
+
+        # self.reference_frame_ids = curr_frame.refinement_reference_frame_ids
+        # if self.reference_frame_ids is None:
+        #     self.reference_frame_ids = [self.current_vrf_id]
         self.subMap = self.locMap.sub_maps[curr_frame.matched_scene_name]
         self.start_seg_id = self.locMap.scene_name_start_sid[curr_frame.matched_scene_name]
 

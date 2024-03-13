@@ -76,20 +76,22 @@ class Tracker:
                 exit(0)
             return False
 
+        ret['matched_scene_name'] = self.last_frame.scene_name
         success = self.verify_and_update(q_frame=self.curr_frame, ret=ret)
 
         if not success:
             return False
 
-        # refinement is necessary for tracking last frame
-        t_start = time.time()
-        ret = self.locMap.sub_maps[self.last_frame.matched_scene_name].refine_pose(self.curr_frame,
-                                                                                   refinement_method=self.loc_config[
-                                                                                       'refinement_method'])
-        self.curr_frame.time_ref = self.curr_frame.time_ref + time.time() - t_start
-
-        ret['matched_scene_name'] = self.last_frame.scene_name
-        success = self.verify_and_update(q_frame=self.curr_frame, ret=ret)
+        if ret['num_inliers'] < 256:
+            # refinement is necessary for tracking last frame
+            t_start = time.time()
+            ret = self.locMap.sub_maps[self.last_frame.matched_scene_name].refine_pose(self.curr_frame,
+                                                                                       refinement_method=
+                                                                                       self.loc_config[
+                                                                                           'refinement_method'])
+            self.curr_frame.time_ref = self.curr_frame.time_ref + time.time() - t_start
+            ret['matched_scene_name'] = self.last_frame.scene_name
+            success = self.verify_and_update(q_frame=self.curr_frame, ret=ret)
 
         if show:
             q_err, t_err = self.curr_frame.compute_pose_error()
@@ -164,7 +166,7 @@ class Tracker:
         curr_kpt_ids = np.arange(curr_kpts.shape[0])
 
         last_kpts = last_frame.keypoints[:, :2]
-        last_scores = last_frame.keypoints[2]
+        last_scores = last_frame.keypoints[:, 2]
         last_descs = last_frame.descriptors
         last_xyzs = last_frame.xyzs
         last_point3D_ids = last_frame.point3D_ids
@@ -201,6 +203,79 @@ class Tracker:
         matched_kpt_ids = curr_kpt_ids[valid][point3D_mask]
         matched_xyzs = last_xyzs[indices[valid]][point3D_mask]
         matched_last_kpts = last_kpts[indices[valid]][point3D_mask]
+
+        print('Tracking: {:d} matches from {:d}-{:d} kpts'.format(matched_kpts.shape[0], curr_kpts.shape[0],
+                                                                  last_kpts.shape[0]))
+
+        # print('tracking: ', matched_kpts.shape, matched_xyzs.shape)
+        ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs,
+                                                curr_frame.camera._asdict(),
+                                                max_error_px=self.config['localization']['threshold'])
+
+        ret['matched_keypoints'] = matched_kpts
+        ret['matched_keypoint_ids'] = matched_kpt_ids
+        ret['matched_ref_keypoints'] = matched_last_kpts
+        ret['matched_xyzs'] = matched_xyzs
+        ret['matched_point3D_ids'] = matched_point3D_ids
+        ret['matched_sids'] = matched_sids
+        ret['reference_frame_id'] = last_frame.reference_frame_id
+        ret['matched_scene_name'] = last_frame.matched_scene_name
+        return ret
+
+    def track_last_frame_fast(self, curr_frame: Frame, last_frame: Frame):
+        curr_kpts = curr_frame.keypoints[:, :2]
+        curr_scores = curr_frame.keypoints[:, 2]
+        curr_descs = curr_frame.descriptors
+        curr_kpt_ids = np.arange(curr_kpts.shape[0])
+
+        last_point3D_ids = last_frame.point3D_ids
+        point3D_mask = (last_point3D_ids >= 0)
+        last_kpts = last_frame.keypoints[:, :2][point3D_mask]
+        last_scores = last_frame.keypoints[:, 2][point3D_mask]
+        last_descs = last_frame.descriptors[point3D_mask]
+        last_xyzs = last_frame.xyzs[point3D_mask]
+        last_sids = last_frame.seg_ids[point3D_mask]
+
+        minx = np.min(last_kpts[:, 0])
+        maxx = np.max(last_kpts[:, 0])
+        miny = np.min(last_kpts[:, 1])
+        maxy = np.max(last_kpts[:, 1])
+        curr_mask = (curr_kpts[:, 0] >= minx) * (curr_kpts[:, 0] <= maxx) * (curr_kpts[:, 1] >= miny) * (
+                curr_kpts[:, 1] <= maxy)
+
+        curr_kpts = curr_kpts[curr_mask]
+        curr_scores = curr_scores[curr_mask]
+        curr_descs = curr_descs[curr_mask]
+        curr_kpt_ids = curr_kpt_ids[curr_mask]
+        # '''
+        indices = self.matcher({
+            'descriptors0': torch.from_numpy(curr_descs)[None].cuda().float(),
+            'keypoints0': torch.from_numpy(curr_kpts)[None].cuda().float(),
+            'scores0': torch.from_numpy(curr_scores)[None].cuda().float(),
+            'image_shape0': (1, 3, curr_frame.camera.width, curr_frame.camera.height),
+
+            'descriptors1': torch.from_numpy(last_descs)[None].cuda().float(),
+            'keypoints1': torch.from_numpy(last_kpts)[None].cuda().float(),
+            'scores1': torch.from_numpy(last_scores)[None].cuda().float(),
+            'image_shape1': (1, 3, last_frame.camera.width, last_frame.camera.height),
+        })['matches0'][0].cpu().numpy()
+        '''
+
+        indices = self.nn_matcher({
+            'descriptors0': torch.from_numpy(curr_descs.transpose()).float().cuda()[None],
+            'descriptors1': torch.from_numpy(last_descs.transpose()).float().cuda()[None],
+        })['matches0'][0].cpu().numpy()
+        '''
+
+        valid = (indices >= 0)
+
+        matched_point3D_ids = last_point3D_ids[indices[valid]]
+        matched_sids = last_sids[indices[valid]]
+
+        matched_kpts = curr_kpts[valid]
+        matched_kpt_ids = curr_kpt_ids[valid]
+        matched_xyzs = last_xyzs[indices[valid]]
+        matched_last_kpts = last_kpts[indices[valid]]
 
         print('Tracking: {:d} matches from {:d}-{:d} kpts'.format(matched_kpts.shape[0], curr_kpts.shape[0],
                                                                   last_kpts.shape[0]))

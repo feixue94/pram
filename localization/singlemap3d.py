@@ -395,7 +395,7 @@ class SingleMap3D:
         dists, ids = torch.topk(desc_dist, k=2, largest=False, dim=1)
         # apply nn ratio
         ratios = dists[:, 0] / dists[:, 1]  # smaller, better
-        ratio_mask = (ratios <= 0.95) * (dists[:, 0] < 100)
+        ratio_mask = (ratios <= 0.99) * (dists[:, 0] < 100)
         ratio_mask = ratio_mask.cpu().numpy()
         ids = ids.cpu().numpy()[ratio_mask, 0]
 
@@ -419,7 +419,7 @@ class SingleMap3D:
         # ret['num_inliers'] = np.sum(inlier_mask).astype(int)
         # ret['inliers'] = np.array(inlier_mask)
 
-        print_text = 'Refinement by mprojection. Get {:d} inliers of {:d} matches for optimization'.format(
+        print_text = 'Refinement by projection. Get {:d} inliers of {:d} matches for optimization'.format(
             ret['num_inliers'], mxyzs.shape[0])
         print(print_text)
         print('Time of RANSAC: {:.2f}s'.format(time.time() - t_start))

@@ -5,6 +5,8 @@
 @Author fx221@cam.ac.uk
 @Date   01/03/2024 10:08
 =================================================='''
+from collections import defaultdict
+
 import numpy as np
 import torch
 
@@ -158,6 +160,10 @@ class Frame:
         K[0, 2] = cx
         K[1, 2] = cy
         return K
+
+    def get_dominate_seg_id(self):
+        counts = np.bincount(self.seg_ids[self.seg_ids > 0])
+        return np.argmax(counts)
 
     def clear_localization_track(self):
         self.matched_scene_name = None

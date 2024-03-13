@@ -86,7 +86,7 @@ localization:
   threshold: 8
   min_kpts: 128
   min_matches: 16
-  min_inliers: 64
+  min_inliers: 32
   tracking_inliers: 50
   matching_method_: "mnn"
   matching_method_1: "spg"
