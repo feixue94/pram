@@ -140,29 +140,35 @@ class Tracker:
             print(print_text)
             q_frame.tracking_status = True
 
-            self.update_currenr_frame(curr_frame=q_frame, ret=ret)
+            self.update_current_frame(curr_frame=q_frame, ret=ret)
             return True
 
-    def update_currenr_frame(self, curr_frame: Frame, ret: dict):
+    def update_current_frame(self, curr_frame: Frame, ret: dict):
         curr_frame.qvec = ret['qvec']
         curr_frame.tvec = ret['tvec']
+
         curr_frame.matched_scene_name = ret['matched_scene_name']
         curr_frame.reference_frame_id = ret['reference_frame_id']
         inliers = np.array(ret['inliers'])
+
         curr_frame.matched_keypoints = ret['matched_keypoints'][inliers]
         curr_frame.matched_xyzs = ret['matched_xyzs'][inliers]
         curr_frame.matched_point3D_ids = ret['matched_point3D_ids'][inliers]
+        curr_frame.matched_keypoint_ids = ret['matched_keypoint_ids'][inliers]
+        curr_frame.matched_sids = ret['matched_sids'][inliers]
 
     def track_last_frame(self, curr_frame: Frame, last_frame: Frame):
         curr_kpts = curr_frame.keypoints[:, :2]
         curr_scores = curr_frame.keypoints[:, 2]
         curr_descs = curr_frame.descriptors
+        curr_kpt_ids = np.arange(curr_kpts.shape[0])
 
         last_kpts = last_frame.keypoints[:, :2]
         last_scores = last_frame.keypoints[2]
         last_descs = last_frame.descriptors
         last_xyzs = last_frame.xyzs
         last_point3D_ids = last_frame.point3D_ids
+        last_sids = last_frame.seg_ids
 
         # '''
         indices = self.matcher({
@@ -189,8 +195,10 @@ class Tracker:
         matched_point3D_ids = last_point3D_ids[indices[valid]]
         point3D_mask = (matched_point3D_ids >= 0)
         matched_point3D_ids = matched_point3D_ids[point3D_mask]
+        matched_sids = last_sids[indices[valid]][point3D_mask]
 
         matched_kpts = curr_kpts[valid][point3D_mask]
+        matched_kpt_ids = curr_kpt_ids[valid][point3D_mask]
         matched_xyzs = last_xyzs[indices[valid]][point3D_mask]
         matched_last_kpts = last_kpts[indices[valid]][point3D_mask]
 
@@ -203,9 +211,11 @@ class Tracker:
                                                 max_error_px=self.config['localization']['threshold'])
 
         ret['matched_keypoints'] = matched_kpts
+        ret['matched_keypoint_ids'] = matched_kpt_ids
         ret['matched_ref_keypoints'] = matched_last_kpts
         ret['matched_xyzs'] = matched_xyzs
         ret['matched_point3D_ids'] = matched_point3D_ids
+        ret['matched_sids'] = matched_sids
         ret['reference_frame_id'] = last_frame.reference_frame_id
         ret['matched_scene_name'] = last_frame.matched_scene_name
         return ret

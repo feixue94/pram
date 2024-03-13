@@ -135,6 +135,7 @@ class MultiMap3D:
                 q_kpts = q_frame.keypoints[:, :2]
                 q_scores = q_frame.keypoints[:, 2]
                 q_sid_top1 = q_pred_segs_top1
+                q_kpt_ids = np.arange(q_kpts.shape[0])
                 semantic_matching = False
             print_text = f'Semantic matching - {semantic_matching}! Query kpts {q_kpts.shape[0]} for {i}th seg {sid}'
             print(print_text)
@@ -244,15 +245,25 @@ class MultiMap3D:
         else:
             t_start = time.time()
             pred_sub_map = self.sub_maps[q_frame.matched_scene_name]
-            ret = pred_sub_map.refine_pose(q_frame=q_frame, refinement_method=self.loc_config['refinement_method'])
+            if q_frame.tracking_status is True:
+                ret = pred_sub_map.refine_pose(q_frame=q_frame, refinement_method=self.loc_config['refinement_method'])
+            else:
+                ret = pred_sub_map.refine_pose(q_frame=q_frame,
+                                               refinement_method='matching')  # do not trust the pose for projection
+
             q_frame.time_ref = time.time() - t_start
+
+            inlier_mask = np.array(ret['inliers'])
 
             q_frame.qvec = ret['qvec']
             q_frame.tvec = ret['tvec']
-            q_frame.matched_keypoints = ret['matched_keypoints']
-            q_frame.matched_xyzs = ret['matched_xyzs']
-            q_frame.matched_point3D_ids = ret['matched_point3D_ids']
-            q_frame.matched_inliers = ret['inliers']
+            q_frame.matched_keypoints = ret['matched_keypoints'][inlier_mask]
+            q_frame.matched_keypoint_ids = ret['matched_keypoint_ids'][inlier_mask]
+            q_frame.matched_xyzs = ret['matched_xyzs'][inlier_mask]
+            q_frame.matched_point3D_ids = ret['matched_point3D_ids'][inlier_mask]
+            q_frame.matched_sids = ret['matched_sids'][inlier_mask]
+            q_frame.matched_inliers = np.array(ret['inliers'])[inlier_mask]
+
             q_frame.refinement_reference_frame_ids = ret['refinement_reference_frame_ids']
             q_frame.reference_frame_id = ret['reference_frame_id']
 
@@ -494,18 +505,27 @@ class MultiMap3D:
     def update_query_frame(self, q_frame, ret):
         q_frame.matched_scene_name = ret['matched_scene_name']
         q_frame.reference_frame_id = ret['reference_frame_id']
+        q_frame.qvec = ret['qvec']
+        q_frame.tvec = ret['tvec']
 
+        inlier_mask = np.array(ret['inliers'])
         q_frame.matched_keypoints = ret['matched_keypoints']
         q_frame.matched_keypoint_ids = ret['matched_keypoint_ids']
         q_frame.matched_xyzs = ret['matched_xyzs']
         q_frame.matched_point3D_ids = ret['matched_point3D_ids']
-        q_frame.matched_inliers = ret['inliers']
-        q_frame.qvec = ret['qvec']
-        q_frame.tvec = ret['tvec']
+        q_frame.matched_sids = ret['matched_sids']
+        q_frame.matched_inliers = np.array(ret['inliers'])
 
         # inlier_mask = np.array(ret['inliers'])
-        # matched_kpt_ids = ret['matched_keypoint_ids'][inlier_mask]
-        # q_frame.xyzs[inlier_mask] = ret['matched_xyzs'][inlier_mask]
+        # q_frame.matched_keypoints = ret['matched_keypoints'][inlier_mask]
+        # q_frame.matched_keypoint_ids = ret['matched_keypoint_ids'][inlier_mask]
+        # q_frame.matched_xyzs = ret['matched_xyzs'][inlier_mask]
+        # q_frame.matched_point3D_ids = ret['matched_point3D_ids'][inlier_mask]
+        # q_frame.matched_sids = ret['matched_sids'][inlier_mask]
+        # q_frame.matched_inliers = np.array(ret['inliers'])[inlier_mask]
+
+        # print('update_query_frame: ', q_frame.matched_keypoint_ids.shape, q_frame.matched_keypoints.shape,
+        #       q_frame.matched_xyzs.shape, q_frame.matched_xyzs.shape, np.sum(q_frame.matched_inliers))
 
     def process_segmentations(self, segs, topk=10):
         pred_values, pred_ids = torch.topk(segs, k=segs.shape[-1], largest=True, dim=-1)  # [N, C]

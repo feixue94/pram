@@ -57,7 +57,7 @@ class Frame:
         self.time_loc = 0
         self.time_ref = 0
 
-    def update_point3ds(self):
+    def update_point3ds_old(self):
         pt = torch.from_numpy(self.keypoints[:, :2]).unsqueeze(-1)  # [M 2 1]
         mpt = torch.from_numpy(self.matched_keypoints[:, :2].transpose()).unsqueeze(0)  # [1 2 N]
         dist = torch.sqrt(torch.sum((pt - mpt) ** 2, dim=1))
@@ -68,8 +68,17 @@ class Frame:
         self.point3D_ids = np.zeros(shape=(self.keypoints.shape[0],), dtype=int) - 1
         self.point3D_ids[mask] = self.matched_point3D_ids[ids[mask]]
 
-        self.xyzs = np.zeros(shape=(self.keypoints.shape[0], 3), dtype=float)
+        # self.xyzs = np.zeros(shape=(self.keypoints.shape[0], 3), dtype=float)
+        inlier_mask = self.matched_inliers
         self.xyzs[mask] = self.matched_xyzs[ids[mask]]
+        self.seg_ids[mask] = self.matched_sids[ids[mask]]
+
+    def update_point3ds(self):
+        # print('Frame: update_point3ds: ', self.matched_keypoint_ids.shape, self.matched_xyzs.shape,
+        #       self.matched_sids.shape, self.matched_point3D_ids.shape)
+        self.xyzs[self.matched_keypoint_ids] = self.matched_xyzs
+        self.seg_ids[self.matched_keypoint_ids] = self.matched_sids
+        self.point3D_ids[self.matched_keypoint_ids] = self.matched_point3D_ids
 
     def add_keypoints(self, keypoints: np.ndarray, descriptors: np.ndarray):
         self.keypoints = keypoints

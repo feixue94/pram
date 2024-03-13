@@ -135,9 +135,10 @@ class SingleMap3D:
         q_kpts = query_data['keypoints']
         q_scores = query_data['scores']
         q_kpt_ids = query_data['keypoint_ids']
-        xyzs = ref_data['xyzs']
-        points3D_ids = ref_data['point3D_ids']
         q_sids = query_data['sids']
+        xyzs = ref_data['xyzs']
+        point3D_ids = ref_data['point3D_ids']
+        ref_sids = np.array([self.point3Ds[v].seg_id for v in point3D_ids])
         with torch.no_grad():
             indices0 = self.matcer({
                 'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
@@ -156,8 +157,9 @@ class SingleMap3D:
         mkpts = q_kpts[valid]
         mkpt_ids = q_kpt_ids[valid]
         mxyzs = xyzs[indices0[valid]]
-        mpoints3D_ids = points3D_ids[indices0[valid]]
-        matched_sids = q_sids[valid]
+        mpoint3D_ids = point3D_ids[indices0[valid]]
+        matched_sids = ref_sids[indices0[valid]]
+        # matched_sids = q_sids[valid]
         matched_ref_keypoints = ref_data['keypoints'][indices0[valid]]
 
         # print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
@@ -167,7 +169,7 @@ class SingleMap3D:
         ret['matched_keypoint_ids'] = mkpt_ids
         ret['matched_xyzs'] = mxyzs
         ret['reference_frame_id'] = ref_frame_id
-        ret['matched_point3D_ids'] = mpoints3D_ids
+        ret['matched_point3D_ids'] = mpoint3D_ids
         ret['matched_sids'] = matched_sids
         ret['matched_ref_keypoints'] = matched_ref_keypoints
 
@@ -270,7 +272,6 @@ class SingleMap3D:
         matched_kpts = []
         matched_point3D_ids = []
         matched_kpt_ids = []
-        matched_sids = []
         for idx, frame_id in enumerate(db_ids):
             ref_data = self.reference_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
             match_out = self.match(query_data={
@@ -295,6 +296,8 @@ class SingleMap3D:
             matched_point3D_ids = np.hstack([matched_point3D_ids, init_point3D_ids])
             matched_kpt_ids = np.hstack([matched_kpt_ids, init_kpt_ids])
 
+        matched_sids = np.array([self.point3Ds[v].seg_id for v in matched_point3D_ids])
+
         print_text = 'Refinement by matching. Get {:d} covisible frames with {:d} matches for optimization'.format(
             len(db_ids), matched_xyzs.shape[0])
         print(print_text)
@@ -310,7 +313,8 @@ class SingleMap3D:
         ret['matched_keypoint_ids'] = matched_kpt_ids
         ret['matched_xyzs'] = matched_xyzs
         ret['matched_point3D_ids'] = matched_point3D_ids
-        ret['refinement_reference_frame_ids'] = db_ids
+        ret['matched_sids'] = matched_sids
+        # ret['refinement_reference_frame_ids'] = db_ids
 
         if ret['success']:
             inlier_mask = np.array(ret['inliers'])
@@ -402,16 +406,18 @@ class SingleMap3D:
         mxyzs = mxyzs[ids]
         mpoint3D_ids = mpoint3D_ids[ids]
         msids = msids[ids]
+        print('projection: ', mkpts.shape, mkpt_ids.shape, mxyzs.shape, mpoint3D_ids.shape, msids.shape)
+
         # print('Find {:d}-{:d} matches from projection'.format(mkpts.shape[0], q_frame.keypoints.shape[0]))
         cfg = q_frame.camera._asdict()
         t_start = time.time()
-        # ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg,
-        #                                         max_error_px=self.config['localization']['threshold'],
-        #                                         min_num_trials=1000, max_num_trials=10000, confidence=0.995)
-        inlier_mask = np.ones(shape=(mkpts.shape[0],), dtype=bool).tolist()
-        ret = pycolmap.pose_refinement(q_frame.tvec, q_frame.qvec, mkpts[:, :2] + 0.5, mxyzs, inlier_mask, cfg)
-        ret['num_inliers'] = np.sum(inlier_mask).astype(int)
-        ret['inliers'] = np.array(inlier_mask)
+        ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg,
+                                                max_error_px=self.config['localization']['threshold'],
+                                                min_num_trials=1000, max_num_trials=10000, confidence=0.995)
+        # inlier_mask = np.ones(shape=(mkpts.shape[0],), dtype=bool).tolist()
+        # ret = pycolmap.pose_refinement(q_frame.tvec, q_frame.qvec, mkpts[:, :2] + 0.5, mxyzs, inlier_mask, cfg)
+        # ret['num_inliers'] = np.sum(inlier_mask).astype(int)
+        # ret['inliers'] = np.array(inlier_mask)
 
         print_text = 'Refinement by mprojection. Get {:d} inliers of {:d} matches for optimization'.format(
             ret['num_inliers'], mxyzs.shape[0])
