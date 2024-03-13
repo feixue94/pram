@@ -421,15 +421,15 @@ class Viewer:
                                                )
 
         menu = pangolin.Var("menu")
-        menu.Tracking = (False, pangolin.VarMeta(toggle=True))
+        menu.Tracking = (True, pangolin.VarMeta(toggle=True))
         menu.FollowCamera = (True, pangolin.VarMeta(toggle=True))
-        menu.ShowPoints = (False, pangolin.VarMeta(toggle=True))
+        menu.ShowPoints = (True, pangolin.VarMeta(toggle=True))
         menu.ShowSegs = (False, pangolin.VarMeta(toggle=True))
         menu.ShowRefSegs = (True, pangolin.VarMeta(toggle=True))
         menu.ShowRefPoints = (False, pangolin.VarMeta(toggle=True))
+        menu.ShowVRFFrame = (True, pangolin.VarMeta(toggle=True))
         menu.ShowAllVRFs = (False, pangolin.VarMeta(toggle=True))
         menu.ShowRefFrames = (False, pangolin.VarMeta(toggle=True))
-        menu.ShowVRFFrame = (True, pangolin.VarMeta(toggle=True))
 
         menu.Refinement = (self.refinement, pangolin.VarMeta(toggle=True))
 

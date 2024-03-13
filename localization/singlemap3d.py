@@ -285,11 +285,11 @@ class SingleMap3D:
                 matched_xyzs.append(match_out['matched_xyzs'])
                 matched_point3D_ids.append(match_out['matched_point3D_ids'])
                 matched_kpt_ids.append(match_out['matched_keypoint_ids'])
-
-        matched_kpts = np.vstack(matched_kpts)
-        matched_xyzs = np.vstack(matched_xyzs).reshape(-1, 3)
-        matched_point3D_ids = np.hstack(matched_point3D_ids)
-        matched_kpt_ids = np.hstack(matched_kpt_ids)
+        if len(matched_kpts) > 1:
+            matched_kpts = np.vstack(matched_kpts)
+            matched_xyzs = np.vstack(matched_xyzs).reshape(-1, 3)
+            matched_point3D_ids = np.hstack(matched_point3D_ids)
+            matched_kpt_ids = np.hstack(matched_kpt_ids)
         if init_kpts is not None:
             matched_kpts = np.vstack([matched_kpts, init_kpts])
             matched_xyzs = np.vstack([matched_xyzs, init_xyzs])
@@ -372,7 +372,7 @@ class SingleMap3D:
         proj_uvs = K_cuda @ (torch.from_numpy(q_Tcw).cuda() @ all_xyzs_cuda_homo.t())[:3, :]  # [3, N]
         proj_uvs[0] /= proj_uvs[2]
         proj_uvs[1] /= proj_uvs[2]
-        mask = (proj_uvs[2] > 0) * (proj_uvs[2] < 100) * (proj_uvs[0] >= 0) * (proj_uvs[0] < imw) * (
+        mask = (proj_uvs[2] > 0) * (proj_uvs[2] < 50) * (proj_uvs[0] >= 0) * (proj_uvs[0] < imw) * (
                 proj_uvs[1] >= 0) * (proj_uvs[1] < imh)
 
         proj_uvs = proj_uvs[:, mask]
