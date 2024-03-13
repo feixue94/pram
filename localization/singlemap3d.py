@@ -330,6 +330,7 @@ class SingleMap3D:
         if reference_frame_id not in covis_frame_ids:
             covis_frame_ids.append(reference_frame_id)
         all_point3D_ids = []
+
         for frame_id in covis_frame_ids:
             all_point3D_ids.extend(list(self.reference_frames[frame_id].point3D_ids))
 
@@ -376,7 +377,7 @@ class SingleMap3D:
         desc_dist = torch.sqrt(2 - 2 * q_descs_cuda @ all_descs_cuda.t() + 1e-6)
         desc_dist[out_of_range_mask] = desc_dist[out_of_range_mask] + 100
         dists, ids = torch.topk(desc_dist, k=2, largest=False, dim=1)
-        # apply ratio
+        # apply nn ratio
         ratios = dists[:, 0] / dists[:, 1]  # smaller, better
         ratio_mask = (ratios <= 0.95) * (dists[:, 0] < 100)
         ratio_mask = ratio_mask.cpu().numpy()
@@ -390,13 +391,19 @@ class SingleMap3D:
         msids = msids[ids]
         # print('Find {:d}-{:d} matches from projection'.format(mkpts.shape[0], q_frame.keypoints.shape[0]))
         cfg = q_frame.camera._asdict()
-        ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg,
-                                                max_error_px=self.config['localization']['threshold'],
-                                                min_num_trials=1000, max_num_trials=10000, confidence=0.995)
+        t_start = time.time()
+        # ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg,
+        #                                         max_error_px=self.config['localization']['threshold'],
+        #                                         min_num_trials=1000, max_num_trials=10000, confidence=0.995)
+        inlier_mask = [True for i in range(mkpts.shape[0])]
+        ret = pycolmap.pose_refinement(q_frame.tvec, q_frame.qvec, mkpts[:, :2] + 0.5, mxyzs, inlier_mask, cfg)
+        ret['num_inliers'] = np.sum(inlier_mask).astype(int)
+        ret['inliers'] = np.array(inlier_mask)
 
         print_text = 'Refinement by mprojection. Get {:d} inliers of {:d} matches for optimization'.format(
             ret['num_inliers'], mxyzs.shape[0])
         print(print_text)
+        print('Time of RANSAC: {:.2f}s'.format(time.time() - t_start))
 
         ret['matched_keypoints'] = mkpts
         ret['matched_xyzs'] = mxyzs

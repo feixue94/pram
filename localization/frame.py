@@ -69,16 +69,10 @@ class Frame:
         self.xyzs = np.zeros(shape=(self.keypoints.shape[0], 3), dtype=float)
         self.xyzs[mask] = self.matched_xyzs[ids[mask]]
 
-    def update_features(self, keypoints, descriptors, points3d=None, seg_ids=None):
+    def update_features(self, keypoints, descriptors):
         self.keypoints = keypoints
         self.descriptors = descriptors
-        n = keypoints.shape[0]
-        if points3d is None:
-            self.points3d = np.zeros(shape=(n, 3), dtype=float)
-            self.points3d_mask = np.zeros(shape=(n,), dtype=bool)
-
-        if seg_ids is None:
-            self.seg_ids = np.zeros(shape=(n,), dtype=int) - 1
+        self.initialize_localization_variables()
 
     def filter_keypoints(self, seg_scores: np.ndarray, filtering_threshold: float):
         scores_background = seg_scores[:, 0]
@@ -88,6 +82,9 @@ class Frame:
             self.keypoints = self.keypoints[non_bg_mask]
             self.descriptors = self.descriptors[non_bg_mask]
             print('pre filtering after: ', self.keypoints.shape)
+
+            # update localization variables
+            self.initialize_localization_variables()
             return non_bg_mask
         else:
             print('pre filtering after: ', self.keypoints.shape)
@@ -133,3 +130,9 @@ class Frame:
         self.matched_sids = None
 
         self.refinement_reference_frame_ids = None
+
+    def initialize_localization_variables(self):
+        nkpt = self.keypoints.shape[0]
+        self.seg_ids = np.zeros(shape=(nkpt,), dtype=int) - 1
+        self.point3D_ids = np.zeros(shape=(nkpt,), dtype=int) - 1
+        self.xyzs = np.zeros(shape=(nkpt, 3), dtype=float)
