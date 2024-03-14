@@ -172,7 +172,12 @@ if __name__ == '__main__':
     dataset = config['dataset']
     if config['eval'] or config['loc']:
         if not config['online']:
-            pass
+            from localization.loc_by_rec_eval import loc_by_rec_eval
+
+            model = get_model(config=config)
+            loc_by_rec_eval(rec_model=model.cuda().eval(),
+                            local_feat=feat_model.cuda().eval(),
+                            config=config, img_transforms=img_transforms)
         else:
             from localization.loc_by_rec_online import loc_by_rec_online
 
