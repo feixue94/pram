@@ -127,32 +127,18 @@ class MultiMap3D:
             print('pred/gt scene: {:s}, {:s}, sid: {:d}'.format(pred_scene_name, q_scene_name, pred_sid_in_sub_scene))
             print('{:s}/{:s}, pred: {:s}, sid: {:d}, order: {:d}'.format(q_scene_name, q_name, pred_scene_name, sid,
                                                                          i))
-            if q_kpt_ids.shape[0] >= self.loc_config['min_kpts'] and self.semantic_matching:
-                # q_descs = q_frame.descriptors[q_kpt_ids]
-                # q_kpts = q_frame.keypoints[q_kpt_ids, :2]
-                # q_scores = q_frame.keypoints[q_kpt_ids, 2]
-                # q_sid_top1 = q_pred_segs_top1[q_kpt_ids]
+
+            if (q_kpt_ids.shape[0] >= self.loc_config['min_kpts']
+                    and self.semantic_matching
+                    and pred_sub_map.check_semantic_consistency(q_frame=q_frame,
+                                                                sid=pred_sid_in_sub_scene,
+                                                                overlap_ratio=0.5)):
                 semantic_matching = True
             else:
-                # q_descs = q_frame.descriptors
-                # q_kpts = q_frame.keypoints[:, :2]
-                # q_scores = q_frame.keypoints[:, 2]
-                # q_sid_top1 = q_pred_segs_top1
                 q_kpt_ids = np.arange(q_frame.keypoints.shape[0])
                 semantic_matching = False
             print_text = f'Semantic matching - {semantic_matching}! Query kpts {q_kpt_ids.shape[0]} for {i}th seg {sid}'
             print(print_text)
-
-            # query_data = {
-            #     'descriptors': q_descs,
-            #     'scores': q_scores,
-            #     'keypoints': q_kpts,
-            #     'camera': q_frame.camera,
-            #     'sids': q_sid_top1,
-            #     'keypoint_ids': q_kpt_ids,
-            #     'semantic_matching': semantic_matching,
-            # }
-
             ret = pred_sub_map.localize_with_ref_frame(q_frame=q_frame,
                                                        q_kpt_ids=q_kpt_ids,
                                                        sid=pred_sid_in_sub_scene,
@@ -297,16 +283,14 @@ class MultiMap3D:
     def verify_and_update(self, q_frame: Frame, ret: dict):
         num_matches = ret['matched_keypoints'].shape[0]
         num_inliers = ret['num_inliers']
-        semantic_check = ret['semantic_check']
-
         if q_frame.matched_keypoints is None or np.sum(q_frame.matched_inliers) < num_inliers:
             self.update_query_frame(q_frame=q_frame, ret=ret)
 
         q_err, t_err = q_frame.compute_pose_error()
 
-        if num_inliers < self.loc_config['min_inliers'] or not semantic_check:
-            print_text = 'Failed due to insufficient {:d} inliers or semantic check {:s}, order {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
-                ret['num_inliers'], semantic_check, ret['order'], q_err, t_err)
+        if num_inliers < self.loc_config['min_inliers']:
+            print_text = 'Failed due to insufficient {:d} inliers, order {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
+                ret['num_inliers'], ret['order'], q_err, t_err)
             print(print_text)
             q_frame.tracking_status = False
             return False

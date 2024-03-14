@@ -175,16 +175,6 @@ class SingleMap3D:
         if not ret['success']:
             ret['num_inliers'] = 0
             ret['inliers'] = np.zeros(shape=(mkpts.shape[0],), dtype=bool)
-        else:
-            if semantic_matching:
-                seg_mask1 = (q_frame.seg_ids >= 0)
-                semantic_check = self.check_number_of_segments(seg_ids1=q_frame.seg_ids[seg_mask1],
-                                                               seg_ids2=ref_sids + self.start_sid)
-                print('Semantic consistency: ', semantic_check)
-            else:
-                semantic_check = True
-
-            ret['semantic_check'] = semantic_check
         return ret
 
     def localize_with_ref_frame_old(self, query_data, sid, semantic_matching=False):
@@ -531,7 +521,23 @@ class SingleMap3D:
         sorted_frame_ids = covis_ids[sorted_idxes]
         return sorted_frame_ids
 
-    def check_number_of_segments(self, seg_ids1: np.ndarray, seg_ids2: np.ndarray, minimum_num: int = 2):
-        overlap_sids = np.intersect1d(seg_ids1, seg_ids2)
-        print('semantic_check: ', seg_ids1, seg_ids2, overlap_sids)
-        return np.intersect1d(seg_ids1, seg_ids2).shape[0] >= minimum_num
+    def check_semantic_consistency(self, q_frame: Frame, sid, overlap_ratio=0.5):
+        ref_frame_id = self.seg_ref_frame_ids[sid][0]
+        ref_frame = self.reference_frames[ref_frame_id]
+
+        q_sids = q_frame.seg_ids
+        ref_sids = np.array([self.point3Ds[v].seg_id for v in ref_frame.point3D_ids]) + self.start_sid
+        overlap_sids = np.intersect1d(q_sids, ref_sids)
+
+        overlap_num1 = 0
+        overlap_num2 = 0
+        for sid in overlap_sids:
+            overlap_num1 += np.sum(q_sids == sid)
+            overlap_num2 += np.sum(ref_sids == sid)
+
+        ratio1 = overlap_num1 / q_sids.shape[0]
+        ratio2 = overlap_num2 / ref_sids.shape[0]
+
+        # print('semantic_check: ', overlap_sids, overlap_num1, ratio1, overlap_num2, ratio2)
+
+        return min(ratio1, ratio2) >= overlap_ratio

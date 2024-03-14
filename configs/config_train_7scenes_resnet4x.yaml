@@ -78,8 +78,9 @@ n_class: 113
 eval_max_keypoints: 1024
 
 localization:
-  loc_scene_name_: [ 'stairs' ]
-  loc_scene_name: [ 'chess' ]
+  loc_scene_name_1: [ 'stairs' ]
+  loc_scene_name_2: [ 'chess' ]
+  loc_scene_name: [ 'heads' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
 
   seg_k: 20
