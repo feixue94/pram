@@ -395,7 +395,7 @@ class SingleMap3D:
         dists, ids = torch.topk(desc_dist, k=2, largest=False, dim=1)
         # apply nn ratio
         ratios = dists[:, 0] / dists[:, 1]  # smaller, better
-        ratio_mask = (ratios <= 0.99) * (dists[:, 0] < 100)
+        ratio_mask = (ratios <= 0.95) * (dists[:, 0] < 100)
         ratio_mask = ratio_mask.cpu().numpy()
         ids = ids.cpu().numpy()[ratio_mask, 0]
 
@@ -412,8 +412,7 @@ class SingleMap3D:
         cfg = q_frame.camera._asdict()
         t_start = time.time()
         ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg,
-                                                max_error_px=self.config['localization']['threshold'],
-                                                min_num_trials=1000, max_num_trials=10000, confidence=0.995)
+                                                max_error_px=self.config['localization']['threshold'])
         # inlier_mask = np.ones(shape=(mkpts.shape[0],), dtype=bool).tolist()
         # ret = pycolmap.pose_refinement(q_frame.tvec, q_frame.qvec, mkpts[:, :2] + 0.5, mxyzs, inlier_mask, cfg)
         # ret['num_inliers'] = np.sum(inlier_mask).astype(int)
