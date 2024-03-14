@@ -100,19 +100,19 @@ class Frame:
             if torch.sum(non_bg_mask) >= 0.4 * seg_scores.shape[0]:
                 self.keypoints = self.keypoints[non_bg_mask.cpu().numpy()]
                 self.descriptors = self.descriptors[non_bg_mask.cpu().numpy()]
-                print('pre filtering after: ', self.keypoints.shape)
+                # print('pre filtering after: ', self.keypoints.shape)
 
                 # update localization variables
                 self.initialize_localization_variables()
 
                 segmentations = segmentations[non_bg_mask]
                 seg_scores = seg_scores[non_bg_mask]
-            print('pre filtering before: ', self.keypoints.shape)
+            print('pre filtering after: ', self.keypoints.shape)
 
         # extract initial segmentation info
         self.segmentations = segmentations.cpu().numpy()
         self.seg_scores = seg_scores.cpu().numpy()
-        self.seg_ids = segmentations.max(dim=-1)[1].cpu().numpy()
+        self.seg_ids = segmentations.max(dim=-1)[1].cpu().numpy() - 1  # should start from 0
 
     def filter_keypoints(self, seg_scores: np.ndarray, filtering_threshold: float):
         scores_background = seg_scores[:, 0]

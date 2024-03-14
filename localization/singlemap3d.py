@@ -22,10 +22,11 @@ from localization.utils import read_gt_pose
 
 
 class SingleMap3D:
-    def __init__(self, config, matcher, with_compress=False):
+    def __init__(self, config, matcher, with_compress=False, start_sid: int = 0):
         self.config = config
-        self.matcer = matcher
+        self.matcher = matcher
         self.image_path_prefix = self.config['image_path_prefix']
+        self.start_sid = start_sid  # for a dataset with multiple scenes
         if not with_compress:
             cameras, images, p3ds = read_model(
                 path=osp.join(config['segment_path'], 'model'), ext='.bin')
@@ -123,7 +124,70 @@ class SingleMap3D:
                                                  point3D_ids=im.point3D_ids,
                                                  keypoints=im.xys, name=im.name)
 
-    def localize_with_ref_frame(self, query_data, sid, semantic_matching=False):
+    def localize_with_ref_frame(self, q_frame: Frame, q_kpt_ids: np.ndarray, sid, semantic_matching=False):
+        ref_frame_id = self.seg_ref_frame_ids[sid][0]
+        ref_frame = self.reference_frames[ref_frame_id]
+        if semantic_matching and sid > 0:
+            ref_data = ref_frame.get_keypoints_by_sid(sid=sid, point3Ds=self.point3Ds)
+        else:
+            ref_data = ref_frame.get_keypoints(point3Ds=self.point3Ds)
+
+        q_descs = q_frame.descriptors[q_kpt_ids]
+        q_kpts = q_frame.keypoints[q_kpt_ids, :2]
+        q_scores = q_frame.keypoints[q_kpt_ids, 2]
+
+        xyzs = ref_data['xyzs']
+        point3D_ids = ref_data['point3D_ids']
+        ref_sids = np.array([self.point3Ds[v].seg_id for v in point3D_ids])
+        with torch.no_grad():
+            indices0 = self.matcher({
+                'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
+                'keypoints0': torch.from_numpy(q_kpts)[None].cuda().float(),
+                'scores0': torch.from_numpy(q_scores)[None].cuda().float(),
+                'image_shape0': (1, 3, q_frame.camera.width, q_frame.camera.height),
+
+                'descriptors1': torch.from_numpy(ref_data['descriptors'])[None].cuda().float(),
+                'keypoints1': torch.from_numpy(ref_data['keypoints'])[None].cuda().float(),
+                'scores1': torch.from_numpy(ref_data['scores'])[None].cuda().float(),
+                'image_shape1': (1, 3, ref_frame.camera.width, ref_frame.camera.height),
+            }
+            )['matches0'][0].cpu().numpy()
+
+        valid = indices0 >= 0
+        mkpts = q_kpts[valid]
+        mkpt_ids = q_kpt_ids[valid]
+        mxyzs = xyzs[indices0[valid]]
+        mpoint3D_ids = point3D_ids[indices0[valid]]
+        matched_sids = ref_sids[indices0[valid]]
+        matched_ref_keypoints = ref_data['keypoints'][indices0[valid]]
+
+        # print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
+        cfg = q_frame.camera._asdict()
+        ret = pycolmap.absolute_pose_estimation(mkpts + 0.5, mxyzs, cfg, 12)
+        ret['matched_keypoints'] = mkpts
+        ret['matched_keypoint_ids'] = mkpt_ids
+        ret['matched_xyzs'] = mxyzs
+        ret['reference_frame_id'] = ref_frame_id
+        ret['matched_point3D_ids'] = mpoint3D_ids
+        ret['matched_sids'] = matched_sids
+        ret['matched_ref_keypoints'] = matched_ref_keypoints
+
+        if not ret['success']:
+            ret['num_inliers'] = 0
+            ret['inliers'] = np.zeros(shape=(mkpts.shape[0],), dtype=bool)
+        else:
+            if semantic_matching:
+                seg_mask1 = (q_frame.seg_ids >= 0)
+                semantic_check = self.check_number_of_segments(seg_ids1=q_frame.seg_ids[seg_mask1],
+                                                               seg_ids2=ref_sids + self.start_sid)
+                print('Semantic consistency: ', semantic_check)
+            else:
+                semantic_check = True
+
+            ret['semantic_check'] = semantic_check
+        return ret
+
+    def localize_with_ref_frame_old(self, query_data, sid, semantic_matching=False):
         ref_frame_id = self.seg_ref_frame_ids[sid][0]
         ref_frame = self.reference_frames[ref_frame_id]
         if semantic_matching and sid > 0:
@@ -140,7 +204,7 @@ class SingleMap3D:
         point3D_ids = ref_data['point3D_ids']
         ref_sids = np.array([self.point3Ds[v].seg_id for v in point3D_ids])
         with torch.no_grad():
-            indices0 = self.matcer({
+            indices0 = self.matcher({
                 'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
                 'keypoints0': torch.from_numpy(q_kpts)[None].cuda().float(),
                 'scores0': torch.from_numpy(q_scores)[None].cuda().float(),
@@ -176,7 +240,9 @@ class SingleMap3D:
         if not ret['success']:
             ret['num_inliers'] = 0
             ret['inliers'] = np.zeros(shape=(mkpts.shape[0],), dtype=bool)
-
+        else:
+            if semantic_matching:
+                self.check_number_of_segments()
         return ret
 
     def match(self, query_data, ref_data):
@@ -186,7 +252,7 @@ class SingleMap3D:
         xyzs = ref_data['xyzs']
         points3D_ids = ref_data['point3D_ids']
         with torch.no_grad():
-            indices0 = self.matcer({
+            indices0 = self.matcher({
                 'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
                 'keypoints0': torch.from_numpy(q_kpts)[None].cuda().float(),
                 'scores0': torch.from_numpy(q_scores)[None].cuda().float(),
@@ -372,7 +438,7 @@ class SingleMap3D:
         proj_uvs = K_cuda @ (torch.from_numpy(q_Tcw).cuda() @ all_xyzs_cuda_homo.t())[:3, :]  # [3, N]
         proj_uvs[0] /= proj_uvs[2]
         proj_uvs[1] /= proj_uvs[2]
-        mask = (proj_uvs[2] > 0) * (proj_uvs[2] < 50) * (proj_uvs[0] >= 0) * (proj_uvs[0] < imw) * (
+        mask = (proj_uvs[2] > 0) * (proj_uvs[2] < 80) * (proj_uvs[0] >= 0) * (proj_uvs[0] < imw) * (
                 proj_uvs[1] >= 0) * (proj_uvs[1] < imh)
 
         proj_uvs = proj_uvs[:, mask]
@@ -386,7 +452,7 @@ class SingleMap3D:
         q_kpts_cuda = torch.from_numpy(q_frame.keypoints[:, :2]).cuda()
         proj_error = q_kpts_cuda[..., None] - proj_uvs[:2][None]
         proj_error = torch.sqrt(torch.sum(proj_error ** 2, dim=1))  # [M N]
-        out_of_range_mask = (proj_error >= 1.5 * self.config['localization']['threshold'])
+        out_of_range_mask = (proj_error >= 2 * self.config['localization']['threshold'])
 
         q_descs_cuda = torch.from_numpy(q_frame.descriptors).cuda().float()  # [M D]
         all_descs_cuda = torch.from_numpy(all_descs).cuda().float()[mask]  # [N D]
@@ -395,11 +461,16 @@ class SingleMap3D:
         dists, ids = torch.topk(desc_dist, k=2, largest=False, dim=1)
         # apply nn ratio
         ratios = dists[:, 0] / dists[:, 1]  # smaller, better
-        ratio_mask = (ratios <= 0.95) * (dists[:, 0] < 100)
+        ratio_mask = (ratios <= 0.995) * (dists[:, 0] < 100)
         ratio_mask = ratio_mask.cpu().numpy()
         ids = ids.cpu().numpy()[ratio_mask, 0]
 
-        print('Projection: after ratio {:d}/{:d}'.format(q_kpts_cuda.shape[0], np.sum(ratio_mask)))
+        ratio_num = torch.sum(ratios <= 0.995)
+        proj_num = torch.sum(dists[:, 0] < 100)
+
+        print('Projection: after ratio {:d}/{:d}, ratio {:d}, proj {:d}'.format(q_kpts_cuda.shape[0],
+                                                                                np.sum(ratio_mask),
+                                                                                ratio_num, proj_num))
 
         mkpts = q_frame.keypoints[ratio_mask]
         mkpt_ids = np.where(ratio_mask)[0]
@@ -459,3 +530,8 @@ class SingleMap3D:
         sorted_idxes = np.argsort(covis_num)[::-1]  # larger to small
         sorted_frame_ids = covis_ids[sorted_idxes]
         return sorted_frame_ids
+
+    def check_number_of_segments(self, seg_ids1: np.ndarray, seg_ids2: np.ndarray, minimum_num: int = 2):
+        overlap_sids = np.intersect1d(seg_ids1, seg_ids2)
+        print('semantic_check: ', seg_ids1, seg_ids2, overlap_sids)
+        return np.intersect1d(seg_ids1, seg_ids2).shape[0] >= minimum_num
