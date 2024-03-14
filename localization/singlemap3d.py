@@ -346,7 +346,12 @@ class SingleMap3D:
             matched_xyzs = np.vstack(matched_xyzs).reshape(-1, 3)
             matched_point3D_ids = np.hstack(matched_point3D_ids)
             matched_kpt_ids = np.hstack(matched_kpt_ids)
-        if init_kpts is not None:
+        else:
+            matched_kpts = matched_kpts[0]
+            matched_xyzs = matched_xyzs[0]
+            matched_point3D_ids = matched_point3D_ids[0]
+            matched_kpt_ids = matched_kpt_ids[0]
+        if init_kpts is not None and init_kpts.shape[0] > 0:
             matched_kpts = np.vstack([matched_kpts, init_kpts])
             matched_xyzs = np.vstack([matched_xyzs, init_xyzs])
             matched_point3D_ids = np.hstack([matched_point3D_ids, init_point3D_ids])

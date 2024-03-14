@@ -83,7 +83,8 @@ eval_max_keypoints: 1024
 
 localization:
   #    loc_scene_name: ['office2/5b' ]
-  loc_scene_name: [ 'office2/5a' ]
+  loc_scene_name_: [ 'office2/5a' ]
+  loc_scene_name: [ 'office1/lounge' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
   seg_k: 20
   threshold: 8

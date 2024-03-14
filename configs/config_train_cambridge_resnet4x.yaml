@@ -72,15 +72,15 @@ resume_path: null
 eval: false
 #loc: false
 loc: true
-#online: false
-online: true
+online: false
+#online: true
 n_class: 161
 
-eval_max_keypoints: 2048
+eval_max_keypoints: 4096
 
 localization:
-  loc_scene_name_1: [ 'GreatCourt' ]
-  loc_scene_name: [ 'KingsCollege' ]
+  loc_scene_name: [ 'GreatCourt' ]
+  loc_scene_name_2: [ 'KingsCollege' ]
   loc_scene_name_3: [ 'StMarysChurch' ]
   loc_scene_name_4: [ 'OldHospital' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
@@ -89,7 +89,7 @@ localization:
   min_kpts: 256
   min_matches: 16
   min_inliers_gm: 128
-  min_inliers: 128
+  min_inliers: 512
   matching_method_: "mnn"
   matching_method_1: "spg"
   matching_method_2: "gm"
@@ -103,8 +103,7 @@ localization:
   with_extra: false
   with_compress: true
   semantic_matching: true
-  semantic_matching_: false
-  do_refinement: false
+  do_refinement: true
   pre_filtering_th: 0.95
   refinement_method_: 'matching'
   refinement_method: 'projection'
