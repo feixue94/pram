@@ -174,8 +174,12 @@ if __name__ == '__main__':
         if not config['online']:
             from localization.loc_by_rec_eval import loc_by_rec_eval
 
+            test_set = compose_datasets(datasets=dataset, config=config, train=False, sample_ratio=1)
+            config['n_class'] = test_set.n_class
+
             model = get_model(config=config)
             loc_by_rec_eval(rec_model=model.cuda().eval(),
+                            loader=test_set,
                             local_feat=feat_model.cuda().eval(),
                             config=config, img_transforms=img_transforms)
         else:

@@ -87,7 +87,6 @@ localization:
   min_kpts: 128
   min_matches: 16
   min_inliers: 64
-  tracking_inliers: 50
   matching_method_: "mnn"
   matching_method_1: "spg"
   matching_method_2: "gm"
@@ -102,8 +101,8 @@ localization:
   semantic_matching: true
   do_refinement: true
   pre_filtering_th: 0.95
-  refinement_method_: 'matching'
-  refinement_method: 'projection'
+  refinement_method: 'matching'
+  refinement_method_: 'projection'
   covisibility_frame: 20
   refinement_radius: 20
   refinement_nn_ratio: 0.9
