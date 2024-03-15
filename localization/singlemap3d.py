@@ -178,64 +178,6 @@ class SingleMap3D:
             ret['inliers'] = np.zeros(shape=(mkpts.shape[0],), dtype=bool)
         return ret
 
-    def localize_with_ref_frame_old(self, query_data, sid, semantic_matching=False):
-        ref_frame_id = self.seg_ref_frame_ids[sid][0]
-        ref_frame = self.reference_frames[ref_frame_id]
-        if semantic_matching and sid > 0:
-            ref_data = ref_frame.get_keypoints_by_sid(sid=sid, point3Ds=self.point3Ds)
-        else:
-            ref_data = ref_frame.get_keypoints(point3Ds=self.point3Ds)
-
-        q_descs = query_data['descriptors']
-        q_kpts = query_data['keypoints']
-        q_scores = query_data['scores']
-        q_kpt_ids = query_data['keypoint_ids']
-        q_sids = query_data['sids']
-        xyzs = ref_data['xyzs']
-        point3D_ids = ref_data['point3D_ids']
-        ref_sids = np.array([self.point3Ds[v].seg_id for v in point3D_ids])
-        with torch.no_grad():
-            indices0 = self.matcher({
-                'descriptors0': torch.from_numpy(q_descs)[None].cuda().float(),
-                'keypoints0': torch.from_numpy(q_kpts)[None].cuda().float(),
-                'scores0': torch.from_numpy(q_scores)[None].cuda().float(),
-                'image_shape0': (1, 3, query_data['camera'].width, query_data['camera'].height),
-
-                'descriptors1': torch.from_numpy(ref_data['descriptors'])[None].cuda().float(),
-                'keypoints1': torch.from_numpy(ref_data['keypoints'])[None].cuda().float(),
-                'scores1': torch.from_numpy(ref_data['scores'])[None].cuda().float(),
-                'image_shape1': (1, 3, ref_frame.camera.width, ref_frame.camera.height),
-            }
-            )['matches0'][0].cpu().numpy()
-
-        valid = indices0 >= 0
-        mkpts = q_kpts[valid]
-        mkpt_ids = q_kpt_ids[valid]
-        mxyzs = xyzs[indices0[valid]]
-        mpoint3D_ids = point3D_ids[indices0[valid]]
-        matched_sids = ref_sids[indices0[valid]]
-        # matched_sids = q_sids[valid]
-        matched_ref_keypoints = ref_data['keypoints'][indices0[valid]]
-
-        # print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
-        cfg = query_data['camera']._asdict()
-        ret = pycolmap.absolute_pose_estimation(mkpts + 0.5, mxyzs, cfg, 12)
-        ret['matched_keypoints'] = mkpts
-        ret['matched_keypoint_ids'] = mkpt_ids
-        ret['matched_xyzs'] = mxyzs
-        ret['reference_frame_id'] = ref_frame_id
-        ret['matched_point3D_ids'] = mpoint3D_ids
-        ret['matched_sids'] = matched_sids
-        ret['matched_ref_keypoints'] = matched_ref_keypoints
-
-        if not ret['success']:
-            ret['num_inliers'] = 0
-            ret['inliers'] = np.zeros(shape=(mkpts.shape[0],), dtype=bool)
-        else:
-            if semantic_matching:
-                self.check_number_of_segments()
-        return ret
-
     def match(self, query_data, ref_data):
         q_descs = query_data['descriptors']
         q_kpts = query_data['keypoints']
@@ -376,7 +318,6 @@ class SingleMap3D:
         ret['matched_xyzs'] = matched_xyzs
         ret['matched_point3D_ids'] = matched_point3D_ids
         ret['matched_sids'] = matched_sids
-        # ret['refinement_reference_frame_ids'] = db_ids
 
         if ret['success']:
             inlier_mask = np.array(ret['inliers'])
