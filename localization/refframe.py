@@ -31,7 +31,7 @@ class RefFrame:
         self.keypoint_segs = None
         self.xyzs = None
 
-    def get_keypoints_by_sid(self, sid: int, point3Ds: dict):
+    def get_keypoints_by_sid(self, sid: int):
         mask = (self.keypoint_segs == sid)
         return {
             'point3D_ids': self.point3D_ids[mask],
@@ -64,7 +64,7 @@ class RefFrame:
             'xyzs': np.array(valid_xyzs),
         }
 
-    def get_keypoints(self, point3Ds: dict):
+    def get_keypoints(self):
         return {
             'point3D_ids': self.point3D_ids,
             'keypoints': self.keypoints[:, :2],

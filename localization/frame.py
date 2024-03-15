@@ -46,6 +46,7 @@ class Frame:
         self.matched_point3D_ids = None
         self.matched_inliers = None
         self.matched_sids = None
+        self.matched_order = None
 
         self.refinement_reference_frame_ids = None
         self.image_rec = None
@@ -130,7 +131,14 @@ class Frame:
             print('pre filtering after: ', self.keypoints.shape)
             return None
 
-    def compute_pose_error(self):
+    def compute_pose_error(self, pred_qvec=None, pred_tvec=None):
+        if pred_qvec is not None and pred_tvec is not None:
+            if self.gt_qvec is not None and self.gt_tvec is not None:
+                return compute_pose_error(pred_qcw=pred_qvec, pred_tcw=pred_tvec,
+                                          gt_qcw=self.gt_qvec, gt_tcw=self.gt_tvec)
+            else:
+                return 100, 100
+
         if self.qvec is None or self.tvec is None or self.gt_qvec is None or self.gt_tvec is None:
             return 100, 100
         else:

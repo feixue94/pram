@@ -264,7 +264,8 @@ class MultiMap3D:
             ref_full_name = q_frame.matched_scene_name + '/' + pred_sub_map.reference_frames[
                 q_frame.reference_frame_id].name
             print_text = 'Localization of {:s} success with inliers {:d}/{:d} with ref_name: {:s}, order: {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
-                q_full_name, ret['num_inliers'], len(ret['inliers']), ref_full_name, i, q_err, t_err)
+                q_full_name, ret['num_inliers'], len(ret['inliers']), ref_full_name, q_frame.matched_order, q_err,
+                t_err)
             print(print_text)
 
             if show:
@@ -286,7 +287,7 @@ class MultiMap3D:
         if q_frame.matched_keypoints is None or np.sum(q_frame.matched_inliers) < num_inliers:
             self.update_query_frame(q_frame=q_frame, ret=ret)
 
-        q_err, t_err = q_frame.compute_pose_error()
+        q_err, t_err = q_frame.compute_pose_error(pred_qvec=ret['qvec'], pred_tvec=ret['tvec'])
 
         if num_inliers < self.loc_config['min_inliers']:
             print_text = 'Failed due to insufficient {:d} inliers, order {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
@@ -314,6 +315,7 @@ class MultiMap3D:
         q_frame.matched_point3D_ids = ret['matched_point3D_ids']
         q_frame.matched_sids = ret['matched_sids']
         q_frame.matched_inliers = np.array(ret['inliers'])
+        q_frame.matched_order = ret['order']
 
         # inlier_mask = np.array(ret['inliers'])
         # q_frame.matched_keypoints = ret['matched_keypoints'][inlier_mask]

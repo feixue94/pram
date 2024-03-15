@@ -70,8 +70,8 @@ resume_path: null
 eval: false
 #loc: false
 loc: true
-online: false
-#online: true
+#online: false
+online: true
 n_class: 113
 
 eval_max_keypoints: 1024
@@ -101,8 +101,8 @@ localization:
   semantic_matching: true
   do_refinement: true
   pre_filtering_th: 0.95
-  refinement_method: 'matching'
-  refinement_method_: 'projection'
+  refinement_method_: 'matching'
+  refinement_method: 'projection'
   covisibility_frame: 20
   refinement_radius: 20
   refinement_nn_ratio: 0.9

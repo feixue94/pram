@@ -128,9 +128,9 @@ class SingleMap3D:
         ref_frame_id = self.seg_ref_frame_ids[sid][0]
         ref_frame = self.reference_frames[ref_frame_id]
         if semantic_matching and sid > 0:
-            ref_data = ref_frame.get_keypoints_by_sid(sid=sid, point3Ds=self.point3Ds)
+            ref_data = ref_frame.get_keypoints_by_sid(sid=sid)
         else:
-            ref_data = ref_frame.get_keypoints(point3Ds=self.point3Ds)
+            ref_data = ref_frame.get_keypoints()
 
         q_descs = q_frame.descriptors[q_kpt_ids]
         q_kpts = q_frame.keypoints[q_kpt_ids, :2]
@@ -163,7 +163,8 @@ class SingleMap3D:
 
         # print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
         cfg = q_frame.camera._asdict()
-        ret = pycolmap.absolute_pose_estimation(mkpts + 0.5, mxyzs, cfg, 12)
+        ret = pycolmap.absolute_pose_estimation(mkpts + 0.5, mxyzs, cfg,
+                                                max_error_px=self.config['localization']['threshold'])
         ret['matched_keypoints'] = mkpts
         ret['matched_keypoint_ids'] = mkpt_ids
         ret['matched_xyzs'] = mxyzs
@@ -329,7 +330,7 @@ class SingleMap3D:
         matched_point3D_ids = []
         matched_kpt_ids = []
         for idx, frame_id in enumerate(db_ids):
-            ref_data = self.reference_frames[frame_id].get_keypoints(point3Ds=self.point3Ds)
+            ref_data = self.reference_frames[frame_id].get_keypoints()
             match_out = self.match(query_data={
                 'keypoints': q_frame.keypoints[:, :2],
                 'scores': q_frame.keypoints[:, 2],

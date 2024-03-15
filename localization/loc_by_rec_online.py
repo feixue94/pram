@@ -58,8 +58,11 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         scene_config = yaml.load(f, Loader=yaml.Loader)
 
     # multiple scenes in a single dataset
+    err_ths_cnt = [0, 0, 0, 0]
+
     show_time = -1
     scenes = scene_config['scenes']
+    n_total = 0
     for scene in scenes:
         if len(config['localization']['loc_scene_name']) > 0:
             if scene not in config['localization']['loc_scene_name']:
@@ -187,6 +190,28 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
 
                 time.sleep(50 / 1000)
                 locMap.do_refinement = mViewer.refinement
+
+                n_total = n_total + 1
+                q_err, t_err = curr_frame.compute_pose_error()
+                if q_err <= 5 and t_err <= 0.05:
+                    err_ths_cnt[0] = err_ths_cnt[0] + 1
+                if q_err <= 2 and t_err <= 0.25:
+                    err_ths_cnt[1] = err_ths_cnt[1] + 1
+                if q_err <= 5 and t_err <= 0.5:
+                    err_ths_cnt[2] = err_ths_cnt[2] + 1
+                if q_err <= 10 and t_err <= 5:
+                    err_ths_cnt[3] = err_ths_cnt[3] + 1
+                time_total = curr_frame.time_feat + curr_frame.time_rec + curr_frame.time_loc + curr_frame.time_ref
+                print_text = 'qname: {:s} localization {:b}, q_err: {:.2f}, t_err: {:.2f}, {:d}/{:d}/{:d}/{:d}/{:d}, time: {:.2f}/{:.2f}/{:.2f}/{:.2f}/{:.2f}'.format(
+                    scene + '/' + fn, success, q_err, t_err,
+                    err_ths_cnt[0],
+                    err_ths_cnt[1],
+                    err_ths_cnt[2],
+                    err_ths_cnt[3],
+                    n_total,
+                    curr_frame.time_feat, curr_frame.time_rec, curr_frame.time_loc, curr_frame.time_ref, time_total
+                )
+                print(print_text)
 
     mViewer.terminate()
     viewer_thread.join()

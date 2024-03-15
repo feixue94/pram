@@ -86,8 +86,19 @@ def loc_by_rec_eval(rec_model, loader, config, local_feat, img_transforms=None):
     n_total = 0
 
     loc_scene_names = config['localization']['loc_scene_name']
+    # loader = loader[8990:]
     for bid, pred in tqdm(enumerate(loader), total=len(loader)):
         pred = loader[bid]
+        image_name = pred['file_name']  # [0]
+        scene_name = pred['scene_name']  # [0]  # dataset_scene
+        if len(loc_scene_names) > 0:
+            skip = True
+            for loc_scene in loc_scene_names:
+                if scene_name.find(loc_scene) > 0:
+                    skip = False
+                    break
+            if skip:
+                continue
         with torch.no_grad():
             for k in pred:
                 if k.find('name') >= 0:
@@ -101,16 +112,6 @@ def loc_by_rec_eval(rec_model, loader, config, local_feat, img_transforms=None):
                         continue
                     else:
                         pred[k] = Variable(torch.stack(pred[k]).float().cuda())
-            image_name = pred['file_name']  # [0]
-            scene_name = pred['scene_name']  # [0]  # dataset_scene
-            if len(loc_scene_names) > 0:
-                skip = True
-                for loc_scene in loc_scene_names:
-                    if scene_name.find(loc_scene) > 0:
-                        skip = False
-                        break
-                if skip:
-                    continue
             print('scene: ', scene_name, image_name)
 
             n_total += 1
