@@ -421,7 +421,7 @@ class Viewer:
                                                )
 
         menu = pangolin.Var("menu")
-        menu.Tracking = (True, pangolin.VarMeta(toggle=True))
+        menu.Tracking = (False, pangolin.VarMeta(toggle=True))
         menu.FollowCamera = (True, pangolin.VarMeta(toggle=True))
         menu.ShowPoints = (True, pangolin.VarMeta(toggle=True))
         menu.ShowSegs = (False, pangolin.VarMeta(toggle=True))

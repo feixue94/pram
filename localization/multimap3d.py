@@ -238,7 +238,7 @@ class MultiMap3D:
         else:
             t_start = time.time()
             pred_sub_map = self.sub_maps[q_frame.matched_scene_name]
-            if q_frame.tracking_status is True and np.sum(q_frame.matched_inliers) >= 128:
+            if q_frame.tracking_status is True and np.sum(q_frame.matched_inliers) >= 64:
                 ret = pred_sub_map.refine_pose(q_frame=q_frame, refinement_method=self.loc_config['refinement_method'])
             else:
                 ret = pred_sub_map.refine_pose(q_frame=q_frame,
