@@ -82,9 +82,10 @@ n_class: 193
 eval_max_keypoints: 1024
 
 localization:
+  loc_scene_name: [ ]
   loc_scene_name_0: [ 'apt1/kitchen' ]
   loc_scene_name_1: [ 'office2/5b' ]
-  loc_scene_name: [ 'apt1/living' ]
+  loc_scene_name_3: [ 'apt1/living' ]
   loc_scene_name_2: [ 'office1/lounge' ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
   seg_k: 20
