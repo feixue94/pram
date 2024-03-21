@@ -27,7 +27,7 @@ from nets.superpoint import SuperPoint
 
 torch.set_grad_enabled(True)
 
-parser = argparse.ArgumentParser(description='Localizer', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+parser = argparse.ArgumentParser(description='PRAM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--config', type=str, required=True, help='config of specifications')
 
 

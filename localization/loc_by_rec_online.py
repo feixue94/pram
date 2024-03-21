@@ -72,7 +72,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         query_info = read_query_info(query_fn=query_path)
         all_scene_query_info[dataset_name + '/' + scene] = query_info
         image_path = osp.join(dataset_path, dataset_name, scene)
-        # for fn in sorted(query_info.keys()):
+        for fn in sorted(query_info.keys()):
         # for fn in sorted(query_info.keys())[880:][::5]:  # darwinRGB-loc-outdoor-aligned
         # for fn in sorted(query_info.keys())[3161:][::5]:  # darwinRGB-loc-indoor-aligned
         #     for fn in sorted(query_info.keys())[2840:][::5]:  # darwinRGB-loc-indoor-aligned
@@ -82,7 +82,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         # for fn in sorted(query_info.keys())[1380:]:  # Cam-Church
         # for fn in sorted(query_info.keys())[::5]: #ACUED-test2
         # for fn in sorted(query_info.keys())[1260:]:  # jesus aligned
-        for fn in sorted(query_info.keys())[1260:]:  # jesus aligned
+        # for fn in sorted(query_info.keys())[1260:]:  # jesus aligned
             # for fn in sorted(query_info.keys())[4850:]:
             img = cv2.imread(osp.join(image_path, fn))  # BGR
 

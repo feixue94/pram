@@ -179,7 +179,7 @@ class BasicDataset:
 
         # print(img_name, self.name_to_id[img_name])
         p3d_ids = self.images[self.name_to_id[img_name]].point3D_ids
-        p3d_xyzs = np.zeros(shape=(nfeat, 3), dtype=int)
+        p3d_xyzs = np.zeros(shape=(nfeat, 3), dtype=float)
 
         seg_ids = np.zeros(shape=(nfeat,), dtype=int)  # + self.n_class - 1
         for i in range(nfeat):
