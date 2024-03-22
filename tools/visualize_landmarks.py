@@ -80,24 +80,27 @@ if __name__ == '__main__':
     data_root = '/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gm'
     show_2D = False
 
-    compress_map = True
+    compress_map = False
 
     # scene = 'Aachen/Aachenv11'
     # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n512_xz_birch.npy'), allow_pickle=True)[()]
     # sid_start = 1
+    # vrf_file_name = 'point3D_vrf_n512_xz_birch.npy'
+
     #
     # scene = 'CambridgeLandmarks/GreatCourt'
     # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n32_xy_birch.npy'), allow_pickle=True)[()]
     # sid_start = 1
 
-    scene = 'CambridgeLandmarks/KingsCollege'
-    seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n32_xy_birch.npy'), allow_pickle=True)[()]
-    sid_start = 33
-    vrf_file_name = 'point3D_vrf_n32_xy_birch.npy'
+    # scene = 'CambridgeLandmarks/KingsCollege'
+    # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n32_xy_birch.npy'), allow_pickle=True)[()]
+    # sid_start = 33
+    # vrf_file_name = 'point3D_vrf_n32_xy_birch.npy'
 
     # scene = 'CambridgeLandmarks/StMarysChurch'
     # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n32_xz_birch.npy'), allow_pickle=True)[()]
     # sid_start = 32 * 4 + 1
+    # vrf_file_name = 'point3D_vrf_n32_xz_birch.npy'
 
     # scene = '7Scenes/office'
     # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n16_xz_birch.npy'), allow_pickle=True)[()]
@@ -106,25 +109,34 @@ if __name__ == '__main__':
     # scene = '7Scenes/chess'
     # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n16_xz_birch.npy'), allow_pickle=True)[()]
     # sid_start = 1
+    # vrf_file_name = 'point3D_vrf_n16_xz_birch.npy'
 
-    # scene = '7Scenes/pumpkin'
-    # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n16_xz_birch.npy'), allow_pickle=True)[()]
-    # sid_start = 16 * 6 + 1
+    scene = '7Scenes/redkitchen'
+    seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n16_xz_birch.npy'), allow_pickle=True)[()]
+    sid_start = 16 * 5 + 1
+    vrf_file_name = 'point3D_vrf_n16_xz_birch.npy'
 
     # scene = '12Scenes/apt1/kitchen'
     # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n16_xy_birch.npy'), allow_pickle=True)[()]
     # sid_start = 1
+    # vrf_file_name = 'point3D_vrf_n16_xy_birch.npy'
 
-    # if compress_map:
-    _, _, compress_points3D = read_compressed_model(osp.join(data_root, scene, 'compress_model_birch'),
-                                                    ext='.bin')
-    print('Load {:d} 3D points from compressed map'.format(len(compress_points3D.keys())))
-    valid_p3d_ids = list(compress_points3D.keys())
     cameras, images, points3D = read_model(osp.join(data_root, scene, 'model'), ext='.bin')
     print('Load {:d} 3D points from map'.format(len(points3D.keys())))
 
-    vrf_data = np.load(osp.join(data_root, scene, vrf_file_name), allow_pickle=True)[()]
-    valid_image_ids = [vrf_data[v][0]['image_id'] for v in vrf_data.keys()]
+    if compress_map:
+        vrf_data = np.load(osp.join(data_root, scene, vrf_file_name), allow_pickle=True)[()]
+        valid_image_ids = [vrf_data[v][0]['image_id'] for v in vrf_data.keys()]
+    else:
+        valid_image_ids = list(images.keys())
+
+    if compress_map:
+        _, _, compress_points3D = read_compressed_model(osp.join(data_root, scene, 'compress_model_birch'),
+                                                        ext='.bin')
+        print('Load {:d} 3D points from compressed map'.format(len(compress_points3D.keys())))
+        valid_p3d_ids = list(compress_points3D.keys())
+    else:
+        valid_p3d_ids = list(points3D.keys())
 
     save_path = osp.join(save_root, scene)
 
