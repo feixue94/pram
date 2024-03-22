@@ -81,6 +81,7 @@ if __name__ == '__main__':
     show_2D = False
 
     compress_map = False
+    # compress_map = True
 
     # scene = 'Aachen/Aachenv11'
     # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n512_xz_birch.npy'), allow_pickle=True)[()]
@@ -111,15 +112,26 @@ if __name__ == '__main__':
     # sid_start = 1
     # vrf_file_name = 'point3D_vrf_n16_xz_birch.npy'
 
-    scene = '7Scenes/redkitchen'
-    seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n16_xz_birch.npy'), allow_pickle=True)[()]
-    sid_start = 16 * 5 + 1
-    vrf_file_name = 'point3D_vrf_n16_xz_birch.npy'
+    # scene = '7Scenes/redkitchen'
+    # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n16_xz_birch.npy'), allow_pickle=True)[()]
+    # sid_start = 16 * 5 + 1
+    # vrf_file_name = 'point3D_vrf_n16_xz_birch.npy'
 
     # scene = '12Scenes/apt1/kitchen'
     # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n16_xy_birch.npy'), allow_pickle=True)[()]
     # sid_start = 1
     # vrf_file_name = 'point3D_vrf_n16_xy_birch.npy'
+
+    # data_root = '/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gml2'
+    # scene = 'JesusCollege/jesuscollege'
+    # seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n256_xy_birch.npy'), allow_pickle=True)[()]
+    # sid_start = 1
+    # vrf_file_name = 'point3D_vrf_n256_xy_birch.npy'
+
+    scene = 'DarwinRGB/darwin'
+    seg_data = np.load(osp.join(data_root, scene, 'point3D_cluster_n128_xy_birch.npy'), allow_pickle=True)[()]
+    sid_start = 1
+    vrf_file_name = 'point3D_vrf_n128_xy_birch.npy'
 
     cameras, images, points3D = read_model(osp.join(data_root, scene, 'model'), ext='.bin')
     print('Load {:d} 3D points from map'.format(len(points3D.keys())))
