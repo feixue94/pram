@@ -273,26 +273,9 @@ class BasicDataset:
             gt_cls_dist[uid] = np.sum(seg_ids == uid) / np.sum(seg_ids > 0)  # [valid_id / total_valid_id]
 
         param_out = self.extract_intrinsic_extrinsic_params(image_id=self.name_to_id[img_name])
-        output = {
-            # 'descriptors': sel_descs,  # may not be used
-            'scores': sel_scores,
-            'keypoints': sel_kpts,
-            'norm_keypoints': normalize_size(x=sel_kpts, size=image_size),
-            'gt_seg': sel_seg_ids,
-            'gt_cls': gt_cls,
-            'gt_cls_dist': gt_cls_dist,
-            'gt_n_seg': gt_n_seg,
-            'file_name': img_name,
-            'prefix_name': self.image_prefix,
-            'mean_xyz': self.mean_xyz,
-            'scale_xyz': self.scale_xyz,
-            'gt_sc': sel_xyzs,
-            'gt_norm_sc': (sel_xyzs - self.mean_xyz) / self.scale_xyz,
-            'K': param_out['K'],
-            'gt_P': param_out['P']
-        }
 
         img = self.read_image(image_name=img_name)
+        image_size = img.shape[:2]
         if self.image_dim == 1:
             img = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
         else:
@@ -319,13 +302,31 @@ class BasicDataset:
             img = np.clip(img, a_min=0, a_max=255)
             if self.image_dim == 1:
                 img = img[..., None]
-            output['image'] = [img.astype(float) / 255.]
-            output['image_size'] = np.array([nh, nw], dtype=int)
+            img = img.astype(float) / 255.
+            image_size = np.array([nh, nw], dtype=int)
         else:
             if self.image_dim == 1:
                 img = img[..., None].astype(float) / 255.
-            output['image'] = [img]
 
+        output = {
+            # 'descriptors': sel_descs,  # may not be used
+            'scores': sel_scores,
+            'keypoints': sel_kpts,
+            'norm_keypoints': normalize_size(x=sel_kpts, size=image_size),
+            'image': [img],
+            'gt_seg': sel_seg_ids,
+            'gt_cls': gt_cls,
+            'gt_cls_dist': gt_cls_dist,
+            'gt_n_seg': gt_n_seg,
+            'file_name': img_name,
+            'prefix_name': self.image_prefix,
+            'mean_xyz': self.mean_xyz,
+            'scale_xyz': self.scale_xyz,
+            'gt_sc': sel_xyzs,
+            'gt_norm_sc': (sel_xyzs - self.mean_xyz) / self.scale_xyz,
+            'K': param_out['K'],
+            'gt_P': param_out['P']
+        }
         return output
 
     def get_item_test(self, idx):
