@@ -61,6 +61,12 @@ multi-modality localization, map-centric feature learning, and hierarchical scen
 - Per frame reclocalization from scratch
 - Tracking previous frames for higher efficiency
 
+### One model one dataset
+
+- All 7 sub scenes in 7Scenes dataset share a model
+- All 12 subscenes in 12Scenes dataset share a model
+- All 5 subscenes in CambridgeLandmarks share a model
+
 ### Flexibility to multi-modality data
 
 - Any other signals (e.g. text, language, GPS, Magonemeter) can be used as tokens as input with SFD2 keypoints
