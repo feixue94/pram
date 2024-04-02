@@ -1,7 +1,7 @@
 ## Place Recognition Anywhere Model for Efficient Visual Localization
 
 <p align="center">
-  <img src="assets/overview1.png" width="960">
+  <img src="assets/overview.png" width="960">
 </p>
 
 Humans localize themselves efficiently in known environments by first recognizing landmarks defined on certain objects
