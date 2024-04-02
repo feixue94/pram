@@ -93,15 +93,6 @@ If you use any ideas from the paper or code in this repo, please consider citing
 }
 ```
 
-@inproceedings{xue2022imp,
-author = {Fei Xue and Ignas Budvytis and Roberto Cipolla},
-title = {IMP: Iterative Matching and Pose Estimation with Adaptive Pooling},
-booktitle = {CVPR},
-year = {2023}
-}
-
-```
-
 ## Acknowledgements
 
 Part of the code is from previous excellent works
