@@ -15,7 +15,7 @@ confs = {
         'output': 'gm',
         'model': {
             'name': 'gm',
-            'weight_path': '/scratches/flyer_3/fx221/exp/uniloc/20230519_145436_gm_L9_resnet4x_B16_K1024_M0.2_relu_bn_adam/gm.900.pth',
+            'weight_path': 'weights/imp_gm.900.pth',
             'sinkhorn_iterations': 20,
         },
     },
@@ -23,7 +23,7 @@ confs = {
         'output': 'gml',
         'model': {
             'name': 'gml',
-            'weight_path': '/scratches/flyer_3/fx221/exp/uniloc/20240117_145500_gml2_L9_resnet4x_B32_K1024_M0.2_relu_bn_adam/gml2.920.pth',
+            'weight_path': 'weights/imp_gml.920.pth',
             'sinkhorn_iterations': 20,
         },
     },
@@ -32,7 +32,7 @@ confs = {
         'output': 'adagml',
         'model': {
             'name': 'adagml',
-            'weight_path': '/scratches/flyer_3/fx221/exp/uniloc/20240210_154552_adagml2_L9_resnet4x_B32_K1024_M0.2_relu_bn_adam/adagml2.80.pth',
+            'weight_path': 'weights/imp_adagml.80.pth',
             'sinkhorn_iterations': 20,
         },
     },
@@ -43,7 +43,7 @@ confs = {
             'name': 'superglue',
             'weights': 'outdoor',
             'sinkhorn_iterations': 20,
-            'weight_path': '/scratches/flyer_2/fx221/Research/Code/third_weights/superglue_outdoor.pth',
+            'weight_path': 'weights/superglue_outdoor.pth',
         },
     },
     'NNM': {

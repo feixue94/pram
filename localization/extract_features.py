@@ -55,7 +55,7 @@ confs = {
             'multiscale': False,
             'scales': [1.0],
             'model_fn': osp.join(os.getcwd(),
-                                 "weights/20230511_210205_resnet4x.79.pth"),
+                                 "weights/sfd2_20230511_210205_resnet4x.79.pth"),
         },
         'preprocessing': {
             'grayscale': False,
@@ -75,7 +75,7 @@ confs = {
             'multiscale': False,
             'scales': [1.0],
             'model_fn': osp.join(os.getcwd(),
-                                 "weights/20230511_210205_resnet4x.79.pth"),
+                                 "weights/sfd2_20230511_210205_resnet4x.79.pth"),
         },
         'preprocessing': {
             'grayscale': False,

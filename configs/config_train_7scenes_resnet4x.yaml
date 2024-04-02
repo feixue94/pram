@@ -65,8 +65,10 @@ weight_path_: null
 weight_path_1: '20230724_203230_segnet_L15_S_resnet4x_B32_K1024_relu_bn_od1024_nc113_adam_cew_md_A_birch/segnet.180.pth'
 weight_path: '20240202_152519_segnetvit_L15_S_resnet4x_B32_K512_relu_bn_od1024_nc113_adamw_cew_md_A_birch/segnetvit.199.pth'
 
+# used for resuming training
 resume_path: null
 
+#used for evaluation
 eval: false
 #loc: false
 loc: true

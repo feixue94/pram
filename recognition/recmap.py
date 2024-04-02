@@ -939,13 +939,10 @@ def process_dataset():
 
     local_feat = 'resnet4x-20230511-210205-pho-0005'
     # matcher = 'gm'
-    matcher = 'gml2'
-    #
-    # local_feat = 'superpoint-n4096'
-    # matcher = 'superglue'
+    matcher = 'gml'
 
     # config_path = 'configs/datasets/CUED.yaml'
-    # config_path = 'configs/datasets/7Scenes.yaml'
+    config_path = 'configs/datasets/7Scenes.yaml'
     # config_path = 'configs/datasets/12Scenes.yaml'
     # config_path = 'configs/datasets/CambridgeLandmarks.yaml'
     # config_path = 'configs/datasets/Aachen.yaml'
@@ -956,7 +953,7 @@ def process_dataset():
     # config_path = 'configs/datasets/DarwinRGB.yaml'
     # config_path = 'configs/datasets/ACUED.yaml'
     # config_path = 'configs/datasets/JesusCollege.yaml'
-    config_path = 'configs/datasets/CUED2Kings.yaml'
+    # config_path = 'configs/datasets/CUED2Kings.yaml'
 
     with open(config_path, 'rt') as f:
         configs = yaml.load(f, Loader=yaml.Loader)
@@ -981,13 +978,7 @@ def process_dataset():
         radius = 20
         n_kpts = 0
 
-        if dataset in ['RobotCar-Seasons', ]:
-            image_path = osp.join(data_root, dataset, scene, 'images')
-            min_obs = 250
-            filtering_outliers = True
-            threshold = 0.5
-            radius = int(20 / 480 * 1024)
-        elif dataset in ['Aachen']:
+        if dataset in ['Aachen']:
             image_path = osp.join(data_root, dataset, scene, 'images/images_upright')
             min_obs = 250
             filtering_outliers = True

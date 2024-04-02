@@ -31,46 +31,68 @@ multi-modality localization, map-centric feature learning, and hierarchical scen
 
 ## Key Features
 
-### Self-supervised landmark definition on 3D space
+### 1. Self-supervised landmark definition on 3D space
 
-- No need of segmentation on images
-- No inconsistent semantic labels from multi-view images
-- No limitation of only known objects
+- No need of segmentations on images
+- No inconsistent semantic results from multi-view images
+- No limitation to labels of only known objects
 - Work in any places with known or unknown objects
 
-### Efficient landmark-wise coarse and fine localization
+### 2. Efficient landmark-wise coarse and fine localization
 
 - Recognize landmarks as opposed to do global retrieval
 - Local landmark-wise matching as opposed to exhaustive matching
 - No global descriptors (e.g. NetVLAD)
-- No reference images and their repetative 2D keypoints and descriptors
+- No reference images and their heavy repetative 2D keypoints and descriptors
 
-### Landmark-wise map sparsification
+### 3. Landmark-wise map sparsification
 
-- Tack reference frame assigned to each landmark
+- Tack each landmark for localization
 - Reduce redundant 3D points for each landmark independently
 
-### Sparse recognition
+### 4. Sparse recognition
 
 - Sparse SFD2 keypoints as tokens
 - No uncertainties of points at boundaries
 - Automatic inlier/outlier discrimination
 
-### Relocalization and temporal localization
+### 5. Relocalization and temporal localization
 
 - Per frame reclocalization from scratch
 - Tracking previous frames for higher efficiency
 
-### One model one dataset
+### 6. One model one dataset
 
-- All 7 sub scenes in 7Scenes dataset share a model
+- All 7 subscenes in 7Scenes dataset share a model
 - All 12 subscenes in 12Scenes dataset share a model
 - All 5 subscenes in CambridgeLandmarks share a model
 
-### Flexibility to multi-modality data
+### 7. Flexibility to multi-modality input
 
 - Any other signals (e.g. text, language, GPS, Magonemeter) can be used as tokens as input with SFD2 keypoints
 - Joint task of localization and scene understanding
+
+## Data preparation
+
+1. Download the 7Scenes, 12Scenes, CambridgeLandmarks, and Aachen datasets
+2. Do SfM with SFD2 features
+3. Generate 3D landmarks from point clouds, create virtual reference frames and remove redundant 3D points
+
+```
+python -m recognition.recmap
+```
+
+4. Train the recognition network for each dataset (e.g. 7Scenes)
+
+```
+python3 main.py --config configs/config_train_7scenes_resnet4x.yaml
+```
+
+5. Localization with online visualization (set loc: true, online: true)
+
+```
+python3 main.py --config configs/config_train_7scenes_resnet4x.yaml
+```
 
 ## BibTeX Citation
 
