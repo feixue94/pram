@@ -22,10 +22,10 @@ torch.set_grad_enabled(True)
 
 parser = argparse.ArgumentParser(description='PRAM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--config', type=str, required=True, help='config of specifications')
-parser.add_argument('--landmark_path', type=str, default=None, help='path of landmarks')
+parser.add_argument('--landmark_path', type=str, required=True, help='path of landmarks')
 parser.add_argument('--feat_weight_path', type=str, default='weights/sfd2_20230511_210205_resnet4x.79.pth')
-parser.add_argument('--rec_weight_path', type=str, default=None, help='recognition weight')
-parser.add_argument('--online', action='store_true', default=True, help='online visualization with pangolin')
+parser.add_argument('--rec_weight_path', type=str, required=True, help='recognition weight')
+parser.add_argument('--online', action='store_true', help='online visualization with pangolin')
 
 
 def get_model(config):
@@ -62,6 +62,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config, 'rt') as f:
         config = yaml.load(f, Loader=yaml.Loader)
+
+    config['landmark_path'] = args.landmark_path
     torch_set_gpu(gpus=config['gpu'])
 
     feat_model = load_sfd2(weight_path=args.feat_weight_path).cuda().eval()

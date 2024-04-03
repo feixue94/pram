@@ -74,7 +74,7 @@ def compose_datasets(datasets, config, train=True, sample_ratio=None):
                              jitter_params=config['jitter_params'],
                              scale_params=config['scale_params'],
                              image_dim=config['image_dim'],
-                             query_p3d_fn=osp.join(config['segment_path'], ds_name, scene,
+                             query_p3d_fn=osp.join(config['landmark_path'], ds_name, scene,
                                                    'point3D_query_n{:d}_{:s}_{:s}.npy'.format(
                                                        scene_config[scene]['n_cluster'],
                                                        scene_config[scene]['cluster_mode'],
