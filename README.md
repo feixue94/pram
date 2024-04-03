@@ -1,4 +1,4 @@
-## Place Recognition Anywhere Model for Efficient Visual Localization
+## PRAM: Place Recognition Anywhere Model for Efficient Visual Localization
 
 <p align="center">
   <img src="assets/overview.png" width="960">
@@ -98,11 +98,24 @@ python3 inference.py  --config configs/config_train_7scenes_resnet4x.yaml --rec_
 python3 train.py   --config configs/config_train_7scenes_sfd2.yaml
 ```
 
+## Your own dataset
+
+1. Run colmap to obtain the SfM results
+2. Do reconstruction with SFD2 keypoints
+3. Do 3D landmark generation, VRF, map sparsification etc
+4. Train the recognition model
+
 ## BibTeX Citation
 
 If you use any ideas from the paper or code in this repo, please consider citing:
 
 ```
+@inproceedings{xue2024pram,
+  author    = {Fei Xue and Ignas Budvytis and Roberto Cipolla},
+  title     = {PRAM: Place Recognition Anywhere Model for Efficient Visual Localization},
+  year      = {2024}
+}
+
 @inproceedings{xue2023sfd2,
   author    = {Fei Xue and Ignas Budvytis and Roberto Cipolla},
   title     = {SFD2: Semantic-guided Feature Detection and Description},
