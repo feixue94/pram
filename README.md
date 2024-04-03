@@ -78,6 +78,20 @@ multi-modality localization, map-centric feature learning, and hierarchical scen
 2. Do SfM with SFD2 features
 3. Generate 3D landmarks from point clouds, create virtual reference frames and remove redundant 3D points
 
+## Run the localization with online visualization
+
+1. Download the [3D-models](https://drive.google.com/drive/folders/1Ws98KjWWKhWwyKMDgswa8-I4KJITS6Uw?usp=drive_link)
+   obtained with SFD2
+   keypoints, [pretrained models](https://drive.google.com/drive/folders/1Rlbo1MgSW9da27ZKLlSQF7t-Jli2fX36?usp=drive_link) ,
+   and [landmarks](https://drive.google.com/drive/folders/1yT1ALo0L6kejPLmornUtODFUJLr9Q4M0?usp=drive_link)
+2. Put these data in ```your_path``` and modify the path
+3. Run the demo (e.g. 7Scenes)
+
+```
+python3 main.py --config configs/config_train_7scenes_resnet4x.yaml
+
+```
+
 ```
 python3 -m recognition.recmap
 ```

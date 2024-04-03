@@ -44,7 +44,7 @@ def compose_datasets(datasets, config, train=True, sample_ratio=None):
         else:
             ds_name = name
             # raise '{} dataset does not exist'.format(name)
-        segment_path = osp.join(config['segment_path'], ds_name)
+        landmark_path = osp.join(config['landmark_path'], ds_name)
         dataset_path = osp.join(config['dataset_path'], ds_name)
         scene_config_path = 'configs/datasets/{:s}.yaml'.format(ds_name)
 
@@ -58,7 +58,7 @@ def compose_datasets(datasets, config, train=True, sample_ratio=None):
                     'eval_sample_ratio']
             else:
                 scene_sample_ratio = sample_ratio
-            scene_set = DSet(segment_path=segment_path,
+            scene_set = DSet(landmark_path=landmark_path,
                              dataset_path=dataset_path,
                              scene=scene,
                              seg_mode=scene_config[scene]['cluster_mode'],

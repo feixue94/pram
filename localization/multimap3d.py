@@ -72,7 +72,7 @@ class MultiMap3D:
 
                 new_config = deepcopy(config)
                 new_config['dataset_path'] = osp.join(config['dataset_path'], dataset_name, scene)
-                new_config['segment_path'] = osp.join(config['segment_path'], dataset_name, scene)
+                new_config['landmark_path'] = osp.join(config['landmark_path'], dataset_name, scene)
                 new_config['n_cluster'] = scene_config[scene]['n_cluster']
                 new_config['cluster_mode'] = scene_config[scene]['cluster_mode']
                 new_config['cluster_method'] = scene_config[scene]['cluster_method']

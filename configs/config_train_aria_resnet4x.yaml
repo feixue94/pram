@@ -7,7 +7,7 @@ gpu: [ 0]
 
 feature: "resnet4x"
 save_path: '/scratches/flyer_2/fx221/exp/localizer'
-segment_path: "/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gm"
+landmark_path: "/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gm"
 dataset_path: "/scratches/flyer_3/fx221/dataset"
 config_path: 'configs/datasets'
 

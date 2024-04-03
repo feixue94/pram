@@ -29,6 +29,7 @@ torch.set_grad_enabled(True)
 
 parser = argparse.ArgumentParser(description='PRAM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--config', type=str, required=True, help='config of specifications')
+parser.add_argument('--landmark_path', type=str, default=None, help='path of landmarks')
 
 
 def load_feat_network(config):
@@ -38,8 +39,9 @@ def load_feat_network(config):
         }).eval()
     elif config['feature'] == 'resnet4x':
         net = ResNet4x(inputdim=3, outdim=128)
-        net.load_state_dict(torch.load('weights/20230511_210205_resnet4x.79.pth', map_location='cpu')['state_dict'],
-                            strict=True)
+        net.load_state_dict(
+            torch.load('weights/sfd2_20230511_210205_resnet4x.79.pth', map_location='cpu')['state_dict'],
+            strict=True)
         net.eval()
     else:
         print('Please input correct feature {:s}'.format(config['feature']))

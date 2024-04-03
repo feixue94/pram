@@ -29,22 +29,22 @@ class SingleMap3D:
         self.start_sid = start_sid  # for a dataset with multiple scenes
         if not with_compress:
             cameras, images, p3ds = read_model(
-                path=osp.join(config['segment_path'], 'model'), ext='.bin')
-            p3d_descs = np.load(osp.join(config['segment_path'], 'point3D_desc.npy'),
+                path=osp.join(config['landmark_path'], 'model'), ext='.bin')
+            p3d_descs = np.load(osp.join(config['landmark_path'], 'point3D_desc.npy'),
                                 allow_pickle=True)[()]
         else:
             cameras, images, p3ds = read_compressed_model(
-                path=osp.join(config['segment_path'], 'compress_model_{:s}'.format(config['cluster_method'])),
+                path=osp.join(config['landmark_path'], 'compress_model_{:s}'.format(config['cluster_method'])),
                 ext='.bin')
-            p3d_descs = np.load(osp.join(config['segment_path'], 'compress_model_{:s}/point3D_desc.npy'.format(
+            p3d_descs = np.load(osp.join(config['landmark_path'], 'compress_model_{:s}/point3D_desc.npy'.format(
                 config['cluster_method'])), allow_pickle=True)[()]
 
         print('Load {} cameras {} images {} 3D points'.format(len(cameras), len(images), len(p3d_descs)))
 
         seg_data = np.load(
-            osp.join(config['segment_path'], 'point3D_cluster_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
-                                                                                          config['cluster_mode'],
-                                                                                          config['cluster_method'])),
+            osp.join(config['landmark_path'], 'point3D_cluster_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
+                                                                                           config['cluster_mode'],
+                                                                                           config['cluster_method'])),
             allow_pickle=True)[()]
 
         p3d_id = seg_data['id']
@@ -60,9 +60,9 @@ class SingleMap3D:
 
         print('Load {} segments and {} 3d points'.format(len(seg_p3d.keys()), len(p3d_seg.keys())))
         seg_vrf = np.load(
-            osp.join(config['segment_path'], 'point3D_vrf_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
-                                                                                      config['cluster_mode'],
-                                                                                      config['cluster_method'])),
+            osp.join(config['landmark_path'], 'point3D_vrf_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
+                                                                                       config['cluster_mode'],
+                                                                                       config['cluster_method'])),
             allow_pickle=True)[()]
 
         # construct 3D map

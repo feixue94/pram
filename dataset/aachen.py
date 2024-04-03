@@ -14,7 +14,7 @@ from dataset.basicdataset import BasicDataset
 
 
 class Aachen(BasicDataset):
-    def __init__(self, segment_path, scene, dataset_path, n_class, seg_mode, seg_method, dataset='Aachen',
+    def __init__(self, landmark_path, scene, dataset_path, n_class, seg_mode, seg_method, dataset='Aachen',
                  nfeatures=1024,
                  query_p3d_fn=None,
                  train=True,
@@ -27,7 +27,7 @@ class Aachen(BasicDataset):
                  image_dim=3,
                  query_info_path=None,
                  sample_ratio=1, ):
-        self.segment_path = osp.join(segment_path, scene)
+        self.landmark_path = osp.join(landmark_path, scene)
         self.dataset_path = osp.join(dataset_path, scene)
         self.n_class = n_class
         self.dataset = dataset + '/' + scene
@@ -54,7 +54,7 @@ class Aachen(BasicDataset):
         self.train_transforms = tvt.Compose(train_transforms)
 
         if train:
-            self.cameras, self.images, point3Ds = read_model(path=osp.join(self.segment_path, 'model'), ext='.bin')
+            self.cameras, self.images, point3Ds = read_model(path=osp.join(self.landmark_path, 'model'), ext='.bin')
             self.name_to_id = {image.name: i for i, image in self.images.items() if len(self.images[i].point3D_ids) > 0}
 
         # only for testing of query images
@@ -92,7 +92,7 @@ class Aachen(BasicDataset):
         print(
             'Load {} images from {} for {}...'.format(len(self.img_fns), self.dataset, 'training' if train else 'eval'))
 
-        data = np.load(osp.join(self.segment_path,
+        data = np.load(osp.join(self.landmark_path,
                                 'point3D_cluster_n{:d}_{:s}_{:s}.npy'.format(n_class - 1, seg_mode, seg_method)),
                        allow_pickle=True)[()]
         p3d_id = data['id']
@@ -101,7 +101,7 @@ class Aachen(BasicDataset):
         xyzs = data['xyz']
         self.p3d_xyzs = {p3d_id[i]: xyzs[i] for i in range(p3d_id.shape[0])}
 
-        with open(osp.join(self.segment_path, 'sc_mean_scale.txt'), 'r') as f:
+        with open(osp.join(self.landmark_path, 'sc_mean_scale.txt'), 'r') as f:
             lines = f.readlines()
             for l in lines:
                 l = l.strip().split()
@@ -112,7 +112,7 @@ class Aachen(BasicDataset):
             self.query_info = self.read_query_info(path=query_info_path)
 
         self.nfeatures = nfeatures
-        self.feature_dir = osp.join(self.segment_path, 'feats')
+        self.feature_dir = osp.join(self.landmark_path, 'feats')
         self.feats = {}
 
     def read_image(self, image_name):
