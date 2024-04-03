@@ -18,7 +18,7 @@ if __name__ == '__main__':
     sub_maps = {}
     scene_name_start_sid = {}
 
-    config_path = 'configs/config_train_aachen_resnet4x.yaml'
+    config_path = 'configs/config_train_aachen_sfd2.yaml'
     with open(config_path, 'rt') as f:
         config = yaml.load(f, Loader=yaml.Loader)
     n_class = 0

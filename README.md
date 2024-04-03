@@ -92,20 +92,10 @@ python3 inference.py  --config configs/config_train_7scenes_resnet4x.yaml --rec_
 
 ```
 
-```
-python3 -m recognition.recmap
-```
-
-4. Train the recognition network for each dataset (e.g. 7Scenes)
+## Train the recognition model (e.g. for 7scenes, remember to update the config file (save_path, etc))
 
 ```
-python3 main.py --config configs/config_train_7scenes_resnet4x.yaml
-```
-
-5. Localization with online visualization (set loc: true, online: true)
-
-```
-python3 main.py --config configs/config_train_7scenes_resnet4x.yaml
+python3 train.py   --config configs/config_train_7scenes_sfd2.yaml
 ```
 
 ## BibTeX Citation
