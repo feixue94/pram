@@ -8,20 +8,15 @@ Humans localize themselves efficiently in known environments by first recognizin
 and their spatial relationships, and then verifying the location by aligning detailed structures of recognized objects
 with those in the memory. Inspired by this, we propose the place recognition anywhere model (PRAM) to perform visual
 localization as efficiently as humans do. PRAM consists of two main components - recognition and registration. In
-detail, first of all,
-a self-supervised map-centric landmark definition strategy is adopted, making places in either indoor or outdoor scenes
-act as unique landmarks. Then,
-sparse keypoints extracted from images, are utilized as the input to a transformer-based deep neural network for
-landmark recognition; these keypoints enable PRAM to recognize hundreds of landmarks with high time and memory
-efficiency.
-Keypoints along with recognized landmark labels are further used for registration between query images and the 3D
-landmark map. Different
-from previous hierarchical methods, PRAM discards global and local descriptors, and reduces over 90% storage. Since PRAM
-utilizes
-recognition and landmark-wise verification to replace global reference search and exhaustive matching respectively, it
-runs 2.4 times
-faster than prior state-of-the-art approaches. Moreover, PRAM opens new directions for visual localization including
-multi-modality localization, map-centric feature learning, and hierarchical scene coordinate regression.
+detail, first of all, a self-supervised map-centric landmark definition strategy is adopted, making places in either
+indoor or outdoor scenes act as unique landmarks. Then, sparse keypoints extracted from images, are utilized as the
+input to a transformer-based deep neural network for landmark recognition; these keypoints enable PRAM to recognize
+hundreds of landmarks with high time and memory efficiency. Keypoints along with recognized landmark labels are further
+used for registration between query images and the 3D landmark map. Different from previous hierarchical methods, PRAM
+discards global and local descriptors, and reduces over 90% storage. Since PRAM utilizes recognition and landmark-wise
+verification to replace global reference search and exhaustive matching respectively, it runs 2.4 times faster than
+prior state-of-the-art approaches. Moreover, PRAM opens new directions for visual localization including multi-modality
+localization, map-centric feature learning, and hierarchical scene coordinate regression.
 
 * Full paper PDF: [Place Recognition Anywhere Model for Efficient Visual Localization](assets/pram.pdf).
 
@@ -100,7 +95,7 @@ python3 train.py   --config configs/config_train_7scenes_sfd2.yaml
 
 ## Your own dataset
 
-1. Run colmap to obtain the SfM results
+1. Run colmap or hloc to obtain the SfM results
 2. Do reconstruction with SFD2 keypoints
 3. Do 3D landmark generation, VRF, map sparsification etc
 4. Train the recognition model
@@ -141,7 +136,6 @@ If you use any ideas from the paper or code in this repo, please consider citing
 ## Acknowledgements
 
 Part of the code is from previous excellent works
-including [SuperPoint](https://github.com/magicleap/SuperPointPretrainedNetwork)
-, [SuperGlue](https://github.com/magicleap/SuperGluePretrainedNetwork)
-and [SGMNet](https://github.com/magicleap/SuperGluePretrainedNetwork). You can find more details from their released
+including , [SuperGlue](https://github.com/magicleap/SuperGluePretrainedNetwork)
+and [hloc](https://github.com/cvg/Hierarchical-Localization). You can find more details from their released
 repositories if you are interested in their works. 
