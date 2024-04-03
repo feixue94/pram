@@ -6,19 +6,13 @@
 @Date   03/04/2024 16:06
 =================================================='''
 import argparse
-import os
-import os.path as osp
 import torch
 import torchvision.transforms.transforms as tvt
 import yaml
 from nets.segnet import SegNet
 from nets.segnetvit import SegNetViT
 from nets.sfd2 import load_sfd2
-
 from dataset.get_dataset import compose_datasets
-from tools.common import torch_set_gpu
-
-torch.set_grad_enabled(True)
 
 parser = argparse.ArgumentParser(description='PRAM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--config', type=str, required=True, help='config of specifications')
@@ -62,9 +56,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config, 'rt') as f:
         config = yaml.load(f, Loader=yaml.Loader)
-
     config['landmark_path'] = args.landmark_path
-    torch_set_gpu(gpus=config['gpu'])
 
     feat_model = load_sfd2(weight_path=args.feat_weight_path).cuda().eval()
     print('Load SFD2 weight from {:s}'.format(args.feat_weight_path))

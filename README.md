@@ -88,7 +88,7 @@ multi-modality localization, map-centric feature learning, and hierarchical scen
 3. Run the demo (e.g. 7Scenes)
 
 ```
-python3 main.py --config configs/config_train_7scenes_resnet4x.yaml
+python3 inference.py  --config configs/config_train_7scenes_resnet4x.yaml --rec_weight_path pretrained_models/7scenes_nc113_birch_segnetvit.199.pth  --landmark_path landmarks --online
 
 ```
 
