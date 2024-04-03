@@ -27,7 +27,7 @@ multi-modality localization, map-centric feature learning, and hierarchical scen
 
 * Authors: *Fei Xue, Ignas Budvytis, Roberto Cipolla*
 
-* Website: [PRAM](https://feixue94.github.io/) for videos, slides, recent updates, and datasets.
+* Website: [PRAM](https://feixue94.github.io/pram-project) for videos, slides, recent updates, and datasets.
 
 ## Key Features
 
@@ -79,7 +79,7 @@ multi-modality localization, map-centric feature learning, and hierarchical scen
 3. Generate 3D landmarks from point clouds, create virtual reference frames and remove redundant 3D points
 
 ```
-python -m recognition.recmap
+python3 -m recognition.recmap
 ```
 
 4. Train the recognition network for each dataset (e.g. 7Scenes)
