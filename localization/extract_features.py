@@ -120,8 +120,6 @@ class ImageDataset(Data.Dataset):
         else:
             self.mask_root = None
 
-        print("mask_root: ", self.mask_root)
-
     def __getitem__(self, idx):
         path = self.paths[idx]
         if self.conf.grayscale:
