@@ -13,7 +13,7 @@ import pycolmap
 from localization.frame import Frame
 from localization.base_model import dynamic_load
 import localization.matchers as matchers
-from localization.match_features import confs as matcher_confs
+from localization.match_features_batch import confs as matcher_confs
 from recognition.vis_seg import vis_seg_point, generate_color_dic, vis_inlier, plot_matches
 from tools.common import resize_img
 

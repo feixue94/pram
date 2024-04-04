@@ -18,7 +18,7 @@ from pathlib import Path
 from colmap_utils.read_write_model import read_model
 from colmap_utils.parsers import parse_image_lists_with_intrinsics
 # localization
-from localization.match_features import confs
+from localization.match_features_batch import confs
 from localization.base_model import dynamic_load
 from localization import matchers
 from localization.utils import compute_pose_error, read_gt_pose, read_retrieval_results

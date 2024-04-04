@@ -12,7 +12,7 @@ import torch
 from copy import deepcopy
 from localization.extract_features import confs as feat_confs
 from localization.extract_features import get_model
-from localization.match_features import confs as matcher_confs
+from localization.match_features_batch import confs as matcher_confs
 from localization.base_model import dynamic_load
 import localization.matchers as matchers
 from recognition.vis_seg import plot_matches, plot_kpts

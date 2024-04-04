@@ -67,23 +67,45 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 - Any other signals (e.g. text, language, GPS, Magonemeter) can be used as tokens as input with SFD2 keypoints
 - Joint task of localization and scene understanding
 
-## Data preparation
+## Preparation
 
-1. Download the 7Scenes, 12Scenes, CambridgeLandmarks, and Aachen datasets
-2. Do SfM with SFD2 features
-3. Generate 3D landmarks from point clouds, create virtual reference frames and remove redundant 3D points
+1. Download the 7Scenes, 12Scenes, CambridgeLandmarks, and Aachen datasets (remove redundant depth images otherwise they
+   will be found in the sfm process)
+2. Environments
+   2.1 Create a virtual environment
+
+```
+conda env create -f environment.yml
+conda activate pram
+```
+
+2.2 Compile Pangolin for the installed python
+
+```
+git clone --recursive https://github.com/stevenlovegrove/Pangolin.git
+cd Pangolin
+git checkout v0.8
+
+# Install dependencies
+./scripts/install_prerequisites.sh recommended
+
+# Compile with your python
+cmake -DPython_EXECUTABLE=/your path to/anaconda3/envs/pram/bin/python3  -B build
+cmake --build build -t pypangolin_pip_install
+```
 
 ## Run the localization with online visualization
 
 1. Download the [3D-models](https://drive.google.com/drive/folders/1Ws98KjWWKhWwyKMDgswa8-I4KJITS6Uw?usp=drive_link)
    obtained with SFD2
-   keypoints, [pretrained models](https://drive.google.com/drive/folders/1Rlbo1MgSW9da27ZKLlSQF7t-Jli2fX36?usp=drive_link) ,
+   keypoints,
+   pretrained [models](https://drive.google.com/drive/folders/1Rlbo1MgSW9da27ZKLlSQF7t-Jli2fX36?usp=drive_link) ,
    and [landmarks](https://drive.google.com/drive/folders/1yT1ALo0L6kejPLmornUtODFUJLr9Q4M0?usp=drive_link)
 2. Put these data in ```your_path``` and modify the path
 3. Run the demo (e.g. 7Scenes)
 
 ```
-python3 inference.py  --config configs/config_train_7scenes_resnet4x.yaml --rec_weight_path pretrained_models/7scenes_nc113_birch_segnetvit.199.pth  --landmark_path landmarks --online
+python3 inference.py  --config configs/config_train_7scenes_resnet4x.yaml --rec_weight_path weights/7scenes_nc113_birch_segnetvit.199.pth  --landmark_path /your path to/landmarks --online
 ```
 
 ## Train the recognition model (e.g. for 7Scenes)
@@ -104,13 +126,13 @@ python3 -m recognition.recmap --dataset 7Scenes --dataset_dir /path/7Scenes --sf
 
 This step will generate 3D landmarks, create virtual reference frame, and sparsify the 3D points for each landmark
 
-### 3. Train the sparse recognition model
+### 3. Train the sparse recognition model (one model one dataset)
 
 ```
 python3 train.py   --config configs/config_train_7scenes_sfd2.yaml
 ```
 
-Do remember to modify the paths in 'config_train_7scenes_sfd2.yaml'
+Remember to modify the paths in 'config_train_7scenes_sfd2.yaml'
 
 ## Your own dataset
 

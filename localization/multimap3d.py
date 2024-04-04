@@ -16,7 +16,7 @@ from copy import deepcopy
 from recognition.vis_seg import vis_seg_point, generate_color_dic, vis_inlier, plot_matches
 from localization.base_model import dynamic_load
 import localization.matchers as matchers
-from localization.match_features import confs as matcher_confs
+from localization.match_features_batch import confs as matcher_confs
 from nets.gm import GM
 from tools.common import resize_img
 from localization.singlemap3d import SingleMap3D
