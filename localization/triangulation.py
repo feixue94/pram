@@ -230,7 +230,7 @@ def run_triangulation(
 
 def main(
         sfm_dir: Path,
-        reference_model: Path,
+        reference_sfm_model: Path,
         image_dir: Path,
         pairs: Path,
         features: Path,
@@ -241,14 +241,14 @@ def main(
         verbose: bool = False,
         mapper_options: Optional[Dict[str, Any]] = None,
 ) -> pycolmap.Reconstruction:
-    assert reference_model.exists(), reference_model
+    assert reference_sfm_model.exists(), reference_sfm_model
     assert features.exists(), features
     assert pairs.exists(), pairs
     assert matches.exists(), matches
 
     sfm_dir.mkdir(parents=True, exist_ok=True)
     database = sfm_dir / "database.db"
-    reference = pycolmap.Reconstruction(reference_model)
+    reference = pycolmap.Reconstruction(reference_sfm_model)
 
     image_ids = create_db_from_model(reference, database)
     import_features(image_ids, database, features)
@@ -274,11 +274,9 @@ def main(
     logging.info(
         "Finished the triangulation with statistics:\n%s", reconstruction.summary()
     )
+    stats = reconstruction.summary()
     with open(sfm_dir / 'statics.txt', 'w') as f:
-        keys = sorted(reconstruction.keys())
-        for k in keys:
-            text = '{:s} {:4f}'.format(k, reconstruction[k])
-            f.write(text + '\n')
+        f.write(stats + '\n')
 
     # logging.info(f'Statistics:\n{pprint.pformat(stats)}')
     return reconstruction
@@ -321,8 +319,4 @@ if __name__ == "__main__":
     parser.add_argument("--verbose", action="store_true")
     args = parser.parse_args().__dict__
 
-    mapper_options = parse_option_args(
-        args.pop("mapper_options"), pycolmap.IncrementalMapperOptions()
-    )
-
-    main(**args, mapper_options=mapper_options)
+    main(**args)

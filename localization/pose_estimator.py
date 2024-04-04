@@ -68,12 +68,12 @@ def feature_matching(query_data, db_data, matcher):
             match_data = {
                 'keypoints0': torch.from_numpy(query_data['keypoints'])[None].float().cuda(),
                 'scores0': torch.from_numpy(query_data['scores'])[None].float().cuda(),
-                'descriptors0': torch.from_numpy(query_data['descriptors'].transpose())[None].float().cuda(),
+                'descriptors0': torch.from_numpy(query_data['descriptors'])[None].float().cuda(),
                 'image0': torch.empty((1, 1,) + tuple(query_data['image_size'])[::-1]),
 
                 'keypoints1': torch.from_numpy(db_data['keypoints'])[masks][None].float().cuda(),
                 'scores1': torch.from_numpy(db_data['scores'])[masks][None].float().cuda(),
-                'descriptors1': torch.from_numpy(db_data['descriptors'][masks].transpose())[None].float().cuda(),
+                'descriptors1': torch.from_numpy(db_data['descriptors'][masks])[None].float().cuda(),
                 'image1': torch.empty((1, 1,) + tuple(db_data['image_size'])[::-1]),
             }
             matches = matcher(match_data)['matches0'][0].cpu().numpy()
@@ -89,18 +89,20 @@ def feature_matching(query_data, db_data, matcher):
 def find_2D_3D_matches(query_data, db_id, points3D, feature_file, db_images, matcher, obs_th=0):
     kpq = query_data['keypoints']
     db_name = db_images[db_id].name
-    kpdb = feature_file[db_name]['keypoints'].__array__()
-    desc_db = feature_file[db_name]["descriptors"].__array__()
+    kpdb = feature_file[db_name]['keypoints'][()]
+    desc_db = feature_file[db_name]["descriptors"][()]
     desc_db = desc_db.transpose()
+
+    # print('db_desc: ', desc_db.shape, query_data['descriptors'].shape)
 
     points3D_ids = db_images[db_id].point3D_ids
     matches = feature_matching(query_data=query_data,
                                db_data={
                                    'keypoints': kpdb,
-                                   'scores': feature_file[db_name]['scores'].__array__(),
+                                   'scores': feature_file[db_name]['scores'][()],
                                    'descriptors': desc_db,
                                    'db_3D_ids': points3D_ids,
-                                   'image_size': feature_file[db_name]['image_size'].__array__()
+                                   'image_size': feature_file[db_name]['image_size'][()]
                                },
                                matcher=matcher)
     mkpdb = []
@@ -141,11 +143,11 @@ def pose_estimator_hloc(qname, qinfo, db_ids, db_images, points3D,
                         log_info=None,
                         query_img_prefix='',
                         db_img_prefix=''):
-    kpq = feature_file[qname]['keypoints'].__array__()
-    score_q = feature_file[qname]['scores'].__array__()
-    desc_q = feature_file[qname]['descriptors'].__array__()
+    kpq = feature_file[qname]['keypoints'][()]
+    score_q = feature_file[qname]['scores'][()]
+    desc_q = feature_file[qname]['descriptors'][()]
     desc_q = desc_q.transpose()
-    imgsize_q = feature_file[qname]['image_size'].__array__()
+    imgsize_q = feature_file[qname]['image_size'][()]
     query_data = {
         'keypoints': kpq,
         'scores': score_q,
@@ -269,7 +271,7 @@ def pose_estimator_hloc(qname, qinfo, db_ids, db_images, points3D,
 
 
 def pose_refinement(query_data,
-                    cfg, feature_file, db_frame_id, db_images, points3D, matcher,
+                    query_cam, feature_file, db_frame_id, db_images, points3D, matcher,
                     covisibility_frame=50,
                     obs_th=3,
                     opt_th=12,
@@ -289,10 +291,10 @@ def pose_refinement(query_data,
     kpq = query_data['keypoints']
     for i, db_id in enumerate(db_ids):
         db_name = db_images[db_id].name
-        kpdb = feature_file[db_name]['keypoints'].__array__()
-        scores_db = feature_file[db_name]['scores'].__array__()
-        imgsize_db = feature_file[db_name]['image_size'].__array__()
-        desc_db = feature_file[db_name]["descriptors"].__array__()
+        kpdb = feature_file[db_name]['keypoints'][()]
+        scores_db = feature_file[db_name]['scores'][()]
+        imgsize_db = feature_file[db_name]['image_size'][()]
+        desc_db = feature_file[db_name]["descriptors"][()]
         desc_db = desc_db.transpose()
 
         points3D_ids = db_images[db_id].point3D_ids
@@ -332,14 +334,12 @@ def pose_refinement(query_data,
     if log_info is not None:
         log_info += (print_text + '\n')
 
-    cam = pycolmap.Camera(model=cfg['model'], params=cfg['params'])
+    # cam = pycolmap.Camera(model=cfg['model'], params=cfg['params'])
     ret = pycolmap.absolute_pose_estimation(mkpq, mp3d,
-                                            # cfg,
-                                            cam,
+                                            query_cam,
                                             estimation_options={
                                                 "ransac": {"max_error": opt_th}},
                                             refinement_options={},
-                                            # opt_th
                                             )
     if ret is None:
         ret = {'success': False, }
@@ -393,13 +393,13 @@ def pose_estimator_iterative(qname, qinfo, db_ids, db_images, points3D, feature_
                              ):
     print("qname: ", qname)
     db_name_to_id = {image.name: i for i, image in db_images.items()}
-    q_img = cv2.imread(osp.join(image_dir, query_img_prefix, qname))
+    # q_img = cv2.imread(osp.join(image_dir, query_img_prefix, qname))
 
-    kpq = feature_file[qname]['keypoints'].__array__()
-    score_q = feature_file[qname]['scores'].__array__()
-    imgsize_q = feature_file[qname]['image_size'].__array__()
-    desc_q = feature_file[qname]['descriptors'].__array__()
-    desc_q = desc_q.transpose()
+    kpq = feature_file[qname]['keypoints'][()]
+    score_q = feature_file[qname]['scores'][()]
+    imgsize_q = feature_file[qname]['image_size'][()]
+    desc_q = feature_file[qname]['descriptors'][()]
+    desc_q = desc_q.transpose()  # [N D]
     query_data = {
         'keypoints': kpq,
         'scores': score_q,
@@ -423,12 +423,7 @@ def pose_estimator_iterative(qname, qinfo, db_ids, db_images, points3D, feature_
         'keypoints_query': np.array([]),
         'points3D_ids': [],
     }
-    cfg = {
-        'model': camera_model,
-        'width': width,
-        'height': height,
-        'params': params,
-    }
+
     cam = pycolmap.Camera(model=camera_model, width=width, height=height, params=params)
 
     for cluster_idx, db_id in enumerate(db_ids):
@@ -518,7 +513,7 @@ def pose_estimator_iterative(qname, qinfo, db_ids, db_images, points3D, feature_
 
         if do_covisibility_opt:
             ret = pose_refinement(qname=qname,
-                                  cfg=cfg,
+                                  query_cam=cam,
                                   feature_file=feature_file,
                                   db_frame_id=db_id,
                                   db_images=db_images,
@@ -570,7 +565,7 @@ def pose_estimator_iterative(qname, qinfo, db_ids, db_images, points3D, feature_
 
         if do_covisibility_opt:
             ret = pose_refinement(qname=qname,
-                                  cfg=cfg,
+                                  query_cam=cam,
                                   feature_file=feature_file,
                                   db_frame_id=db_name_to_id[best_dbname],
                                   db_images=db_images,

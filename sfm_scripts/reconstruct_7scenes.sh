@@ -69,7 +69,6 @@ do
       --matcher_method $matcher \
       --ransac_thresh $ransac_thresh \
       --covisibility_frame $covisibility_frame \
-      --radius $radius \
       --obs_thresh $obs_thresh \
       --opt_thresh $opt_thresh \
       --inlier_thresh $inlier_thresh \

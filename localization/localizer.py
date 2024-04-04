@@ -53,7 +53,7 @@ def run(args):
     tag = ''
     if args.do_covisible_opt:
         tag = tag + "_o" + str(int(args.obs_thresh)) + 'op' + str(int(args.covisibility_frame))
-        tag = tag + "th" + str(int(args.opt_thresh)) + "r" + str(args.radius)
+        tag = tag + "th" + str(int(args.opt_thresh))
         if args.iters > 0:
             tag = tag + "i" + str(int(args.iters))
 
@@ -105,6 +105,7 @@ def run(args):
                                          query_img_prefix='',
                                          db_img_prefix='')
         else:  # should be faster and more accurate than hloc
+            t_start = time.time()
             output = pose_estimator_iterative(qname=qname,
                                               qinfo=qinfo,
                                               matcher=matcher,
@@ -122,14 +123,14 @@ def run(args):
                                               opt_th=args.opt_thresh,
                                               gt_qvec=gt_poses[qname]['qvec'] if qname in gt_poses.keys() else None,
                                               gt_tvec=gt_poses[qname]['tvec'] if qname in gt_poses.keys() else None,
-                                              query_img_prefix='query',
+                                              query_img_prefix='',
                                               db_img_prefix='database',
                                               )
         time_full = time.time()
 
         qvec = output['qvec']
         tvec = output['tvec']
-        loc_time = output['time']
+        loc_time = time_full - time_start
         total_loc_time.append(loc_time)
 
         poses[qname] = (qvec, tvec)
@@ -143,7 +144,7 @@ def run(args):
             gt_qvec = gt_poses[qname]['qvec']
             gt_tvec = gt_poses[qname]['tvec']
 
-            q_error, t_error, _ = compute_pose_error(pred_qcw=qvec, pred_tcw=tvec, gt_qcw=gt_qvec, gt_tcw=gt_tvec)
+            q_error, t_error = compute_pose_error(pred_qcw=qvec, pred_tcw=tvec, gt_qcw=gt_qvec, gt_tcw=gt_tvec)
 
             for error_idx, th in enumerate(error_ths):
                 if t_error <= th[0] and q_error <= th[1]:
