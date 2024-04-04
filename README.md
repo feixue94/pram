@@ -84,21 +84,41 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 
 ```
 python3 inference.py  --config configs/config_train_7scenes_resnet4x.yaml --rec_weight_path pretrained_models/7scenes_nc113_birch_segnetvit.199.pth  --landmark_path landmarks --online
-
 ```
 
-## Train the recognition model (e.g. for 7scenes, remember to update the config file (save_path, etc))
+## Train the recognition model (e.g. for 7Scenes)
+
+### 1. Do SfM with SFD2 including feature extraction (modify the dataset_dir, ref_sfm_dir, output_dir)
+
+```
+./sfm_scripts/reconstruct_7scenes.sh
+```
+
+This step will produce the SfM results together with the extracted keypoints
+
+### 2. Generate 3D landmarks
+
+```
+python3 -m recognition.recmap --dataset 7Scenes --dataset_dir /path/7Scenes --sfm_dir /sfm_path/7Scenes --save_dir /save_path/landmakrs
+```
+
+This step will generate 3D landmarks, create virtual reference frame, and sparsify the 3D points for each landmark
+
+### 3. Train the sparse recognition model
 
 ```
 python3 train.py   --config configs/config_train_7scenes_sfd2.yaml
 ```
 
+Do remember to modify the paths in 'config_train_7scenes_sfd2.yaml'
+
 ## Your own dataset
 
 1. Run colmap or hloc to obtain the SfM results
-2. Do reconstruction with SFD2 keypoints
-3. Do 3D landmark generation, VRF, map sparsification etc
+2. Do reconstruction with SFD2 keypoints with the sfm from step as refernece sfm
+3. Do 3D landmark generation, VRF, map sparsification etc (Add DatasetName.yaml to configs/datasets)
 4. Train the recognition model
+5. Do evaluation
 
 ## BibTeX Citation
 

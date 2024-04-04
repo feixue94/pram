@@ -5,7 +5,7 @@
 @Author fx221@cam.ac.uk
 @Date   07/02/2024 11:02
 =================================================='''
-
+import argparse
 import torch
 import os
 import os.path as osp
@@ -924,17 +924,16 @@ class RecMap:
             print('Save data to {:s}'.format(save_dir))
 
 
-def process_dataset():
-    dataset_dir = '/scratches/flyer_3/fx221/dataset'
-    sfm_dir = '/scratches/flyer_2/fx221/localization/outputs'  # your sfm results (cameras, images, points3D) and features
-    save_dir = '/scratches/flyer_3/fx221/exp/localizer'
-    hloc_results_dir = '/scratches/flyer_2/fx221/exp/sgd2'
-
-    local_feat = 'sfd2'
-    matcher = 'gml'
+def process_dataset(dataset, dataset_dir, sfm_dir, save_dir, feature='sfd2', matcher='gml'):
+    # dataset_dir = '/scratches/flyer_3/fx221/dataset'
+    # sfm_dir = '/scratches/flyer_2/fx221/localization/outputs'  # your sfm results (cameras, images, points3D) and features
+    # save_dir = '/scratches/flyer_3/fx221/exp/localizer'
+    # local_feat = 'sfd2'
+    # matcher = 'gml'
+    # hloc_results_dir = '/scratches/flyer_2/fx221/exp/sgd2'
 
     # config_path = 'configs/datasets/CUED.yaml'
-    config_path = 'configs/datasets/7Scenes.yaml'
+    # config_path = 'configs/datasets/7Scenes.yaml'
     # config_path = 'configs/datasets/12Scenes.yaml'
     # config_path = 'configs/datasets/CambridgeLandmarks.yaml'
     # config_path = 'configs/datasets/Aachen.yaml'
@@ -945,6 +944,7 @@ def process_dataset():
     # config_path = 'configs/datasets/JesusCollege.yaml'
     # config_path = 'configs/datasets/CUED2Kings.yaml'
 
+    config_path = 'configs/datasets/{:s}.yaml'.format(dataset)
     with open(config_path, 'rt') as f:
         configs = yaml.load(f, Loader=yaml.Loader)
     print(configs)
@@ -955,13 +955,14 @@ def process_dataset():
         n_cluster = configs[scene]['n_cluster']
         cluster_mode = configs[scene]['cluster_mode']
         cluster_method = configs[scene]['cluster_method']
+        if scene not in ['heads']:
+            continue
 
         print('scene: ', scene, cluster_mode, cluster_method)
 
         # hloc_path = osp.join(hloc_root, dataset, scene)
-        sfm_path = osp.join(sfm_dir, dataset, scene)
-        feat_path = osp.join(sfm_dir, dataset, scene, 'feats-{:s}.h5'.format(local_feat))
-        save_path = osp.join(save_dir, local_feat + '-' + matcher, dataset, scene)
+        sfm_path = osp.join(sfm_dir, scene)
+        save_path = osp.join(save_dir, feature + '-' + matcher, dataset, scene)
 
         n_vrf = 1
         n_cov = 30
@@ -969,44 +970,44 @@ def process_dataset():
         n_kpts = 0
 
         if dataset in ['Aachen']:
-            image_path = osp.join(dataset_dir, dataset, scene, 'images/images_upright')
+            image_path = osp.join(dataset_dir, scene, 'images/images_upright')
             min_obs = 250
             filtering_outliers = True
             threshold = 0.2
             radius = 32
 
         elif dataset in ['CambridgeLandmarks', ]:
-            image_path = osp.join(dataset_dir, dataset, scene)
+            image_path = osp.join(dataset_dir, scene)
             min_obs = 250
             filtering_outliers = True
             threshold = 0.2
             radius = 64
         elif dataset in ['Aria']:
-            image_path = osp.join(dataset_dir, dataset, scene)
+            image_path = osp.join(dataset_dir, scene)
             min_obs = 150
             filtering_outliers = False
             threshold = 0.01
             radius = 15
         elif dataset in ['DarwinRGB']:
-            image_path = osp.join(dataset_dir, dataset, scene)
+            image_path = osp.join(dataset_dir, scene)
             min_obs = 150
             filtering_outliers = True
             threshold = 0.2
             radius = 16
         elif dataset in ['ACUED']:
-            image_path = osp.join(dataset_dir, dataset, scene)
+            image_path = osp.join(dataset_dir, scene)
             min_obs = 250
             filtering_outliers = True
             threshold = 0.2
             radius = 32
         elif dataset in ['7Scenes', '12Scenes']:
-            image_path = osp.join(dataset_dir, dataset, scene)
+            image_path = osp.join(dataset_dir, scene)
             min_obs = 150
             filtering_outliers = False
             threshold = 0.01
             radius = 15
         else:
-            image_path = osp.join(dataset_dir, dataset, scene)
+            image_path = osp.join(dataset_dir, scene)
             min_obs = 250
             filtering_outliers = True
             threshold = 0.2
@@ -1033,23 +1034,23 @@ def process_dataset():
         os.makedirs(save_path, exist_ok=True)
 
         rmap = RecMap()
-        rmap.load_sfm_model(path=osp.join(sfm_path, 'sfm_{:s}-{:s}'.format(local_feat, matcher)))
+        rmap.load_sfm_model(path=osp.join(sfm_path, 'sfm_{:s}-{:s}'.format(feature, matcher)))
         if filtering_outliers:
             rmap.remove_statics_outlier(nb_neighbors=20, std_ratio=2.0)
 
         # extract keypoints to train the recognition model (descriptors are recomputed from augmented db images)
-        rmap.export_features_to_directory(feat_fn=osp.join(sfm_path, 'feats-{:s}.h5'.format(local_feat)),
+        # we do this for ddp training (reading h5py file is not supported)
+        rmap.export_features_to_directory(feat_fn=osp.join(sfm_path, 'feats-{:s}.h5'.format(feature)),
                                           save_dir=osp.join(save_path, 'feats'))  # only once for training
 
         rmap.cluster(k=n_cluster, mode=cluster_mode, save_fn=seg_fn, method=cluster_method, threshold=threshold)
-        rmap.visualize_3Dpoints()
+        # rmap.visualize_3Dpoints()
         rmap.load_segmentation(path=seg_fn)
-        rmap.visualize_segmentation(p3d_segs=rmap.p3d_seg, points3D=rmap.points3D)
-        # rmap.compute_mean_scale_p3ds(min_obs=5, save_fn=osp.join(save_path, 'sc_mean_scale.txt'))
+        # rmap.visualize_segmentation(p3d_segs=rmap.p3d_seg, points3D=rmap.points3D)
 
         # Assign each 3D point a desciptor and discard all 2D images and descriptors - for localization
         rmap.assign_point3D_descriptor(
-            feature_fn=osp.join(sfm_path, 'feats-{:s}.h5'.format(local_feat)),
+            feature_fn=osp.join(sfm_path, 'feats-{:s}.h5'.format(feature)),
             save_fn=osp.join(save_path, 'point3D_desc.npy'.format(n_cluster, cluster_mode)),
             n_process=32)  # only once
 
@@ -1094,10 +1095,26 @@ def process_dataset():
         # if osp.isdir(soft_link_compress_path):
         #     os.unlink(soft_link_compress_path)
         # os.symlink(comp_map_sub_path, 'compress_model_{:s}'.format(cluster_method))
-        # create a soft link for full model
+        # create a soft link of the full model for training
         if not osp.isdir('model'):
-            os.symlink(osp.join(sfm_path, 'sfm_{:s}-{:s}'.format(local_feat, matcher)), 'model')
+            os.symlink(osp.join(sfm_path, 'sfm_{:s}-{:s}'.format(feature, matcher)), '3D-models')
 
 
 if __name__ == '__main__':
-    process_dataset()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--dataset', type=str, required=True, help='dataset name')
+    parser.add_argument('--dataset_dir', type=str, required=True, help='dataset dir')
+    parser.add_argument('--sfm_dir', type=str, required=True, help='sfm dir')
+    parser.add_argument('--save_dir', type=str, required=True, help='dir to save the landmarks data')
+    parser.add_argument('--feature', type=str, default='sfd2', help='feature name e.g., SP, SFD2')
+    parser.add_argument('--matcher', type=str, default='gml', help='matcher name e.g., SG, LSG, gml')
+
+    args = parser.parse_args()
+
+    process_dataset(
+        dataset=args.dataset,
+        dataset_dir=args.dataset_dir,
+        sfm_dir=args.sfm_dir,
+        save_dir=args.save_dir,
+        feature=args.feature,
+        matcher=args.matcher)

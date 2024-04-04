@@ -15,7 +15,7 @@ matcher=gml
 extract_feat_db=1
 match_db=1
 triangulation=1
-localize=1
+localize=0
 
 
 ransac_thresh=12
@@ -25,9 +25,9 @@ inlier_thresh=30
 obs_thresh=3
 
 
-for scene in heads fire office stairs pumpkin redkitchen chess
+#for scene in heads fire office stairs pumpkin redkitchen chess
 #for scene in fire office pumpkin redkitchen chess
-#for scene in heads
+for scene in chess
 do
   echo $scene
   image_dir=$dataset_dir/$scene

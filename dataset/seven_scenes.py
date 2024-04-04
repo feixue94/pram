@@ -55,7 +55,7 @@ class SevenScenes(BasicDataset):
         self.train_transforms = tvt.Compose(train_transforms)
 
         if train:
-            self.cameras, self.images, point3Ds = read_model(path=osp.join(self.segment_path, 'model'), ext='.bin')
+            self.cameras, self.images, point3Ds = read_model(path=osp.join(self.landmark_path, '3D-models'), ext='.bin')
             self.name_to_id = {image.name: i for i, image in self.images.items() if len(self.images[i].point3D_ids) > 0}
 
         # only for testing of query images
