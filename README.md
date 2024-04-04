@@ -62,10 +62,11 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 - All 12 subscenes in 12Scenes dataset share a model
 - All 5 subscenes in CambridgeLandmarks share a model
 
-### 7. Flexibility to multi-modality input
-
-- Any other signals (e.g. text, language, GPS, Magonemeter) can be used as tokens as input with SFD2 keypoints
-- Joint task of localization and scene understanding
+## Open problems
+- Adaptive number landmarks determination 
+- Using SAM + open vocabulary to generate semantic map
+- Multi-modality localization with other tokenized signals (e.g. text, language, GPS, Magonemeter)
+- More effective solutions to 3D sparsification 
 
 ## Preparation
 
