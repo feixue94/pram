@@ -121,10 +121,10 @@ This step will produce the SfM results together with the extracted keypoints
 ### 2. Generate 3D landmarks
 
 ```
-python3 -m recognition.recmap --dataset 7Scenes --dataset_dir /path/7Scenes --sfm_dir /sfm_path/7Scenes --save_dir /save_path/landmakrs
+python3 -m recognition.recmap --dataset 7Scenes --dataset_dir /your path to/7Scenes --sfm_dir /sfm_path/7Scenes --save_dir /save_path/landmakrs
 ```
 
-This step will generate 3D landmarks, create virtual reference frame, and sparsify the 3D points for each landmark
+This step will generate 3D landmarks, create virtual reference frame, and sparsify the 3D points for each landmark for all scenes in 7Scenes
 
 ### 3. Train the sparse recognition model (one model one dataset)
 

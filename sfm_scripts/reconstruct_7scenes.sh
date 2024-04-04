@@ -3,7 +3,8 @@
 # you need to use your own path
 dataset_dir=/scratches/flyer_3/fx221/dataset/7Scenes
 ref_sfm_dir=/scratches/flyer_2/fx221/publications/pram_data/3D-models/7Scenes
-output_dir=/scratches/flyer_2/fx221/localization/outputs/7Scenes
+#output_dir=/scratches/flyer_2/fx221/localization/outputs/7Scenes
+output_dir=/scratches/flyer_2/fx221/publications/test_pram/7Scenes
 
 # keypoints and matcher used for sfm
 feat=sfd2
@@ -25,9 +26,9 @@ inlier_thresh=30
 obs_thresh=3
 
 
-#for scene in heads fire office stairs pumpkin redkitchen chess
+for scene in heads fire office stairs pumpkin redkitchen chess
 #for scene in fire office pumpkin redkitchen chess
-for scene in chess
+#for scene in chess
 do
   echo $scene
   image_dir=$dataset_dir/$scene

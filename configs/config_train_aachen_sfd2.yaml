@@ -5,10 +5,11 @@ network: "segnetvit"
 local_rank: 0
 gpu: [ 0 ]
 
-feature: "resnet4x"
-save_path: '/scratches/flyer_2/fx221/exp/localizer'
-landmark_path: "/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gm"
+feature: "sfd2"
+save_path: '/scratches/flyer_2/fx221/exp/pram'
+landmark_path: "/scratches/flyer_3/fx221/exp/pram/landmarks/sfd2-gml"
 dataset_path: "/scratches/flyer_3/fx221/dataset"
+
 config_path: 'configs/datasets'
 
 image_dim: 3
@@ -16,7 +17,7 @@ feat_dim: 128
 
 min_inliers: 32
 max_inliers: 512
-random_inliers: 1
+random_inliers: true
 max_keypoints: 1024
 ignore_index: -1
 output_dim: 1024
@@ -40,7 +41,6 @@ seg_loss: "cew"
 seg_loss_nx: "cei"
 cls_loss: "ce"
 cls_loss_: "bce"
-sc_loss: 'l1g'
 ac_fn: "relu"
 norm_fn: "bn"
 workers: 8
@@ -62,19 +62,13 @@ decay_rate: 0.999992
 decay_iter: 80000
 epochs: 800
 
-cluster_method_: 'kmeans'
 cluster_method: 'birch'
 
-weight_path_: null
+weight_path: null
 weight_path_1: '20230719_221442_segnet_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adamw_cew_md_A_birch/segnet.899.pth'
-weight_path: '20240211_142623_segnetvit_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_A_birch/segnetvit.799.pth'
+weight_path_2: '20240211_142623_segnetvit_L15_A_resnet4x_B32_K1024_relu_bn_od1024_nc513_adam_cew_md_A_birch/segnetvit.799.pth'
 resume_path: null
 
-eval: true
-#loc: false
-loc: true
-#online: false
-online: true
 n_class: 513
 
 eval_max_keypoints: 4096
