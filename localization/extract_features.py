@@ -198,8 +198,6 @@ def main(conf, image_dir, export_dir):
     model, extractor = get_model(model_name=conf['model']['name'], weight_path=conf["model"]["model_fn"],
                                  use_stability=conf['model']['use_stability'], outdim=conf['model']['outdim'])
     model = model.cuda()
-    print("model: ", model)
-
     loader = ImageDataset(image_dir,
                           conf['preprocessing'],
                           image_list=args.image_list,

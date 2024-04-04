@@ -37,8 +37,8 @@ class RecMap:
     def load_sfm_model(self, path: str, ext='.bin'):
         self.cameras, self.images, self.points3D = read_model(path, ext)
         self.name_to_id = {image.name: i for i, image in self.images.items()}
-        logging.info(
-            'Load {} cameras, {} images, {} points'.format(len(self.cameras), len(self.images), len(self.points3D)))
+        print('Load {:d} cameras, {:d} images, {:d} points'.format(len(self.cameras), len(self.images),
+                                                                   len(self.points3D)))
 
     def remove_statics_outlier(self, nb_neighbors: int = 20, std_ratio: float = 2.0):
         xyzs = []
@@ -117,7 +117,7 @@ class RecMap:
         labels = np.array(model.labels_).reshape(-1)
         if save_fn is not None:
             np.save(save_fn, {
-                'id': np.array(point3D_ids),  # should be assigned self.points3D_ids
+                'id': np.array(point3D_ids),  # should be assigned to self.points3D_ids
                 'label': np.array(labels),
                 'xyz': np.array(all_xyz),
             })
@@ -356,10 +356,6 @@ class RecMap:
             return candidate_img_ids
             # return [(v, img_observations[v]) for v in candidate_img_ids]
 
-        # if osp.isfile(save_fn):
-        #     print('File {} exists'.format(save_fn))
-        #     return
-
         if save_vrf_dir is not None:
             os.makedirs(save_vrf_dir, exist_ok=True)
 
@@ -502,9 +498,6 @@ class RecMap:
         self.pcd.points = o3d.utility.Vector3dVector(xyzs)
         self.pcd.colors = o3d.utility.Vector3dVector(rgbs)
 
-        # [pcd, inliers] = self.pcd.remove_statistical_outlier(nb_neighbors=20, std_ratio=5.0, print_progress=True)
-        # print('pcd: ', np.asarray(pcd.points).shape, np.asarray(self.pcd.points).shape, len(inliers))
-
         o3d.visualization.draw_geometries([self.pcd])
 
     def visualize_segmentation_on_image(self, p3d_segs, image_path, feat_path):
@@ -605,14 +598,14 @@ class RecMap:
         scale_xyz[scale_xyz < 1] = 1
         scale_xyz[scale_xyz == 0] = 1
 
-        self.mean_xyz = mean_xyz
-        self.scale_xyz = scale_xyz
-
-        if save_fn is not None:
-            with open(save_fn, 'w') as f:
-                text = '{:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f}'.format(mean_xyz[0], mean_xyz[1], mean_xyz[2],
-                                                                          scale_xyz[0], scale_xyz[1], scale_xyz[2])
-                f.write(text + '\n')
+        # self.mean_xyz = mean_xyz
+        # self.scale_xyz = scale_xyz
+        #
+        # if save_fn is not None:
+        #     with open(save_fn, 'w') as f:
+        #         text = '{:.4f} {:.4f} {:.4f} {:.4f} {:.4f} {:.4f}'.format(mean_xyz[0], mean_xyz[1], mean_xyz[2],
+        #                                                                   scale_xyz[0], scale_xyz[1], scale_xyz[2])
+        #         f.write(text + '\n')
 
     def compute_statics_inlier(self, xyz, nb_neighbors=20, std_ratio=2.0):
         pcd = o3d.geometry.PointCloud()
@@ -932,13 +925,12 @@ class RecMap:
 
 
 def process_dataset():
-    data_root = '/scratches/flyer_3/fx221/dataset'
-    sfm_root = '/scratches/flyer_2/fx221/localization/outputs'
-    save_root = '/scratches/flyer_3/fx221/exp/localizer'
-    hloc_root = '/scratches/flyer_2/fx221/exp/sgd2'
+    dataset_dir = '/scratches/flyer_3/fx221/dataset'
+    sfm_dir = '/scratches/flyer_2/fx221/localization/outputs'  # your sfm results (cameras, images, points3D) and features
+    save_dir = '/scratches/flyer_3/fx221/exp/localizer'
+    hloc_results_dir = '/scratches/flyer_2/fx221/exp/sgd2'
 
-    local_feat = 'resnet4x-20230511-210205-pho-0005'
-    # matcher = 'gm'
+    local_feat = 'sfd2'
     matcher = 'gml'
 
     # config_path = 'configs/datasets/CUED.yaml'
@@ -946,10 +938,8 @@ def process_dataset():
     # config_path = 'configs/datasets/12Scenes.yaml'
     # config_path = 'configs/datasets/CambridgeLandmarks.yaml'
     # config_path = 'configs/datasets/Aachen.yaml'
-    # config_path = 'configs/datasets/RobotCar-Seasons.yaml'
 
     # config_path = 'configs/datasets/Aria.yaml'
-    # config_path = 'configs/datasets/Darwin.yaml'
     # config_path = 'configs/datasets/DarwinRGB.yaml'
     # config_path = 'configs/datasets/ACUED.yaml'
     # config_path = 'configs/datasets/JesusCollege.yaml'
@@ -968,10 +958,10 @@ def process_dataset():
 
         print('scene: ', scene, cluster_mode, cluster_method)
 
-        hloc_path = osp.join(hloc_root, dataset, scene)
-        sfm_path = osp.join(sfm_root, dataset, scene)
-        feat_path = osp.join(sfm_root, dataset, scene, 'feats-{:s}.h5'.format(local_feat))
-        save_path = osp.join(save_root, local_feat + '-' + matcher, dataset, scene)
+        # hloc_path = osp.join(hloc_root, dataset, scene)
+        sfm_path = osp.join(sfm_dir, dataset, scene)
+        feat_path = osp.join(sfm_dir, dataset, scene, 'feats-{:s}.h5'.format(local_feat))
+        save_path = osp.join(save_dir, local_feat + '-' + matcher, dataset, scene)
 
         n_vrf = 1
         n_cov = 30
@@ -979,67 +969,65 @@ def process_dataset():
         n_kpts = 0
 
         if dataset in ['Aachen']:
-            image_path = osp.join(data_root, dataset, scene, 'images/images_upright')
+            image_path = osp.join(dataset_dir, dataset, scene, 'images/images_upright')
             min_obs = 250
             filtering_outliers = True
             threshold = 0.2
-            # radius = int(20 / 480 * 1024)
             radius = 32
 
         elif dataset in ['CambridgeLandmarks', ]:
-            image_path = osp.join(data_root, dataset, scene)
+            image_path = osp.join(dataset_dir, dataset, scene)
             min_obs = 250
             filtering_outliers = True
             threshold = 0.2
-            # radius = int(20 / 480 * 1080)
             radius = 64
         elif dataset in ['Aria']:
-            image_path = osp.join(data_root, dataset, scene)
+            image_path = osp.join(dataset_dir, dataset, scene)
             min_obs = 150
             filtering_outliers = False
             threshold = 0.01
             radius = 15
-        elif dataset in ['Darwin', 'DarwinRGB']:
-            image_path = osp.join(data_root, dataset, scene)
+        elif dataset in ['DarwinRGB']:
+            image_path = osp.join(dataset_dir, dataset, scene)
             min_obs = 150
             filtering_outliers = True
             threshold = 0.2
             radius = 16
         elif dataset in ['ACUED']:
-            image_path = osp.join(data_root, dataset, scene)
+            image_path = osp.join(dataset_dir, dataset, scene)
             min_obs = 250
             filtering_outliers = True
             threshold = 0.2
             radius = 32
         elif dataset in ['7Scenes', '12Scenes']:
-            image_path = osp.join(data_root, dataset, scene)
+            image_path = osp.join(dataset_dir, dataset, scene)
             min_obs = 150
             filtering_outliers = False
             threshold = 0.01
             radius = 15
         else:
-            image_path = osp.join(data_root, dataset, scene)
+            image_path = osp.join(dataset_dir, dataset, scene)
             min_obs = 250
             filtering_outliers = True
             threshold = 0.2
-            # radius = int(20 / 480 * 1024)
             radius = 32
 
-        comp_map_sub_path = 'comp_model_n{:d}_{:s}_{:s}_vrf{:d}_cov{:d}_r{:d}_np{:d}_projection_v2'.format(n_cluster,
-                                                                                                           cluster_mode,
-                                                                                                           cluster_method,
-                                                                                                           n_vrf,
-                                                                                                           n_cov,
-                                                                                                           radius,
-                                                                                                           n_kpts)
+        # comp_map_sub_path = 'comp_model_n{:d}_{:s}_{:s}_vrf{:d}_cov{:d}_r{:d}_np{:d}_projection_v2'.format(n_cluster,
+        #                                                                                                    cluster_mode,
+        #                                                                                                    cluster_method,
+        #                                                                                                    n_vrf,
+        #                                                                                                    n_cov,
+        #                                                                                                    radius,
+        #                                                                                                    n_kpts)
+        comp_map_sub_path = 'compress_model_{:s}'.format(cluster_method)
         seg_fn = osp.join(save_path,
                           'point3D_cluster_n{:d}_{:s}_{:s}.npy'.format(n_cluster, cluster_mode, cluster_method))
         vrf_fn = osp.join(save_path,
                           'point3D_vrf_n{:d}_{:s}_{:s}.npy'.format(n_cluster, cluster_mode, cluster_method))
         vrf_img_dir = osp.join(save_path,
                                'point3D_vrf_n{:d}_{:s}_{:s}'.format(n_cluster, cluster_mode, cluster_method))
-        p3d_query_fn = osp.join(save_path,
-                                'point3D_query_n{:d}_{:s}_{:s}.npy'.format(n_cluster, cluster_mode, cluster_method))
+        # p3d_query_fn = osp.join(save_path,
+        #                         'point3D_query_n{:d}_{:s}_{:s}.npy'.format(n_cluster, cluster_mode, cluster_method))
         comp_map_path = osp.join(save_path, comp_map_sub_path)
 
         os.makedirs(save_path, exist_ok=True)
@@ -1049,17 +1037,17 @@ def process_dataset():
         if filtering_outliers:
             rmap.remove_statics_outlier(nb_neighbors=20, std_ratio=2.0)
 
+        # extract keypoints to train the recognition model (descriptors are recomputed from augmented db images)
         rmap.export_features_to_directory(feat_fn=osp.join(sfm_path, 'feats-{:s}.h5'.format(local_feat)),
                                           save_dir=osp.join(save_path, 'feats'))  # only once for training
-        # continue
 
         rmap.cluster(k=n_cluster, mode=cluster_mode, save_fn=seg_fn, method=cluster_method, threshold=threshold)
         rmap.visualize_3Dpoints()
         rmap.load_segmentation(path=seg_fn)
         rmap.visualize_segmentation(p3d_segs=rmap.p3d_seg, points3D=rmap.points3D)
-        rmap.compute_mean_scale_p3ds(min_obs=5, save_fn=osp.join(save_path, 'sc_mean_scale.txt'))
-        # continue
+        # rmap.compute_mean_scale_p3ds(min_obs=5, save_fn=osp.join(save_path, 'sc_mean_scale.txt'))
 
+        # Assign each 3D point a desciptor and discard all 2D images and descriptors - for localization
         rmap.assign_point3D_descriptor(
             feature_fn=osp.join(sfm_path, 'feats-{:s}.h5'.format(local_feat)),
             save_fn=osp.join(save_path, 'point3D_desc.npy'.format(n_cluster, cluster_mode)),
@@ -1068,7 +1056,7 @@ def process_dataset():
         # exit(0)
         # rmap.visualize_segmentation_on_image(p3d_segs=rmap.p3d_seg, image_path=image_path, feat_path=feat_path)
 
-        # for query images only
+        # for query images only - for evaluation
         # rmap.extract_query_p3ds(
         #     log_fn=osp.join(hloc_path, 'hloc_feats-{:s}_{:s}_loc.npy'.format(local_feat, matcher)),
         #     feat_fn=osp.join(sfm_path, 'feats-{:s}.h5'.format(local_feat)),
@@ -1087,7 +1075,7 @@ def process_dataset():
             min_obs=min_obs,
             n_vrf=10,
             covisible_frame=n_cov,
-            ignored_cameras=['left', 'right'])
+            ignored_cameras=[])
 
         # up-to-date
         rmap.compress_map_by_projection_v2(
@@ -1101,15 +1089,15 @@ def process_dataset():
         )
 
         # exit(0)
-        soft_link_compress_path = osp.join(save_path, 'compress_model_{:s}'.format(cluster_method))
+        # soft_link_compress_path = osp.join(save_path, 'compress_model_{:s}'.format(cluster_method))
         os.chdir(save_path)
-        if osp.isdir(soft_link_compress_path):
-            os.unlink(soft_link_compress_path)
-        os.symlink(comp_map_sub_path, 'compress_model_{:s}'.format(cluster_method))
+        # if osp.isdir(soft_link_compress_path):
+        #     os.unlink(soft_link_compress_path)
+        # os.symlink(comp_map_sub_path, 'compress_model_{:s}'.format(cluster_method))
+        # create a soft link for full model
         if not osp.isdir('model'):
             os.symlink(osp.join(sfm_path, 'sfm_{:s}-{:s}'.format(local_feat, matcher)), 'model')
 
 
 if __name__ == '__main__':
     process_dataset()
-    exit(0)

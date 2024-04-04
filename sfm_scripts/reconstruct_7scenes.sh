@@ -1,8 +1,11 @@
 #!/bin/bash
+
+# you need to use your own path
 dataset_dir=/scratches/flyer_3/fx221/dataset/7Scenes
 ref_sfm_dir=/scratches/flyer_2/fx221/publications/pram_data/3D-models/7Scenes
 output_dir=/scratches/flyer_2/fx221/localization/outputs/7Scenes
 
+# keypoints and matcher used for sfm
 feat=sfd2
 matcher=gml
 

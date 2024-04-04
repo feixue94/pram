@@ -1,8 +1,10 @@
 #!/bin/bash
-
+# you need to use your own path
 dataset_dir=/scratches/flyer_3/fx221/dataset/Aachen/Aachenv11
 ref_sfm_dir=/scratches/flyer_2/fx221/publications/pram_data/3D-models/Aachen/Aachenv11
 output_dir=/scratches/flyer_2/fx221/localization/outputs/Aachen/Aachenv11
+
+# fixed
 output=$output_dir
 ref_sfm=$ref_sfm_dir/3D-models
 db_pair=$ref_sfm_dir/pairs-db-covis20.txt

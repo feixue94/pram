@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# you need to use your own path
 dataset_dir=/scratches/flyer_3/fx221/dataset/CambridgeLandmarks
 ref_sfm_dir=/scratches/flyer_2/fx221/publications/pram_data/3D-models/CambridgeLandmarks
 output_dir=/scratches/flyer_2/fx221/localization/outputs/CambridgeLandmarks
@@ -15,8 +16,6 @@ extract_feat_db=0
 match_db=0
 triangulation=0
 localize=1
-
-
 
 ransac_thresh=12
 opt_thresh=12

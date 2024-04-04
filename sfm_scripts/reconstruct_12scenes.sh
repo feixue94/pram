@@ -1,4 +1,6 @@
 #!/bin/bash
+# you need to use your own path
+
 dataset_dir=/scratches/flyer_3/fx221/dataset/12Scenes
 ref_sfm_dir=/scratches/flyer_2/fx221/publications/pram_data/3D-models/12Scenes
 output_dir=/scratches/flyer_2/fx221/localization/outputs/12Scenes
