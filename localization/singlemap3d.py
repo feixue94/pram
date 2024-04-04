@@ -162,9 +162,23 @@ class SingleMap3D:
         matched_ref_keypoints = ref_data['keypoints'][indices0[valid]]
 
         # print('mkpts: ', mkpts.shape, mxyzs.shape, np.sum(indices0 >= 0))
-        cfg = q_frame.camera._asdict()
-        ret = pycolmap.absolute_pose_estimation(mkpts + 0.5, mxyzs, cfg,
-                                                max_error_px=self.config['localization']['threshold'])
+        # cfg = q_frame.camera._asdict()
+        # q_cam = pycolmap.Camera(model=q_frame.camera.model, )
+        # config = {"estimation": {"ransac": {"max_error": ransac_thresh}}, **(config or {})}
+        ret = pycolmap.absolute_pose_estimation(mkpts + 0.5,
+                                                mxyzs,
+                                                q_frame.camera,
+                                                estimation_options={
+                                                    "ransac": {"max_error": self.config['localization']['threshold']}},
+                                                refinement_options={},
+                                                # max_error_px=self.config['localization']['threshold']
+                                                )
+        if ret is None:
+            ret = {'success': False, }
+        else:
+            ret['success'] = True
+            ret['qvec'] = ret['cam_from_world'].rotation.quat[[3, 0, 1, 2]]
+            ret['tvec'] = ret['cam_from_world'].translation
         ret['matched_keypoints'] = mkpts
         ret['matched_keypoint_ids'] = mkpt_ids
         ret['matched_xyzs'] = mxyzs
@@ -307,11 +321,28 @@ class SingleMap3D:
         print(print_text)
 
         t_start = time.time()
-        cfg = q_frame.camera._asdict()
-        ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs, cfg,
-                                                max_error_px=self.config['localization']['threshold'],
-                                                min_num_trials=1000, max_num_trials=10000, confidence=0.995)
+        ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5,
+                                                matched_xyzs,
+                                                q_frame.camera,
+                                                estimation_options={
+                                                    'ransac': {
+                                                        'max_error': self.config['localization']['threshold'],
+                                                        'min_num_trials': 1000,
+                                                        'max_num_trials': 10000,
+                                                        'confidence': 0.995,
+                                                    }},
+                                                refinement_options={},
+                                                # max_error_px=self.config['localization']['threshold'],
+                                                # min_num_trials=1000, max_num_trials=10000, confidence=0.995)
+                                                )
         print('Time of RANSAC: {:.2f}s'.format(time.time() - t_start))
+
+        if ret is None:
+            ret = {'success': False, }
+        else:
+            ret['success'] = True
+            ret['qvec'] = ret['cam_from_world'].rotation.quat[[3, 0, 1, 2]]
+            ret['tvec'] = ret['cam_from_world'].translation
 
         ret['matched_keypoints'] = matched_kpts
         ret['matched_keypoint_ids'] = matched_kpt_ids
@@ -367,7 +398,10 @@ class SingleMap3D:
         all_point3D_ids = np.array(all_point3D_ids)
         all_sids = np.array(all_sids)
 
-        # move to gpu
+        # move to gpu (distortion is not included)
+        # proj_uv = pycolmap.camera.img_from_cam(
+        #     np.array([1, 1, 1]).reshape(1, 3),
+        # )
         all_xyzs_cuda = torch.from_numpy(all_xyzs).cuda()
         ones = torch.ones(size=(all_xyzs_cuda.shape[0], 1), dtype=all_xyzs_cuda.dtype).cuda()
         all_xyzs_cuda_homo = torch.cat([all_xyzs_cuda, ones], dim=1)  # [N 4]
@@ -375,7 +409,7 @@ class SingleMap3D:
         proj_uvs = K_cuda @ (torch.from_numpy(q_Tcw).cuda() @ all_xyzs_cuda_homo.t())[:3, :]  # [3, N]
         proj_uvs[0] /= proj_uvs[2]
         proj_uvs[1] /= proj_uvs[2]
-        mask = (proj_uvs[2] > 0) * (proj_uvs[2] < 80) * (proj_uvs[0] >= 0) * (proj_uvs[0] < imw) * (
+        mask = (proj_uvs[2] > 0) * (proj_uvs[2] < 100) * (proj_uvs[0] >= 0) * (proj_uvs[0] < imw) * (
                 proj_uvs[1] >= 0) * (proj_uvs[1] < imh)
 
         proj_uvs = proj_uvs[:, mask]
@@ -416,11 +450,19 @@ class SingleMap3D:
         msids = msids[ids]
         print('projection: ', mkpts.shape, mkpt_ids.shape, mxyzs.shape, mpoint3D_ids.shape, msids.shape)
 
-        # print('Find {:d}-{:d} matches from projection'.format(mkpts.shape[0], q_frame.keypoints.shape[0]))
-        cfg = q_frame.camera._asdict()
         t_start = time.time()
-        ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, cfg,
-                                                max_error_px=self.config['localization']['threshold'])
+        ret = pycolmap.absolute_pose_estimation(mkpts[:, :2] + 0.5, mxyzs, q_frame.camera,
+                                                estimation_options={
+                                                    "ransac": {"max_error": self.config['localization']['threshold']}},
+                                                refinement_options={},
+                                                # max_error_px=self.config['localization']['threshold']
+                                                )
+        if ret is None:
+            ret = {'success': False, }
+        else:
+            ret['success'] = True
+            ret['qvec'] = ret['cam_from_world'].rotation.quat[[3, 0, 1, 2]]
+            ret['tvec'] = ret['cam_from_world'].translation
         # inlier_mask = np.ones(shape=(mkpts.shape[0],), dtype=bool).tolist()
         # ret = pycolmap.pose_refinement(q_frame.tvec, q_frame.qvec, mkpts[:, :2] + 0.5, mxyzs, inlier_mask, cfg)
         # ret['num_inliers'] = np.sum(inlier_mask).astype(int)

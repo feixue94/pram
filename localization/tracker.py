@@ -209,8 +209,18 @@ class Tracker:
 
         # print('tracking: ', matched_kpts.shape, matched_xyzs.shape)
         ret = pycolmap.absolute_pose_estimation(matched_kpts + 0.5, matched_xyzs,
-                                                curr_frame.camera._asdict(),
-                                                max_error_px=self.config['localization']['threshold'])
+                                                curr_frame.camera,
+                                                estimation_options={
+                                                    "ransac": {"max_error": self.config['localization']['threshold']}},
+                                                refinement_options={},
+                                                # max_error_px=self.config['localization']['threshold']
+                                                )
+        if ret is None:
+            ret = {'success': False, }
+        else:
+            ret['success'] = True
+            ret['qvec'] = ret['cam_from_world'].rotation.quat[[3, 0, 1, 2]]
+            ret['tvec'] = ret['cam_from_world'].translation
 
         ret['matched_keypoints'] = matched_kpts
         ret['matched_keypoint_ids'] = matched_kpt_ids

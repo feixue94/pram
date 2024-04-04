@@ -9,13 +9,14 @@ from collections import defaultdict
 
 import numpy as np
 import torch
+import pycolmap
 
 from localization.camera import Camera
 from localization.utils import compute_pose_error
 
 
 class Frame:
-    def __init__(self, image: np.ndarray, camera: Camera, id: int, name: str = None, qvec=None, tvec=None,
+    def __init__(self, image: np.ndarray, camera: pycolmap.Camera, id: int, name: str = None, qvec=None, tvec=None,
                  scene_name=None,
                  reference_frame_id=None):
         self.image = image
@@ -147,7 +148,7 @@ class Frame:
             return err_q, err_t
 
     def get_intrinsics(self) -> np.ndarray:
-        camera_model = self.camera.model
+        camera_model = self.camera.model.name
         params = self.camera.params
         if camera_model in ("SIMPLE_PINHOLE", "SIMPLE_RADIAL", "RADIAL"):
             fx = fy = params[0]

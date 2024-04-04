@@ -6,6 +6,7 @@
 @Date   08/02/2024 15:26
 =================================================='''
 import torch
+import pycolmap
 from localization.multimap3d import MultiMap3D
 from localization.frame import Frame
 import yaml, cv2, time
@@ -73,21 +74,22 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
         all_scene_query_info[dataset_name + '/' + scene] = query_info
         image_path = osp.join(dataset_path, dataset_name, scene)
         for fn in sorted(query_info.keys()):
-        # for fn in sorted(query_info.keys())[880:][::5]:  # darwinRGB-loc-outdoor-aligned
-        # for fn in sorted(query_info.keys())[3161:][::5]:  # darwinRGB-loc-indoor-aligned
-        #     for fn in sorted(query_info.keys())[2840:][::5]:  # darwinRGB-loc-indoor-aligned
+            # for fn in sorted(query_info.keys())[880:][::5]:  # darwinRGB-loc-outdoor-aligned
+            # for fn in sorted(query_info.keys())[3161:][::5]:  # darwinRGB-loc-indoor-aligned
+            #     for fn in sorted(query_info.keys())[2840:][::5]:  # darwinRGB-loc-indoor-aligned
 
-        # for fn in sorted(query_info.keys())[2100:][::5]: # darwinRGB-loc-outdoor
-        # for fn in sorted(query_info.keys())[4360:][::5]:  # darwinRGB-loc-indoor
-        # for fn in sorted(query_info.keys())[1380:]:  # Cam-Church
-        # for fn in sorted(query_info.keys())[::5]: #ACUED-test2
-        # for fn in sorted(query_info.keys())[1260:]:  # jesus aligned
-        # for fn in sorted(query_info.keys())[1260:]:  # jesus aligned
+            # for fn in sorted(query_info.keys())[2100:][::5]: # darwinRGB-loc-outdoor
+            # for fn in sorted(query_info.keys())[4360:][::5]:  # darwinRGB-loc-indoor
+            # for fn in sorted(query_info.keys())[1380:]:  # Cam-Church
+            # for fn in sorted(query_info.keys())[::5]: #ACUED-test2
+            # for fn in sorted(query_info.keys())[1260:]:  # jesus aligned
+            # for fn in sorted(query_info.keys())[1260:]:  # jesus aligned
             # for fn in sorted(query_info.keys())[4850:]:
             img = cv2.imread(osp.join(image_path, fn))  # BGR
 
             camera_model, width, height, params = all_scene_query_info[dataset_name + '/' + scene][fn]
-            camera = Camera(id=-1, model=camera_model, width=width, height=height, params=params)
+            # camera = Camera(id=-1, model=camera_model, width=width, height=height, params=params)
+            camera = pycolmap.Camera(model=camera_model, width=int(width), height=int(height), params=params)
             curr_frame = Frame(image=img, camera=camera, id=0, name=fn, scene_name=dataset_name + '/' + scene)
             gt_sub_map = locMap.sub_maps[curr_frame.scene_name]
             if gt_sub_map.gt_poses is not None and curr_frame.name in gt_sub_map.gt_poses.keys():
