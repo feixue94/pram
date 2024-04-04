@@ -102,11 +102,11 @@ cmake --build build -t pypangolin_pip_install
    keypoints,
    pretrained [models](https://drive.google.com/drive/folders/1Rlbo1MgSW9da27ZKLlSQF7t-Jli2fX36?usp=drive_link) ,
    and [landmarks](https://drive.google.com/drive/folders/1yT1ALo0L6kejPLmornUtODFUJLr9Q4M0?usp=drive_link)
-2. Put these data in ```your_path``` and modify the path
+2. Put pretrained models in ```weights``` directory
 3. Run the demo (e.g. 7Scenes)
 
 ```
-python3 inference.py  --config configs/config_train_7scenes_resnet4x.yaml --rec_weight_path weights/7scenes_nc113_birch_segnetvit.199.pth  --landmark_path /your path to/landmarks --online
+python3 inference.py  --config configs/config_train_7scenes_sfd2.yaml --rec_weight_path weights/7scenes_nc113_birch_segnetvit.199.pth  --landmark_path /your path to/landmarks --online
 ```
 
 ## Train the recognition model (e.g. for 7Scenes)
