@@ -65,7 +65,7 @@ confs = {
     },
 
     'sfd2': {
-        'output': 'sfd2',
+        'output': 'feats-sfd2',
         'model': {
             'outdim': 128,
             'name': 'resnet4x',
@@ -172,7 +172,7 @@ class ImageDataset(Data.Dataset):
         return len(self.paths)
 
 
-def get_model(model_name, weight_path, outdim=128):
+def get_model(model_name, weight_path, outdim=128, **kwargs):
     if model_name == 'superpoint':
         model = SuperPoint(config={
             'descriptor_dim': 256,

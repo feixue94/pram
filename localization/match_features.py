@@ -93,9 +93,6 @@ def main(conf, pairs, features, export_dir, exhaustive=False):
     match_name = f'{features}-{conf["output"]}-{pairs_name}'
     match_path = Path(export_dir, match_name + '.h5')
 
-    # if os.path.exists(match_path):
-    #     logging.info('Matching file exists.')
-    #     return match_path
     match_file = h5py.File(str(match_path), 'a')
 
     matched = set()
@@ -112,10 +109,17 @@ def main(conf, pairs, features, export_dir, exhaustive=False):
         feats0, feats1 = feature_file[name0], feature_file[name1]
         for k in feats1.keys():
             # data[k + '0'] = feats0[k].__array__()
-            data[k + '0'] = feats0[k][()]
+            if k == 'descriptors':
+                data[k + '0'] = feats0[k][()].transpose()  # [N D]
+            else:
+                data[k + '0'] = feats0[k][()]
         for k in feats1.keys():
             # data[k + '1'] = feats1[k].__array__()
-            data[k + '1'] = feats1[k][()]
+            # data[k + '1'] = feats1[k][()].transpose()  # [N D]
+            if k == 'descriptors':
+                data[k + '1'] = feats1[k][()].transpose()  # [N D]
+            else:
+                data[k + '1'] = feats1[k][()]
         data = {k: torch.from_numpy(v)[None].float().to(device)
                 for k, v in data.items()}
 

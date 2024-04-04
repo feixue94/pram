@@ -154,13 +154,13 @@ def pose_estimator_hloc(qname, qinfo, db_ids, db_images, points3D,
     }
 
     camera_model, width, height, params = qinfo
+    cam = pycolmap.Camera(model=camera_model, width=width, height=height, params=params)
     cfg = {
         'model': camera_model,
         'width': width,
         'height': height,
         'params': params,
     }
-
     all_mkpts = []
     all_mp3ds = []
     all_points3D_ids = []
@@ -208,7 +208,17 @@ def pose_estimator_hloc(qname, qinfo, db_ids, db_images, points3D,
     all_mkpts = np.vstack(all_mkpts)
     all_mp3ds = np.vstack(all_mp3ds)
 
-    ret = pycolmap.absolute_pose_estimation(all_mkpts, all_mp3ds, cfg, thresh)
+    ret = pycolmap.absolute_pose_estimation(all_mkpts, all_mp3ds, cam,
+                                            estimation_options={
+                                                "ransac": {"max_error": thresh}},
+                                            refinement_options={},
+                                            )
+    if ret is None:
+        ret = {'success': False, }
+    else:
+        ret['success'] = True
+        ret['qvec'] = ret['cam_from_world'].rotation.quat[[3, 0, 1, 2]]
+        ret['tvec'] = ret['cam_from_world'].translation
     success = ret['success']
 
     if success:
@@ -322,7 +332,22 @@ def pose_refinement(query_data,
     if log_info is not None:
         log_info += (print_text + '\n')
 
-    ret = pycolmap.absolute_pose_estimation(mkpq, mp3d, cfg, opt_th)
+    cam = pycolmap.Camera(model=cfg['model'], params=cfg['params'])
+    ret = pycolmap.absolute_pose_estimation(mkpq, mp3d,
+                                            # cfg,
+                                            cam,
+                                            estimation_options={
+                                                "ransac": {"max_error": opt_th}},
+                                            refinement_options={},
+                                            # opt_th
+                                            )
+    if ret is None:
+        ret = {'success': False, }
+    else:
+        ret['success'] = True
+        ret['qvec'] = ret['cam_from_world'].rotation.quat[[3, 0, 1, 2]]
+        ret['tvec'] = ret['cam_from_world'].translation
+
     if not ret['success']:
         ret['mkpq'] = mkpq
         ret['3D_ids'] = all_3D_ids
@@ -382,12 +407,6 @@ def pose_estimator_iterative(qname, qinfo, db_ids, db_images, points3D, feature_
         'image_size': imgsize_q,
     }
     camera_model, width, height, params = qinfo
-    cfg = {
-        'model': camera_model,
-        'width': width,
-        'height': height,
-        'params': params,
-    }
 
     best_results = {
         'tvec': None,
@@ -404,6 +423,13 @@ def pose_estimator_iterative(qname, qinfo, db_ids, db_images, points3D, feature_
         'keypoints_query': np.array([]),
         'points3D_ids': [],
     }
+    cfg = {
+        'model': camera_model,
+        'width': width,
+        'height': height,
+        'params': params,
+    }
+    cam = pycolmap.Camera(model=camera_model, width=width, height=height, params=params)
 
     for cluster_idx, db_id in enumerate(db_ids):
         db_name = db_images[db_id].name
@@ -428,7 +454,19 @@ def pose_estimator_iterative(qname, qinfo, db_ids, db_images, points3D, feature_
                 log_info += (print_text + '\n')
             continue
 
-        ret = pycolmap.absolute_pose_estimation(mkpq, mp3d, cfg, thresh)
+        ret = pycolmap.absolute_pose_estimation(mkpq, mp3d, cam,
+                                                estimation_options={
+                                                    "ransac": {"max_error": thresh}},
+                                                refinement_options={},
+                                                )
+
+        if ret is None:
+            ret = {'success': False, }
+        else:
+            ret['success'] = True
+            ret['qvec'] = ret['cam_from_world'].rotation.quat[[3, 0, 1, 2]]
+            ret['tvec'] = ret['cam_from_world'].translation
+
         if not ret["success"]:
             print_text = "qname: {:s} dbname: {:s} ({:d}/{:d}) failed after matching".format(qname, db_name,
                                                                                              cluster_idx + 1,

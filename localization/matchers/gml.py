@@ -41,4 +41,5 @@ class GML(BaseModel):
 
     def _forward(self, data):
         with torch.no_grad():
+            # print(data['keypoints0'].shape, data['descriptors0'].shape, data['image0'].shape)
             return self.net(data)
