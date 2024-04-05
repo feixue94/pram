@@ -63,10 +63,11 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 - All 5 subscenes in CambridgeLandmarks share a model
 
 ## Open problems
-- Adaptive number landmarks determination 
+
+- Adaptive number landmarks determination
 - Using SAM + open vocabulary to generate semantic map
 - Multi-modality localization with other tokenized signals (e.g. text, language, GPS, Magonemeter)
-- More effective solutions to 3D sparsification 
+- More effective solutions to 3D sparsification
 
 ## Preparation
 
@@ -97,11 +98,11 @@ cmake --build build -t pypangolin_pip_install
 
 ## Run the localization with online visualization
 
-1. Download the [3D-models](https://drive.google.com/drive/folders/1Ws98KjWWKhWwyKMDgswa8-I4KJITS6Uw?usp=drive_link)
+1. Download the [3D-models](https://drive.google.com/drive/folders/1DUB073KxAjsc8lxhMpFuxPRf0ZBQS6NS?usp=drive_link)
    obtained with SFD2
    keypoints,
-   pretrained [models](https://drive.google.com/drive/folders/1Rlbo1MgSW9da27ZKLlSQF7t-Jli2fX36?usp=drive_link) ,
-   and [landmarks](https://drive.google.com/drive/folders/1yT1ALo0L6kejPLmornUtODFUJLr9Q4M0?usp=drive_link)
+   pretrained [models](https://drive.google.com/drive/folders/1E2QvujCevqnyg_CM9FGAa0AxKkt4KbLD?usp=drive_link) ,
+   and [landmarks](https://drive.google.com/drive/folders/1r9src9bz7k3WYGfaPmKJ9gqxuvdfxZU0?usp=sharing)
 2. Put pretrained models in ```weights``` directory
 3. Run the demo (e.g. 7Scenes)
 
@@ -125,7 +126,8 @@ This step will produce the SfM results together with the extracted keypoints
 python3 -m recognition.recmap --dataset 7Scenes --dataset_dir /your path to/7Scenes --sfm_dir /sfm_path/7Scenes --save_dir /save_path/landmakrs
 ```
 
-This step will generate 3D landmarks, create virtual reference frame, and sparsify the 3D points for each landmark for all scenes in 7Scenes
+This step will generate 3D landmarks, create virtual reference frame, and sparsify the 3D points for each landmark for
+all scenes in 7Scenes
 
 ### 3. Train the sparse recognition model (one model one dataset)
 

@@ -106,7 +106,6 @@ class RecMap:
         if mode.find('z') < 0:
             xyz[:, 2] = 0
 
-        print('xyz: ', xyz[0:2])
         if method == 'kmeans':
             model = KMeans(n_clusters=k, random_state=0, verbose=True).fit(xyz)
         elif method == 'birch':
@@ -955,11 +954,10 @@ def process_dataset(dataset, dataset_dir, sfm_dir, save_dir, feature='sfd2', mat
         n_cluster = configs[scene]['n_cluster']
         cluster_mode = configs[scene]['cluster_mode']
         cluster_method = configs[scene]['cluster_method']
-        if scene not in ['heads']:
-            continue
+        # if scene not in ['heads']:
+        #     continue
 
         print('scene: ', scene, cluster_mode, cluster_method)
-
         # hloc_path = osp.join(hloc_root, dataset, scene)
         sfm_path = osp.join(sfm_dir, scene)
         save_path = osp.join(save_dir, feature + '-' + matcher, dataset, scene)
