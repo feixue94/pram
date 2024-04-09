@@ -9,8 +9,7 @@ import argparse
 import torch
 import torchvision.transforms.transforms as tvt
 import yaml
-from nets.segnet import SegNet
-from nets.segnetvit import SegNetViT
+from nets.load_segnet import load_segnet
 from nets.sfd2 import load_sfd2
 from dataset.get_dataset import compose_datasets
 
@@ -21,37 +20,6 @@ parser.add_argument('--feat_weight_path', type=str, default='weights/sfd2_202305
 parser.add_argument('--rec_weight_path', type=str, required=True, help='recognition weight')
 parser.add_argument('--online', action='store_true', help='online visualization with pangolin')
 
-
-def get_model(config):
-    desc_dim = 256 if config['feature'] == 'spp' else 128
-    if config['use_mid_feature']:
-        desc_dim = 256
-    model_config = {
-        'network': {
-            'descriptor_dim': desc_dim,
-            'n_layers': config['layers'],
-            'ac_fn': config['ac_fn'],
-            'norm_fn': config['norm_fn'],
-            'n_class': config['n_class'],
-            'output_dim': config['output_dim'],
-            # 'with_cls': config['with_cls'],
-            # 'with_sc': config['with_sc'],
-            'with_score': config['with_score'],
-        }
-    }
-
-    if config['network'] == 'segnet':
-        model = SegNet(model_config.get('network', {}))
-        config['with_cls'] = False
-    elif config['network'] == 'segnetvit':
-        model = SegNetViT(model_config.get('network', {}))
-        config['with_cls'] = False
-    else:
-        raise 'ERROR! {:s} model does not exist'.format(config['network'])
-
-    return model
-
-
 if __name__ == '__main__':
     args = parser.parse_args()
     with open(args.config, 'rt') as f:
@@ -61,7 +29,12 @@ if __name__ == '__main__':
     feat_model = load_sfd2(weight_path=args.feat_weight_path).cuda().eval()
     print('Load SFD2 weight from {:s}'.format(args.feat_weight_path))
 
-    rec_model = get_model(config=config)
+    # rec_model = get_model(config=config)
+    rec_model = load_segnet(network=config['network'],
+                            n_class=config['n_class'],
+                            desc_dim=256 if config['use_mid_feature'] else 128,
+                            n_layers=config['layers'],
+                            output_dim=config['output_dim'])
     state_dict = torch.load(args.rec_weight_path, map_location='cpu')['model']
     rec_model.load_state_dict(state_dict, strict=True)
     print('Load recognition weight from {:s}'.format(args.rec_weight_path))

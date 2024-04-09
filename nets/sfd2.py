@@ -592,5 +592,5 @@ def extract_sfd2_return(model, img, conf_th=0.001,
 def load_sfd2(weight_path):
     net = ResNet4x(inputdim=3, outdim=128)
     net.load_state_dict(torch.load(weight_path, map_location='cpu')['state_dict'], strict=True)
-    print('Load sfd2 from {:s}'.format(weight_path))
+    # print('Load sfd2 from {:s}'.format(weight_path))
     return net

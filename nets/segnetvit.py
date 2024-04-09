@@ -127,7 +127,7 @@ class SegNetViT(nn.Module):
         'output_dim': 1024,
         'n_class': 512,
         'keypoint_encoder': [32, 64, 128, 256],
-        'n_layers': 9,
+        'n_layers': 15,
         'num_heads': 4,
         'hidden_dim': 256,
         'with_score': False,

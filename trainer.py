@@ -30,8 +30,8 @@ class Trainer:
         self.eval_loader = eval_loader
         self.config = config
         self.with_aug = self.config['with_aug']
-        self.with_cls = self.config['with_cls']
-        self.with_sc = self.config['with_sc']
+        self.with_cls = False  # self.config['with_cls']
+        self.with_sc = False  # self.config['with_sc']
         self.img_transforms = img_transforms
         self.feat_model = feat_model.cuda().eval() if feat_model is not None else None
 
@@ -66,10 +66,10 @@ class Trainer:
                                    'nc' + str(self.config['n_class'])]
             if self.config['use_mid_feature']:
                 all_tags.append('md')
-            if self.with_cls:
-                all_tags.append(self.config['cls_loss'])
-            if self.with_sc:
-                all_tags.append(self.config['sc_loss'])
+            # if self.with_cls:
+            #     all_tags.append(self.config['cls_loss'])
+            # if self.with_sc:
+            #     all_tags.append(self.config['sc_loss'])
             if self.with_aug:
                 all_tags.append('A')
 

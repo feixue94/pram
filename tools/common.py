@@ -100,3 +100,24 @@ def resize_image_with_padding(image: np.array, nw: int, nh: int, padding_color: 
     # print('top, bottom, left, right: ', top, bottom, left, right)
     image = cv2.copyMakeBorder(image, top, bottom, left, right, cv2.BORDER_CONSTANT, value=padding_color)
     return image
+
+
+def puttext_with_background(image, text, org=(0, 0), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
+                            fontScale=1, text_color=(0, 0, 255),
+                            thickness=2, lineType=cv2.LINE_AA, bg_color=None):
+    if bg_color is not None:
+        (text_width, text_height), baseline = cv2.getTextSize(text,
+                                                              fontFace,
+                                                              fontScale=fontScale,
+                                                              thickness=thickness)
+        box_coords = (
+            (org[0], org[1] + baseline),
+            (org[0] + text_width + 2, org[1] - text_height - 2))
+
+        cv2.rectangle(image, box_coords[0], box_coords[1], bg_color, cv2.FILLED)
+    out_img = cv2.putText(img=image, text=text,
+                          org=org,
+                          fontFace=fontFace,
+                          fontScale=fontScale, color=text_color,
+                          thickness=thickness, lineType=lineType)
+    return out_img

@@ -18,6 +18,7 @@ import torch.distributed as dist
 from nets.sfd2 import load_sfd2
 from nets.segnet import SegNet
 from nets.segnetvit import SegNetViT
+from nets.load_segnet import load_segnet
 from dataset.utils import collect_batch
 from dataset.get_dataset import compose_datasets
 from tools.common import torch_set_gpu
@@ -56,7 +57,7 @@ def get_model(config):
 
 parser = argparse.ArgumentParser(description='PRAM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 parser.add_argument('--config', type=str, required=True, help='config of specifications')
-parser.add_argument('--landmark_path', type=str, required=True, help='path of landmarks')
+# parser.add_argument('--landmark_path', type=str, required=True, help='path of landmarks')
 parser.add_argument('--feat_weight_path', type=str, default='weights/sfd2_20230511_210205_resnet4x.79.pth')
 
 
@@ -129,7 +130,12 @@ if __name__ == '__main__':
     else:
         test_set = None
     config['n_class'] = train_set.n_class
-    model = get_model(config=config)
+    # model = get_model(config=config)
+    model = load_segnet(network=config['network'],
+                        n_class=config['n_class'],
+                        desc_dim=256 if config['use_mid_feature'] else 128,
+                        n_layers=config['layers'],
+                        output_dim=config['output_dim'])
     if config['local_rank'] == 0:
         if config['resume_path'] is not None:  # only for training
             model.load_state_dict(

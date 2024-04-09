@@ -4,13 +4,15 @@ network_: "segnet"
 network: "segnetvit"
 
 local_rank: 0
-gpu: [ 0 ]
+gpu: [ 0,1,2,3 ]
 # when using ddp, set gpu: [0,1,2,3]
 with_dist: true
 
 feature: "sfd2"
-save_path: '/scratches/flyer_2/fx221/exp/pram'
-landmark_path: "/scratches/flyer_3/fx221/exp/pram/landmarks/sfd2-gml"
+save_path_: '/scratches/flyer_2/fx221/exp/pram'
+save_path: '/scratches/flyer_2/fx221/publications/test_pram/exp'
+landmark_path_: "/scratches/flyer_3/fx221/exp/pram/landmarks/sfd2-gml"
+landmark_path: "/scratches/flyer_2/fx221/publications/test_pram/landmakrs/sfd2-gml"
 dataset_path: "/scratches/flyer_3/fx221/dataset"
 config_path: 'configs/datasets'
 
@@ -18,7 +20,7 @@ image_dim: 3
 feat_dim: 128
 
 min_inliers: 32
-max_inliers: 512
+max_inliers: 256
 random_inliers: 1
 max_keypoints: 512
 ignore_index: -1
@@ -48,7 +50,7 @@ do_eval: false
 
 use_mid_feature: true
 norm_desc: false
-with_cls: true
+with_cls: false
 with_score: false
 with_aug: true
 

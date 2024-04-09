@@ -11,8 +11,6 @@ from localization.multimap3d import MultiMap3D
 from localization.frame import Frame
 import yaml, cv2, time
 import numpy as np
-from copy import deepcopy
-import os
 import os.path as osp
 import threading
 from recognition.vis_seg import vis_seg_point, generate_color_dic
@@ -20,7 +18,7 @@ from tools.common import resize_img
 from localization.viewer import Viewer
 from localization.tracker import Tracker
 from localization.utils import read_query_info
-from localization.camera import Camera
+from tools.common import puttext_with_background
 
 
 def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
@@ -165,7 +163,12 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                 curr_frame.image_rec = img_pred_seg
 
                 if show:
-                    cv2.imshow('img', img)
+                    img_text = puttext_with_background(image=img, text='Press C - continue | S - pause | Q - exit',
+                                                       org=(30, 50),
+                                                       bg_color=(255, 255, 255),
+                                                       text_color=(0, 0, 255),
+                                                       fontScale=2, thickness=3)
+                    cv2.imshow('img', img_text)
                     key = cv2.waitKey(show_time)
                     if key == ord('q'):
                         exit(0)

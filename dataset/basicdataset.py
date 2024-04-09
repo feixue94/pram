@@ -320,10 +320,10 @@ class BasicDataset:
             'gt_n_seg': gt_n_seg,
             'file_name': img_name,
             'prefix_name': self.image_prefix,
-            'mean_xyz': self.mean_xyz,
-            'scale_xyz': self.scale_xyz,
-            'gt_sc': sel_xyzs,
-            'gt_norm_sc': (sel_xyzs - self.mean_xyz) / self.scale_xyz,
+            # 'mean_xyz': self.mean_xyz,
+            # 'scale_xyz': self.scale_xyz,
+            # 'gt_sc': sel_xyzs,
+            # 'gt_norm_sc': (sel_xyzs - self.mean_xyz) / self.scale_xyz,
             'K': param_out['K'],
             'gt_P': param_out['P']
         }
