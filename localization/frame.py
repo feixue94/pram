@@ -53,6 +53,10 @@ class Frame:
         self.image_rec = None
         self.image_matching = None
         self.image_inlier = None
+        self.reference_frame_name = None
+        self.image_matching_tmp = None
+        self.image_inlier_tmp = None
+        self.reference_frame_name_tmp = None
 
         self.tracking_status = None
 

@@ -149,9 +149,15 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
 
                 pred_seg = pred_seg[0].cpu().numpy()
                 kpts = kpts_cuda[0].cpu().numpy()
-                img_pred_seg = vis_seg_point(img=img, kpts=kpts, segs=pred_seg, seg_color=seg_color, radius=9)
+                segmentations = pred['prediction'][0]  # .cpu().numpy()  # [N, C]
+                curr_frame.add_segmentations(segmentations=segmentations,
+                                             filtering_threshold=config['localization']['pre_filtering_th'])
+
+                img_pred_seg = vis_seg_point(img=img, kpts=curr_frame.keypoints,
+                                             segs=curr_frame.seg_ids + 1, seg_color=seg_color, radius=9)
                 show_text = 'kpts: {:d}'.format(kpts.shape[0])
-                img_pred_seg = cv2.putText(img=img_pred_seg, text=show_text,
+                img_pred_seg = cv2.putText(img=img_pred_seg,
+                                           text=show_text,
                                            org=(50, 30),
                                            fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                                            fontScale=1, color=(0, 0, 255),
@@ -167,10 +173,6 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                         show_time = -1
                     elif key == ord('c'):
                         show_time = 1
-
-                segmentations = pred['prediction'][0]  # .cpu().numpy()  # [N, C]
-                curr_frame.add_segmentations(segmentations=segmentations,
-                                             filtering_threshold=config['localization']['pre_filtering_th'])
 
                 # Step1: do tracker first
                 success = not mTracker.lost and mViewer.tracking

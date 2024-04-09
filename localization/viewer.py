@@ -394,7 +394,7 @@ class Viewer:
         self.time_rec = curr_frame.time_rec
         self.time_loc = curr_frame.time_loc
         self.time_ref = curr_frame.time_ref
-
+        
         # update image
         image_rec_inlier = np.hstack([curr_frame.image_rec, curr_frame.image_inlier])
         image_rec_inlier = resize_image_with_padding(image=image_rec_inlier, nw=self.img_width * 2, nh=self.img_height)

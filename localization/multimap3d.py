@@ -166,8 +166,16 @@ class MultiMap3D:
                                                 radius=9, line_thickness=3
                                                 )
 
-                q_frame.image_matching = img_loc_matching
-
+                q_frame.image_matching_tmp = img_loc_matching
+                q_frame.reference_frame_name_tmp = osp.join(self.config['dataset_path'],
+                                                            pred_scene_name,
+                                                            pred_image_path_prefix,
+                                                            reference_frame.name)
+                # ret['image_matching'] = img_loc_matching
+                # ret['reference_frame_name'] = osp.join(self.config['dataset_path'],
+                #                                        pred_scene_name,
+                #                                        pred_image_path_prefix,
+                #                                        reference_frame.name)
                 q_ref_img_matching = np.hstack([resize_img(q_img_seg, nh=512),
                                                 resize_img(ref_img_seg, nh=512),
                                                 resize_img(img_loc_matching, nh=512)])
@@ -189,6 +197,7 @@ class MultiMap3D:
                     q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 30),
                                                fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
                                                thickness=2, lineType=cv2.LINE_AA)
+                    q_frame.image_inlier_tmp = q_img_inlier
                     q_img_loc = np.hstack([resize_img(q_ref_img_matching, nh=512), resize_img(q_img_inlier, nh=512)])
                     cv2.imshow('loc', q_img_loc)
                     key = cv2.waitKey(self.loc_config['show_time'])
@@ -197,7 +206,6 @@ class MultiMap3D:
                         exit(0)
                 continue
 
-            success = self.verify_and_update(q_frame=q_frame, ret=ret)
             if show:
                 q_err, t_err = q_frame.compute_pose_error()
                 num_matches = ret['matched_keypoints'].shape[0]
@@ -213,7 +221,7 @@ class MultiMap3D:
                 q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 80),
                                            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
                                            thickness=2, lineType=cv2.LINE_AA)
-                q_frame.image_inlier = q_img_inlier
+                q_frame.image_inlier_tmp = q_img_inlier
 
                 q_img_loc = np.hstack([resize_img(q_ref_img_matching, nh=512), resize_img(q_img_inlier, nh=512)])
 
@@ -222,6 +230,8 @@ class MultiMap3D:
                 if key == ord('q'):
                     cv2.destroyAllWindows()
                     exit(0)
+
+            success = self.verify_and_update(q_frame=q_frame, ret=ret)
 
             if not success:
                 continue
@@ -316,6 +326,13 @@ class MultiMap3D:
         q_frame.matched_sids = ret['matched_sids']
         q_frame.matched_inliers = np.array(ret['inliers'])
         q_frame.matched_order = ret['order']
+
+        if q_frame.image_inlier_tmp is not None:
+            q_frame.image_inlier = deepcopy(q_frame.image_inlier_tmp)
+        if q_frame.image_matching_tmp is not None:
+            q_frame.image_matching = deepcopy(q_frame.image_matching_tmp)
+        if q_frame.reference_frame_name_tmp is not None:
+            q_frame.reference_frame_name = q_frame.reference_frame_name_tmp
 
         # inlier_mask = np.array(ret['inliers'])
         # q_frame.matched_keypoints = ret['matched_keypoints'][inlier_mask]

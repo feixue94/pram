@@ -36,8 +36,8 @@ def get_model(config):
             'norm_fn': config['norm_fn'],
             'n_class': config['n_class'],
             'output_dim': config['output_dim'],
-            'with_cls': config['with_cls'],
-            'with_sc': config['with_sc'],
+            # 'with_cls': config['with_cls'],
+            # 'with_sc': config['with_sc'],
             'with_score': config['with_score'],
         }
     }
