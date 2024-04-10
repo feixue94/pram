@@ -167,7 +167,7 @@ def loc_by_rec_online(rec_model, config, local_feat, img_transforms=None):
                                                        org=(30, 50),
                                                        bg_color=(255, 255, 255),
                                                        text_color=(0, 0, 255),
-                                                       fontScale=2, thickness=3)
+                                                       fontScale=1, thickness=2)
                     cv2.imshow('img', img_text)
                     key = cv2.waitKey(show_time)
                     if key == ord('q'):

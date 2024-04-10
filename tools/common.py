@@ -12,6 +12,7 @@ import yaml
 import cv2
 import numpy as np
 from typing import Tuple
+from copy import deepcopy
 
 
 def load_args(args, save_path):
@@ -105,6 +106,7 @@ def resize_image_with_padding(image: np.array, nw: int, nh: int, padding_color: 
 def puttext_with_background(image, text, org=(0, 0), fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                             fontScale=1, text_color=(0, 0, 255),
                             thickness=2, lineType=cv2.LINE_AA, bg_color=None):
+    out_img = deepcopy(image)
     if bg_color is not None:
         (text_width, text_height), baseline = cv2.getTextSize(text,
                                                               fontFace,
@@ -114,8 +116,8 @@ def puttext_with_background(image, text, org=(0, 0), fontFace=cv2.FONT_HERSHEY_S
             (org[0], org[1] + baseline),
             (org[0] + text_width + 2, org[1] - text_height - 2))
 
-        cv2.rectangle(image, box_coords[0], box_coords[1], bg_color, cv2.FILLED)
-    out_img = cv2.putText(img=image, text=text,
+        cv2.rectangle(out_img, box_coords[0], box_coords[1], bg_color, cv2.FILLED)
+    out_img = cv2.putText(img=out_img, text=text,
                           org=org,
                           fontFace=fontFace,
                           fontScale=fontScale, color=text_color,

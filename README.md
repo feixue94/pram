@@ -74,6 +74,7 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 1. Download the 7Scenes, 12Scenes, CambridgeLandmarks, and Aachen datasets (remove redundant depth images otherwise they
    will be found in the sfm process)
 2. Environments
+
    2.1 Create a virtual environment
 
 ```
