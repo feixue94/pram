@@ -62,6 +62,12 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 - All 12 subscenes in 12Scenes dataset share a model
 - All 5 subscenes in CambridgeLandmarks share a model
 
+### 7. Robust to long-term changes
+
+<p align="center">
+  <img src="assets/pram_demo.gif" width="600">
+</p>
+
 ## Open problems
 
 - Adaptive number landmarks determination
