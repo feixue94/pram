@@ -18,7 +18,8 @@ verification to replace global reference search and exhaustive matching respecti
 prior state-of-the-art approaches. Moreover, PRAM opens new directions for visual localization including multi-modality
 localization, map-centric feature learning, and hierarchical scene coordinate regression.
 
-* Full paper PDF: [Place Recognition Anywhere Model for Efficient Visual Localization](assets/pram.pdf).
+* Full paper
+  PDF: [Place Recognition Anywhere Model for Efficient Visual Localization](https://arxiv.org/pdf/2404.07785.pdf).
 
 * Authors: *Fei Xue, Ignas Budvytis, Roberto Cipolla*
 
@@ -32,6 +33,11 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 - No inconsistent semantic results from multi-view images
 - No limitation to labels of only known objects
 - Work in any places with known or unknown objects
+- Landmark-wise 3D map sparsification
+
+<p align="center">
+  <img src="assets/map_sparsification.gif" width="640">
+</p>
 
 ### 2. Efficient landmark-wise coarse and fine localization
 
@@ -39,17 +45,17 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 - Local landmark-wise matching as opposed to exhaustive matching
 - No global descriptors (e.g. NetVLAD)
 - No reference images and their heavy repetative 2D keypoints and descriptors
+- Automatic inlier/outlier idetification
 
-### 3. Landmark-wise map sparsification
-
-- Tack each landmark for localization
-- Reduce redundant 3D points for each landmark independently
+<p align="center">
+  <img src="assets/pipeline1.png" width="640">
+</p>
 
 ### 4. Sparse recognition
 
 - Sparse SFD2 keypoints as tokens
 - No uncertainties of points at boundaries
-- Automatic inlier/outlier discrimination
+- Flexible to accept multi-modality inputs
 
 ### 5. Relocalization and temporal localization
 
@@ -65,7 +71,7 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
 ### 7. Robust to long-term changes
 
 <p align="center">
-  <img src="assets/pram_demo.gif" width="600">
+  <img src="assets/pram_demo.gif" width="640">
 </p>
 
 ## Open problems
@@ -157,11 +163,12 @@ Remember to modify the paths in 'config_train_7scenes_sfd2.yaml'
 If you use any ideas from the paper or code in this repo, please consider citing:
 
 ```
-@inproceedings{xue2024pram,
-  author    = {Fei Xue and Ignas Budvytis and Roberto Cipolla},
-  title     = {PRAM: Place Recognition Anywhere Model for Efficient Visual Localization},
-  year      = {2024}
-}
+ @article{xue2024pram,
+          author    = {Fei Xue and Ignas Budvytis and Roberto Cipolla},
+          title     = {PRAM: Place Recognition Anywhere Model for Efficient Visual Localization},
+          journal   = {arXiv preprint arXiv:2404.07785},
+          year      = {2024}
+ }
 
 @inproceedings{xue2023sfd2,
   author    = {Fei Xue and Ignas Budvytis and Roberto Cipolla},
