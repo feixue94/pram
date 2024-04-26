@@ -1,0 +1,166 @@
+dataset: '12Scenes'
+scenes: [ 'apt1/kitchen',
+          'apt1/living',
+          'apt2/bed',
+          'apt2/kitchen',
+          'apt2/living',
+          'apt2/luke',
+          'office1/gates362',
+          'office1/gates381',
+          'office1/lounge',
+          'office1/manolis',
+          'office2/5a',
+          'office2/5b'
+]
+
+apt1/kitchen:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+  image_path_prefix: ''
+
+
+apt1/living:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+apt2/bed:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+apt2/kitchen:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+apt2/living:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+apt2/luke:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+office1/gates362:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 3
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+office1/gates381:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 3
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+office1/lounge:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+office1/manolis:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+office2/5a:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'
+
+
+office2/5b:
+  n_cluster: 16
+  cluster_mode: 'xy'
+  cluster_method: 'birch'
+
+  training_sample_ratio: 1
+  eval_sample_ratio: 5
+  image_path_prefix: ''
+
+  query_path: 'queries_with_intrinsics.txt'
+  gt_pose_path: 'queries_poses.txt'

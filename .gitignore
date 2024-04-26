@@ -1,6 +1,9 @@
 .idea
 __pycache__
 weights
+landmarks
+3D-models
 log_*
 *.log
 .nfs*
+Pangolin

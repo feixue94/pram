@@ -1,0 +1,100 @@
+dataset: [ 'S', 'T', 'C', 'A' ]
+
+network: "segnet"
+network_: "gsegnet3"
+
+local_rank: 0
+gpu: [ 4 ]
+
+feature: "resnet4x"
+save_path: '/scratches/flyer_2/fx221/exp/localizer'
+landmark_path: "/scratches/flyer_3/fx221/exp/localizer/resnet4x-20230511-210205-pho-0005-gm"
+dataset_path: "/scratches/flyer_3/fx221/dataset"
+config_path: 'configs/datasets'
+
+image_dim: 3
+min_inliers: 32
+max_inliers: 512
+random_inliers: 1
+max_keypoints: 1024
+ignore_index: -1
+output_dim: 1024
+output_dim_: 2048
+jitter_params:
+  brightness: 0.5
+  contrast: 0.5
+  saturation: 0.25
+  hue: 0.15
+  blur: 0
+
+scale_params: [ 0.5, 1.0 ]
+pre_load: false
+do_eval: true
+train: true
+inlier_th: 0.5
+lr: 0.0001
+min_lr: 0.00001
+optimizer: "adam"
+seg_loss: "cew"
+seg_loss_nx: "cei"
+cls_loss: "ce"
+cls_loss_: "bce"
+sc_loss: 'l1g'
+ac_fn: "relu"
+norm_fn: "bn"
+workers: 8
+layers: 15
+log_intervals: 50
+eval_n_epoch: 10
+
+use_mid_feature: true
+norm_desc: false
+with_sc: false
+with_cls: true
+with_score: false
+with_aug: true
+with_dist: true
+
+batch_size: 32
+its_per_epoch: 1000
+decay_rate: 0.999992
+decay_iter: 150000
+epochs: 1500
+
+cluster_method_: 'kmeans'
+cluster_method: 'birch'
+
+weight_path_: null
+weight_path: '20230805_132653_segnet_L15_STCA_resnet4x_B32_K1024_relu_bn_od1024_nc977_adam_cew_md_A_birch/segnet.485.pth'
+resume_path: null
+
+eval: false
+#loc: false
+loc: true
+#n_class: 977
+online: false
+
+eval_max_keypoints: 4096
+
+localization:
+  loc_scene_name: [ ]
+  save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
+  dataset: [ 'T' ]
+  seg_k: 50
+  threshold: 8 # 8 for indoor, 12 for outdoor
+  min_kpts: 256
+  min_matches: 4
+  min_inliers: 64
+  matching_method_: "mnn"
+  matching_method_1: "spg"
+  matching_method: "gm"
+  save: false
+  show: true
+  show_time: 1
+  do_refinement: true
+  with_original: true
+  with_extra: false
+  max_vrf: 1
+  with_compress: false
+  covisibility_frame: 20
+  observation_threshold: 3

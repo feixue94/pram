@@ -1,0 +1,103 @@
+dataset: [ 'CambridgeLandmarks' ]
+
+network_: "segnet"
+network: "segnetvit"
+
+local_rank: 0
+gpu: [ 0 ]
+
+feature: "sfd2"
+save_path: '/scratches/flyer_2/fx221/exp/pram'
+landmark_path: "/scratches/flyer_3/fx221/exp/pram/landmarks/sfd2-gml"
+dataset_path: "/scratches/flyer_3/fx221/dataset"
+config_path: 'configs/datasets'
+
+image_dim: 3
+feat_dim: 128
+
+min_inliers: 32
+max_inliers: 512
+random_inliers: 1
+max_keypoints: 1024
+ignore_index: -1
+output_dim: 1024
+output_dim_: 2048
+jitter_params:
+  brightness: 0.5
+  contrast: 0.5
+  saturation: 0.25
+  hue: 0.15
+  blur: 0
+
+scale_params: [ 0.5, 1.0 ]
+pre_load: false
+do_eval: false
+train: true
+inlier_th: 0.5
+lr: 0.0001
+min_lr: 0.00001
+epochs: 300
+seg_loss: "cew"
+ac_fn: "relu"
+norm_fn: "bn"
+workers: 8
+layers: 15
+log_intervals: 50
+eval_n_epoch: 10
+
+use_mid_feature: true
+norm_desc: false
+with_score: false
+with_aug: true
+with_dist: true
+
+batch_size: 32
+its_per_epoch: 1000
+decay_rate: 0.999992
+decay_iter: 60000
+
+cluster_method: 'birch'
+
+weight_path: null
+weight_path_1: '20230725_144044_segnet_L15_C_resnet4x_B32_K1024_relu_bn_od1024_nc161_adam_cew_md_A_birch/segnet.260.pth'
+weight_path_2: '20240204_130323_segnetvit_L15_C_resnet4x_B32_K1024_relu_bn_od1024_nc161_adamw_cew_md_A_birch/segnetvit.399.pth'
+
+resume_path: null
+
+n_class: 161
+
+eval_max_keypoints: 2048
+
+localization:
+  loc_scene_name_1: [ 'GreatCourt' ]
+  loc_scene_name_2: [ 'KingsCollege' ]
+  loc_scene_name: [ 'StMarysChurch' ]
+  loc_scene_name_4: [ 'OldHospital' ]
+  save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
+  seg_k: 30
+  threshold: 12
+  min_kpts: 256
+  min_matches: 16
+  min_inliers_gm: 128
+  min_inliers: 128
+  matching_method_: "mnn"
+  matching_method_1: "spg"
+  matching_method_2: "gm"
+  matching_method: "gml"
+  matching_method_4: "adagml"
+  show: true
+  show_time: 1
+  save: false
+  with_original: true
+  max_vrf: 1
+  with_extra: false
+  with_compress: true
+  semantic_matching: true
+  do_refinement: true
+  pre_filtering_th: 0.95
+  refinement_method_: 'matching'
+  refinement_method: 'projection'
+  covisibility_frame: 20
+  refinement_radius: 20
+  refinement_nn_ratio: 0.9
+  refinement_max_matches: 0
