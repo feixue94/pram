@@ -87,11 +87,11 @@ localization, map-centric feature learning, and hierarchical scene coordinate re
    will be found in the sfm process)
 2. Environments
 
-   2.1 Create a virtual environment
+2.1 Create a virtual environment
 
 ```
 conda env create -f environment.yml
-conda activate pram
+(do not activate pram before pangolin is installed)
 ```
 
 2.2 Compile Pangolin for the installed python
@@ -107,6 +107,8 @@ git checkout v0.8
 # Compile with your python
 cmake -DPython_EXECUTABLE=/your path to/anaconda3/envs/pram/bin/python3  -B build
 cmake --build build -t pypangolin_pip_install
+
+conda activate pram
 ```
 
 ## Run the localization with online visualization
