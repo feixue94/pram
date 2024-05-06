@@ -158,6 +158,13 @@ Remember to modify the paths in 'config_train_7scenes_sfd2.yaml'
 4. Train the recognition model
 5. Do evaluation
 
+## Previous works can be found here
+
+1. [Efficient large-scale localization by landmark recognition, CVPR 2022](https://github.com/feixue94/lbr)
+2. [IMP: Iterative Matching and Pose Estimation with Adaptive Pooling, CVPR 2023](https://github.com/feixue94/imp-release)
+3. [SFD2: Semantic-guided Feature Detection and Description, CVPR 2023](https://github.com/feixue94/sfd2)
+4. [VRS-NeRF: Visual Relocalization with Sparse Neural Radiance Field, under review](https://github.com/feixue94/vrs-nerf)
+
 ## BibTeX Citation
 
 If you use any ideas from the paper or code in this repo, please consider citing:
