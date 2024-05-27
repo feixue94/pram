@@ -2,10 +2,11 @@
 # you need to use your own path
 dataset_dir=/scratches/flyer_3/fx221/dataset/Aachen/Aachenv11
 ref_sfm_dir=/scratches/flyer_2/fx221/publications/pram_data/3D-models/Aachen/Aachenv11
-output_dir=/scratches/flyer_2/fx221/localization/outputs/Aachen/Aachenv11
+#output_dir=/scratches/flyer_2/fx221/localization/outputs/Aachen/Aachenv11
+output_dir=/scratches/flyer_2/fx221/publications/test_pram/Aachen/Aachenv11
 
 # fixed
-output=$output_dir
+outputs=$output_dir
 ref_sfm=$ref_sfm_dir/3D-models
 db_pair=$ref_sfm_dir/pairs-db-covis20.txt
 query_pair=$ref_sfm_dir/pairs-query-netvlad50.txt
@@ -20,21 +21,21 @@ matcher=gm
 #feat=superpoint-n4096
 #matcher=superglue
 
-extract_feat_db=1
-match_db=1
+extract_feat_db=0
+match_db=0
 triangulation=1
-localize=1
+localize=0
 
 if [ "$extract_feat_db" -gt "0" ]; then
-  python3 -m loc.extract_features --image_dir $dataset/images/images_upright --export_dir $outputs/ --conf $feat
+  python3 -m localization.extract_features --image_dir $dataset/images/images_upright --export_dir $outputs/ --conf $feat
 fi
 
 if [ "$match_db" -gt "0" ]; then
-  python3 -m loc.match_features --pairs $ref_sfm_dir/pairs-db-covis20.txt --export_dir $outputs/ --conf $matcher --features feats-$feat
+  python3 -m localization.match_features --pairs $ref_sfm_dir/pairs-db-covis20.txt --export_dir $outputs/ --conf $matcher --features feats-$feat
 fi
 
 if [ "$triangulation" -gt "0" ]; then
-  python3 -m loc.triangulation \
+  python3 -m localization.triangulation \
     --sfm_dir $outputs/sfm_$feat-$matcher \
     --reference_sfm_model $ref_sfm \
     --image_dir $dataset/images/images_upright \
@@ -50,7 +51,7 @@ inlier_thresh=80
 obs_thresh=3
 
 if [ "$localize" -gt "0" ]; then
-  python3 -m loc.localizer \
+  python3 -m localization.localizer \
     --dataset aachen_v1.1 \
     --image_dir $image_dir \
     --save_root $outputs \

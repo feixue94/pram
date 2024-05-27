@@ -26,9 +26,9 @@ inlier_thresh=30
 obs_thresh=3
 
 
-for scene in heads fire office stairs pumpkin redkitchen chess
+#for scene in heads fire office stairs pumpkin redkitchen chess
 #for scene in fire office pumpkin redkitchen chess
-#for scene in chess
+for scene in stairs
 do
   echo $scene
   image_dir=$dataset_dir/$scene

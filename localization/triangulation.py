@@ -142,7 +142,6 @@ def geometric_verification(
         matches_path: Path,
         max_error: float = 4.0,
 ):
-    # logger.info("Performing geometric verification of the matches...")
     logging.info("Performing geometric verification of the matches...")
 
     pairs = parse_retrieval(pairs_path)
@@ -216,7 +215,6 @@ def run_triangulation(
         options: Optional[Dict[str, Any]] = None,
 ) -> pycolmap.Reconstruction:
     model_path.mkdir(parents=True, exist_ok=True)
-    # logger.info("Running 3D triangulation...")
     logging.info("Running 3D triangulation...")
     if options is None:
         options = {}
@@ -270,7 +268,6 @@ def main(
     reconstruction = run_triangulation(
         sfm_dir, database, image_dir, reference, verbose, mapper_options
     )
-    # logger.info(
     logging.info(
         "Finished the triangulation with statistics:\n%s", reconstruction.summary()
     )
