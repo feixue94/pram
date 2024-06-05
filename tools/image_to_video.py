@@ -40,16 +40,16 @@ def imgs2video(img_dir, video_path, fps=30, height=1024):
     # fourcc = cv2.cv.CV_FOURCC('M','J','P','G')#opencv2.4
     # fourcc = cv2.VideoWriter_fourcc('I','4','2','0')
 
-    fourcc = cv2.VideoWriter_fourcc(*'MP4V')  # 设置输出视频为mp4格式
+    fourcc = cv2.VideoWriter_fourcc('m', 'p', '4', 'v')  # 设置输出视频为mp4格式
     # fourcc = cv2.VideoWriter_fourcc('M', 'P', '4', 'V')  # 设置输出视频为mp4格式
     videoWriter = cv2.VideoWriter(video_path, fourcc, fps, img_size)
 
-    for i in tqdm(range(3700, len(img_fns)), total=len(img_fns)):
+    for i in tqdm(range(0, len(img_fns)), total=len(img_fns)):
         # fn = img_fns[i].split('-')
         im_name = os.path.join(img_dir, img_fns[i])
         print(im_name)
         frame = cv2.imread(im_name, 1)
-        frame = np.flip(frame, 0)
+        # frame = np.flip(frame, 0)
 
         frame = cv2.resize(frame, dsize=img_size)
         # print(frame.shape)

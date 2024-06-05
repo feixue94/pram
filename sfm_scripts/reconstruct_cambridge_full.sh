@@ -1,13 +1,14 @@
 #!/bin/bash
 # you need to use your own path
-dataset_dir=/scratches/flyer_3/fx221/exp/camdata/cambridge_full/multi_slam/dump_data/db
-ref_sfm_dir=/scratches/flyer_3/fx221/exp/camdata/cambridge_full/multi_slam/dump_data/db
-output_dir=/scratches/flyer_3/fx221/exp/camdata/cambridge_full/multi_slam/dump_data/db/output
+dataset_dir=/scratches/flyer_3/fx221/exp/camdata/cambridge_full/multi_slam/dump_data/db_10s
+ref_sfm_dir=/scratches/flyer_3/fx221/exp/camdata/cambridge_full/multi_slam/dump_data/db_10s
+output_dir=/scratches/flyer_3/fx221/exp/camdata/cambridge_full/multi_slam/dump_data/db_10s/output
 
 # fixed
 outputs=$output_dir
 ref_sfm=$ref_sfm_dir/3D-models-empty
-db_pair=$ref_sfm_dir/pairs-db20-offset5.txt
+db_pair=$ref_sfm_dir/pairs-db20-offset1.txt
+
 query_pair=$ref_sfm_dir/pairs-query-netvlad50.txt
 gt_pose_fn=$ref_sfm_dir/queries_pose_spp_spg.txt
 query_fn=$ref_sfm_dir/queries_with_intrinsics.txt
@@ -15,12 +16,12 @@ query_fn=$ref_sfm_dir/queries_with_intrinsics.txt
 
 
 feat=sfd2
-matcher=gm
+matcher=gml
 
 #feat=superpoint-n4096
 #matcher=superglue
 
-extract_feat_db=1
+extract_feat_db=0
 match_db=1
 triangulation=1
 localize=0
@@ -40,7 +41,7 @@ if [ "$triangulation" -gt "0" ]; then
     --image_dir $dataset_dir/ \
     --pairs $db_pair \
     --features $output_dir/feats-$feat.h5 \
-    --matches $output_dir/feats-$feat-$matcher-pairs-db-covis20.h5
+    --matches $output_dir/feats-$feat-$matcher-pairs-db20-offset1.h5
 fi
 
 ransac_thresh=15

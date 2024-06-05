@@ -127,6 +127,7 @@ class GM(nn.Module):
         self.kenc = KeypointEncoder(
             self.config['descriptor_dim'] if self.config['descriptor_dim'] > 0 else 128,
             self.config['keypoint_encoder'],
+            layers=self.config['keypoint_encoder'],
             ac_fn=self.config['ac_fn'],
             norm_fn=self.config['norm_fn'])
         self.gnn = AttentionalGNN(
