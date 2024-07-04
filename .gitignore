@@ -1,6 +1,10 @@
 .idea
 __pycache__
-weights
+weights/12scenes*
+weights/7scenes*
+weights/aachen*
+weights/cambridgelandmarks*
+weights/imp_adagml.80.pth
 landmarks
 3D-models
 log_*
