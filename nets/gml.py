@@ -254,11 +254,11 @@ class GML(nn.Module):
             norm_kpts0 = data['norm_keypoints0']
             norm_kpts1 = data['norm_keypoints1']
         elif 'image0' in data.keys() and 'image1' in data.keys():
-            norm_kpts0 = normalize_keypoints(kpts0, data['image0'].shape)
-            norm_kpts1 = normalize_keypoints(kpts1, data['image1'].shape)
+            norm_kpts0 = normalize_keypoints(kpts0, data['image0'].shape).float()
+            norm_kpts1 = normalize_keypoints(kpts1, data['image1'].shape).float()
         elif 'image_shape0' in data.keys() and 'image_shape1' in data.keys():
-            norm_kpts0 = normalize_keypoints(kpts0, data['image_shape0'])
-            norm_kpts1 = normalize_keypoints(kpts1, data['image_shape1'])
+            norm_kpts0 = normalize_keypoints(kpts0, data['image_shape0']).float()
+            norm_kpts1 = normalize_keypoints(kpts1, data['image_shape1']).float()
         else:
             raise ValueError('Require image shape for keypoint coordinate normalization')
 
