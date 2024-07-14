@@ -10,6 +10,7 @@ from torch import nn
 import torch.nn.functional as F
 from typing import Callable
 from nets.utils import arange_like, normalize_keypoints
+device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 torch.backends.cudnn.deterministic = True
 
@@ -37,10 +38,10 @@ def sinkhorn(M, r, c, iteration):
 def sink_algorithm(M, dustbin, iteration):
     M = torch.cat([M, dustbin.expand([M.shape[0], M.shape[1], 1])], dim=-1)
     M = torch.cat([M, dustbin.expand([M.shape[0], 1, M.shape[2]])], dim=-2)
-    r = torch.ones([M.shape[0], M.shape[1] - 1], device='cuda')
-    r = torch.cat([r, torch.ones([M.shape[0], 1], device='cuda') * M.shape[1]], dim=-1)
-    c = torch.ones([M.shape[0], M.shape[2] - 1], device='cuda')
-    c = torch.cat([c, torch.ones([M.shape[0], 1], device='cuda') * M.shape[2]], dim=-1)
+    r = torch.ones([M.shape[0], M.shape[1] - 1], device=device)
+    r = torch.cat([r, torch.ones([M.shape[0], 1], device=device) * M.shape[1]], dim=-1)
+    c = torch.ones([M.shape[0], M.shape[2] - 1], device=device)
+    c = torch.cat([c, torch.ones([M.shape[0], 1], device=device) * M.shape[2]], dim=-1)
     p = sinkhorn(M, r, c, iteration)
     return p
 
