@@ -141,6 +141,7 @@ class SuperPoint(nn.Module):
         # path = Path(__file__).parent / 'weights/superpoint_v1.pth'
         path = config['weight_path']
         self.load_state_dict(torch.load(str(path), map_location='cpu'), strict=True)
+        print('Load SuperPoint weight from ', path)
 
         mk = self.config['max_keypoints']
         if mk == 0 or mk < -1:
@@ -171,7 +172,13 @@ class SuperPoint(nn.Module):
     def extract_local_global(self, data):
         # Shared Encoder
         b, ic, ih, iw = data['image'].shape
-        x0 = self.relu(self.conv1a(data['image']))
+        if ic == 3:
+            img = torch.mean(data['image'], dim=1, keepdim=True)
+            ic = 1
+        else:
+            img = data['image']
+
+        x0 = self.relu(self.conv1a(img))
         x0 = self.relu(self.conv1b(x0))
         x0 = self.pool(x0)
         x1 = self.relu(self.conv2a(x0))
@@ -206,7 +213,7 @@ class SuperPoint(nn.Module):
             keypoints = [
                 torch.nonzero(s >= self.config['keypoint_threshold'] * 0.5)
                 for s in nms_scores]
-            scores = [s[tuple(k.t())] for s, k in zip(nms_scores, keypoints)]
+        scores = [s[tuple(k.t())] for s, k in zip(nms_scores, keypoints)]
 
         # Discard keypoints near the image borders
         keypoints, scores = list(zip(*[
@@ -404,9 +411,9 @@ def extract_descriptor(sample_pts, coarse_desc, H, W):
 
 
 def extract_sp_return(model, img, conf_th=0.005,
-                       mask=None,
-                       topK=-1,
-                       **kwargs):
+                      mask=None,
+                      topK=-1,
+                      **kwargs):
     old_bm = torch.backends.cudnn.benchmark
     torch.backends.cudnn.benchmark = False  # speedup
 
@@ -605,3 +612,8 @@ def extract_sp_return(model, img, conf_th=0.005,
                 "descriptors": descriptors,
                 "scores": scores,
                 }
+
+
+def load_superpoint(weight_path):
+    net = SuperPoint(config={'weight_path': weight_path}).cuda().eval()
+    return net

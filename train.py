@@ -16,6 +16,7 @@ import torch.multiprocessing as mp
 import torch.distributed as dist
 
 from nets.sfd2 import load_sfd2
+from nets.superpoint import load_superpoint
 from nets.segnet import SegNet
 from nets.segnetvit import SegNetViT
 from nets.load_segnet import load_segnet
@@ -120,8 +121,12 @@ if __name__ == '__main__':
     img_transforms.append(tvt.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]))
     img_transforms = tvt.Compose(img_transforms)
 
-    feat_model = load_sfd2(weight_path=args.feat_weight_path).cuda().eval()
-    print('Load SFD2 weight from {:s}'.format(args.feat_weight_path))
+    if config['feature'] == 'sfd2':
+        feat_model = load_sfd2(weight_path=args.feat_weight_path).cuda().eval()
+        print('Load SFD2 weight from {:s}'.format(args.feat_weight_path))
+    elif config['feature'] == 'spp':
+        feat_model = load_superpoint(
+            weight_path='/scratches/flyer_2/fx221/Research/Code/third_weights/superpoint_v1.pth').cuda().eval()
 
     dataset = config['dataset']
     train_set = compose_datasets(datasets=dataset, config=config, train=True, sample_ratio=None)
@@ -161,8 +166,11 @@ if __name__ == '__main__':
                                           num_workers=4)
         else:
             test_loader = None
-        trainer = Trainer(model=model, train_loader=train_loader, feat_model=feat_model, eval_loader=test_loader,
-                          config=config, img_transforms=img_transforms)
+        trainer = Trainer(model=model, train_loader=train_loader,
+                          feat_model=feat_model,
+                          eval_loader=test_loader,
+                          config=config,
+                          img_transforms=img_transforms)
         trainer.train()
     else:
         mp.spawn(train_DDP, nprocs=len(config['gpu']),
