@@ -11,6 +11,7 @@ import torchvision.transforms.transforms as tvt
 import yaml
 from nets.load_segnet import load_segnet
 from nets.sfd2 import load_sfd2
+from nets.superpoint import load_superpoint
 from dataset.get_dataset import compose_datasets
 
 parser = argparse.ArgumentParser(description='PRAM', formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -26,9 +27,12 @@ if __name__ == '__main__':
         config = yaml.load(f, Loader=yaml.Loader)
     config['landmark_path'] = args.landmark_path
 
-    feat_model = load_sfd2(weight_path=args.feat_weight_path).cuda().eval()
-    print('Load SFD2 weight from {:s}'.format(args.feat_weight_path))
-
+    if config['feature'] == 'sfd2':
+        feat_model = load_sfd2(weight_path=args.feat_weight_path).cuda().eval()
+        print('Load SFD2 weight from {:s}'.format(args.feat_weight_path))
+    elif config['feature'] == 'spp':
+        feat_model = load_superpoint(
+            weight_path='/scratches/flyer_2/fx221/Research/Code/third_weights/superpoint_v1.pth').cuda().eval()
     # rec_model = get_model(config=config)
     rec_model = load_segnet(network=config['network'],
                             n_class=config['n_class'],

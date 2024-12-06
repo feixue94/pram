@@ -41,7 +41,7 @@ confs = {
         },
     },
 
-    'superglue': {
+    'sg': {
         'output': 'superglue',
         'model': {
             'name': 'superglue',

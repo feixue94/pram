@@ -169,7 +169,7 @@ class SuperPoint(nn.Module):
 
         return [x0, x1, x2, x3, x4]
 
-    def extract_local_global(self, data):
+    def extract_local_global(self, data, config={}):
         # Shared Encoder
         b, ic, ih, iw = data['image'].shape
         if ic == 3:
