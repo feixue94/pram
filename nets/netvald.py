@@ -131,6 +131,18 @@ def load_netvlad(weight_path: str, encoder_name: str = 'vgg16', pretrained=True,
                     p.requires_grad = False
     else:
         raise 'Please specify an encoder name either vgg16 or alexnet.'
+
+    encoder = nn.Sequential(*layers)
+    model = nn.Module()
+    model.add_module('encoder', encoder)
     net_vlad = NetVLAD(num_clusters=num_clusters, dim=encoder_dim, vladv2=False)
-    net_vlad.load_state_dict(torch.load(weight_path, map_location='cpu'), strict=True)
-    return net_vlad
+    model.add_module('pool', net_vlad)
+    model.load_state_dict(torch.load(weight_path, map_location='cpu')["state_dict"], strict=True)
+    return model
+
+
+def extract_netvlad_feat(x, model):
+    with torch.no_grad():
+        image_encoding = model.encoder(x)
+        vlad_encoding = model.pool(image_encoding)
+        return vlad_encoding
