@@ -252,41 +252,42 @@ class MultiMap3D:
             else:
                 ret = pred_sub_map.refine_pose(q_frame=q_frame,
                                                refinement_method='matching')  # do not trust the pose for projection
+            success = ret['success']
+            if success:
+                q_frame.time_ref = time.time() - t_start
 
-            q_frame.time_ref = time.time() - t_start
+                inlier_mask = np.array(ret['inliers'])
 
-            inlier_mask = np.array(ret['inliers'])
+                q_frame.qvec = ret['qvec']
+                q_frame.tvec = ret['tvec']
+                q_frame.matched_keypoints = ret['matched_keypoints'][inlier_mask]
+                q_frame.matched_keypoint_ids = ret['matched_keypoint_ids'][inlier_mask]
+                q_frame.matched_xyzs = ret['matched_xyzs'][inlier_mask]
+                q_frame.matched_point3D_ids = ret['matched_point3D_ids'][inlier_mask]
+                q_frame.matched_sids = ret['matched_sids'][inlier_mask]
+                q_frame.matched_inliers = np.array(ret['inliers'])[inlier_mask]
 
-            q_frame.qvec = ret['qvec']
-            q_frame.tvec = ret['tvec']
-            q_frame.matched_keypoints = ret['matched_keypoints'][inlier_mask]
-            q_frame.matched_keypoint_ids = ret['matched_keypoint_ids'][inlier_mask]
-            q_frame.matched_xyzs = ret['matched_xyzs'][inlier_mask]
-            q_frame.matched_point3D_ids = ret['matched_point3D_ids'][inlier_mask]
-            q_frame.matched_sids = ret['matched_sids'][inlier_mask]
-            q_frame.matched_inliers = np.array(ret['inliers'])[inlier_mask]
+                q_frame.refinement_reference_frame_ids = ret['refinement_reference_frame_ids']
+                q_frame.reference_frame_id = ret['reference_frame_id']
 
-            q_frame.refinement_reference_frame_ids = ret['refinement_reference_frame_ids']
-            q_frame.reference_frame_id = ret['reference_frame_id']
-
-            q_err, t_err = q_frame.compute_pose_error()
-            ref_full_name = q_frame.matched_scene_name + '/' + pred_sub_map.reference_frames[
-                q_frame.reference_frame_id].name
-            print_text = 'Localization of {:s} success with inliers {:d}/{:d} with ref_name: {:s}, order: {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
-                q_full_name, ret['num_inliers'], len(ret['inliers']), ref_full_name, q_frame.matched_order, q_err,
-                t_err)
-            print(print_text)
-
-            if show:
                 q_err, t_err = q_frame.compute_pose_error()
-                num_matches = ret['matched_keypoints'].shape[0]
-                num_inliers = ret['num_inliers']
-                show_text = 'Ref:{:d}/{:d},r_err:{:.2f}/t_err:{:.2f}'.format(num_matches, num_inliers, q_err,
+                ref_full_name = q_frame.matched_scene_name + '/' + pred_sub_map.reference_frames[
+                    q_frame.reference_frame_id].name
+                print_text = 'Localization of {:s} success with inliers {:d}/{:d} with ref_name: {:s}, order: {:d}, q_err: {:.2f}, t_err: {:.2f}'.format(
+                q_full_name, ret['num_inliers'], len(ret['inliers']), ref_full_name, q_frame.matched_order, q_err,
+                    t_err)
+                print(print_text)
+
+                if show:
+                    q_err, t_err = q_frame.compute_pose_error()
+                    num_matches = ret['matched_keypoints'].shape[0]
+                    num_inliers = ret['num_inliers']
+                    show_text = 'Ref:{:d}/{:d},r_err:{:.2f}/t_err:{:.2f}'.format(num_matches, num_inliers, q_err,
                                                                              t_err)
-                q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 130),
+                    q_img_inlier = cv2.putText(img=q_img_inlier, text=show_text, org=(30, 130),
                                            fontFace=cv2.FONT_HERSHEY_SIMPLEX, fontScale=1, color=(0, 0, 255),
                                            thickness=2, lineType=cv2.LINE_AA)
-                q_frame.image_inlier = q_img_inlier
+                    q_frame.image_inlier = q_img_inlier
 
             return True
 

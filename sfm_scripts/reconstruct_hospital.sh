@@ -10,13 +10,15 @@ output_dir=/scratches/flyer_2/fx221/publications/test_pram/Hospital
 feat=sfd2
 matcher=gml
 
+#python3 -m localization.extract_features --image_dir /scratches/flyer_3/fx221/dataset/Hospital/query --export_dir /scratches/flyer_2/fx221/publications/test_pram/Hospital/front --conf $feat
+
 #feat=superpoint-n4096
 #matcher=superglue
 
-extract_feat_db=1
-match_db=1
-triangulation=1
-localize=1
+extract_feat_db=0
+match_db=0
+triangulation=0
+localize=0
 
 
 ransac_thresh=12

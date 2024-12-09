@@ -1099,7 +1099,7 @@ def process_dataset(dataset, dataset_dir, sfm_dir, save_dir, feature='sfd2', mat
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser()
+    parser = argparse.ArgumentParser('')
     parser.add_argument('--dataset', type=str, required=True, help='dataset name')
     parser.add_argument('--dataset_dir', type=str, required=True, help='dataset dir')
     parser.add_argument('--sfm_dir', type=str, required=True, help='sfm dir')
