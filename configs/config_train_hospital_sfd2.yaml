@@ -3,7 +3,7 @@ dataset: [ 'Hospital' ]
 network: "segnetvit"
 
 local_rank: 0
-gpu: [ 0,1,2,5]
+gpu: [ 0,1,2,5 ]
 
 feature: "sfd2"
 save_path: '/scratches/flyer_2/fx221/exp/pram'
@@ -64,12 +64,13 @@ do_eval: false
 cluster_method_: 'kmeans'
 cluster_method: 'birch'
 
-weight_path: null
+weight_path_: null
+weight_path: '20241209_145534_segnetvit_L15_Hospital_sfd2_B32_K512_od1024_nc129_md_A_birch/segnetvit.198.pth'
 resume_path: null
 
 eval: false
-loc: false
-#loc: true
+#loc: false
+loc: true
 online: false
 #online: true
 n_class: 129
@@ -79,26 +80,25 @@ eval_max_keypoints: 4096
 localization:
   loc_scene_name: [ ]
   save_path: '/scratches/flyer_2/fx221/exp/localizer/loc_results'
-  dataset: [ 'CUED' ]
-  seg_k: 30
+  dataset: [ 'Hospital' ]
+  seg_k: 20
   threshold: 12
-  min_kpts: 256
+  min_kpts: 128
   min_matches: 16
-  min_inliers: 32
+  min_inliers: 64
   matching_method_: "mnn"
-  matching_method_1: "spg"
-  matching_method: "gm"
+  matching_method: "gml"
   save: false
   show: true
   show_time: 1
-  max_vrf: 1
   with_original: true
-  with_extra: false
+  max_vrf: 1
   with_compress: true
-  semantic_matching: True
-  do_refinement: false
-  refinement_method_: 'matching'
-  refinement_method: 'projection'
+  semantic_matching: true
+  do_refinement: true
+  pre_filtering_th: 0.95
+  refinement_method: 'matching'
+  refinement_method_: 'projection'
   covisibility_frame: 20
   refinement_radius: 20
   refinement_nn_ratio: 0.9

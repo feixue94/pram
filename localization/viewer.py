@@ -150,6 +150,9 @@ class Viewer:
         z = w * 0.6
         for sid in self.subMap.seg_ref_frame_ids.keys():
             frame_id = self.subMap.seg_ref_frame_ids[sid][0]
+            if frame_id not in self.subMap.reference_frames.keys():
+                print(f'Frame: {frame_id} not in subMap.seg_ref_frame_ids')
+                continue
             qvec = self.subMap.reference_frames[frame_id].qvec
             tcw = self.subMap.reference_frames[frame_id].tvec
 

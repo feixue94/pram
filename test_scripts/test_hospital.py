@@ -17,6 +17,9 @@ from localization.base_model import dynamic_load
 import localization.matchers as matchers
 from recognition.vis_seg import plot_matches, plot_kpts
 
+def prepare_query_intrinsics_poses():
+    pass
+
 if __name__ == '__main__':
     conf = feat_confs['sfd2']
     sfd2, extractor = get_model(model_name=conf['model']['name'], weight_path=conf["model"]["model_fn"],
