@@ -18,7 +18,7 @@ matcher=gml
 extract_feat_db=0
 match_db=0
 triangulation=0
-localize=0
+localize=1
 
 
 ransac_thresh=12

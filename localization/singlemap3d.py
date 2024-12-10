@@ -39,7 +39,9 @@ class SingleMap3D:
             p3d_descs = np.load(osp.join(config['landmark_path'], 'compress_model_{:s}/point3D_desc.npy'.format(
                 config['cluster_method'])), allow_pickle=True)[()]
 
-        print('Load {} cameras {} images {} 3D points'.format(len(cameras), len(images), len(p3d_descs)))
+        print(
+            'Load {} cameras {} images {} 3D points from compress {}'.format(len(cameras), len(images), len(p3d_descs),
+                                                                             with_compress))
 
         seg_data = np.load(
             osp.join(config['landmark_path'], 'point3D_cluster_n{:d}_{:s}_{:s}.npy'.format(config['n_cluster'],
@@ -75,6 +77,9 @@ class SingleMap3D:
             self.seg_ref_frame_ids[sid] = []
             for vi in seg_vrf[sid].keys():
                 vrf_frame_id = seg_vrf[sid][vi]['image_id']
+                if vrf_frame_id not in self.reference_frames.keys():
+                    print(f'{vrf_frame_id} not in reference_frames')
+                    continue
                 self.seg_ref_frame_ids[sid].append(vrf_frame_id)
                 if with_compress and vrf_frame_id in self.reference_frames.keys():
                     self.reference_frames[vrf_frame_id].point3D_ids = seg_vrf[sid][vi]['original_points3d']
@@ -120,9 +125,13 @@ class SingleMap3D:
         for id in images.keys():
             im = images[id]
             cam = cameras[im.camera_id]
-            self.reference_frames[id] = RefFrame(camera=cam, id=id, qvec=im.qvec, tvec=im.tvec,
+            self.reference_frames[id] = RefFrame(camera=cam,
+                                                 id=id,
+                                                 qvec=im.qvec,
+                                                 tvec=im.tvec,
                                                  point3D_ids=im.point3D_ids,
-                                                 keypoints=im.xys, name=im.name)
+                                                 keypoints=im.xys,
+                                                 name=im.name)
 
     def localize_with_ref_frame(self, q_frame: Frame, q_kpt_ids: np.ndarray, sid, semantic_matching=False):
         ref_frame_id = self.seg_ref_frame_ids[sid][0]

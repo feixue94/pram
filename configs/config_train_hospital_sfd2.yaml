@@ -84,8 +84,8 @@ localization:
   seg_k: 20
   threshold: 12
   min_kpts: 128
-  min_matches: 16
-  min_inliers: 64
+  min_matches: 32
+  min_inliers: 32
   matching_method_: "mnn"
   matching_method: "gml"
   save: false
@@ -93,7 +93,7 @@ localization:
   show_time: 1
   with_original: true
   max_vrf: 1
-  with_compress: true
+  with_compress: false
   semantic_matching: true
   do_refinement: true
   pre_filtering_th: 0.95
